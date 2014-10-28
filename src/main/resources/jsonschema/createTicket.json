@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "subject": {
+      "type": "string",
+      "maxLength": 255
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "integer"
+    },
+    "school_id": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36
+    }
+  },
+  "required": [
+    "subject",
+    "description",
+    "category",
+    "school_id"
+  ]
+}

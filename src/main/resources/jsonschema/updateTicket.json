@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "subject": {
+      "type": "string",
+      "maxLength": 255
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "integer"
+    },
+    "school_id": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36
+    },
+    "status": {
+      "description" : "A value of enum TicketStatus.java",
+      "enum": [ 1, 2, 3, 4 ]
+    }
+  }
+}
