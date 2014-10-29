@@ -94,12 +94,7 @@ public class TicketController extends ControllerHelper {
 			@Override
 			public void handle(final UserInfos user) {
 				if (user != null) {
-					RequestUtils.bodyToJson(request, pathPrefix + "updateTicket", new Handler<JsonObject>(){
-						@Override
-						public void handle(JsonObject ticket) {
-							ticketService.list(VisibilityFilter.OWNER, user, arrayResponseHandler(request));
-						}
-					});
+					ticketService.list(VisibilityFilter.OWNER, user, arrayResponseHandler(request));
 				} else {
 					log.debug("User not found in session.");
 					unauthorized(request);
