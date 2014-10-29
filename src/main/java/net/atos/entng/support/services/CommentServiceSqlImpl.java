@@ -1,10 +1,11 @@
 package net.atos.entng.support.services;
 
+import static org.entcore.common.sql.SqlResult.*;
+
 import org.entcore.common.service.impl.SqlCrudService;
-import org.entcore.common.user.UserInfos;
+import org.entcore.common.sql.Sql;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.json.JsonArray;
-import org.vertx.java.core.json.JsonObject;
 
 import fr.wseduc.webutils.Either;
 
@@ -15,24 +16,12 @@ public class CommentServiceSqlImpl extends SqlCrudService implements CommentServ
 	}
 
 	@Override
-	public void addComment(String ticketId, JsonObject data, UserInfos user,
-			Handler<Either<String, JsonObject>> handler) {
-		// TODO Auto-generated method stub
-	}
+	public void listTicketComments(String ticketId, Handler<Either<String, JsonArray>> handler) {
 
-	@Override
-	public void updateComment(String ticketId, String commentId,
-			JsonObject data, UserInfos user,
-			Handler<Either<String, JsonObject>> handler) {
-		// TODO Auto-generated method stub
+		String query = "SELECT * FROM support.comments WHERE ticket_id = ?";
+		JsonArray values = new JsonArray().add(Sql.parseId(ticketId));
 
-	}
-
-	@Override
-	public void listTicketComments(String ticketId, UserInfos user,
-			Handler<Either<String, JsonArray>> handler) {
-		// TODO Auto-generated method stub
-
+		sql.prepared(query, values, validResultHandler(handler));
 	}
 
 
