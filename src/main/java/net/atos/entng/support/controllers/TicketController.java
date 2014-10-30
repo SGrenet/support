@@ -3,8 +3,10 @@ package net.atos.entng.support.controllers;
 import static net.atos.entng.support.TicketStatus.*;
 import static org.entcore.common.http.response.DefaultResponseHandler.arrayResponseHandler;
 import static org.entcore.common.http.response.DefaultResponseHandler.notEmptyResponseHandler;
+import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 
 import org.entcore.common.controller.ControllerHelper;
+import org.entcore.common.http.filter.ResourceFilter;
 import org.entcore.common.service.CrudService;
 import org.entcore.common.service.VisibilityFilter;
 import org.entcore.common.service.impl.SqlCrudService;
@@ -18,6 +20,7 @@ import fr.wseduc.rs.ApiDoc;
 import fr.wseduc.rs.Get;
 import fr.wseduc.rs.Post;
 import fr.wseduc.rs.Put;
+import fr.wseduc.security.ActionType;
 import fr.wseduc.security.SecuredAction;
 import fr.wseduc.webutils.request.RequestUtils;
 
@@ -55,7 +58,8 @@ public class TicketController extends ControllerHelper {
 
 	@Put("/ticket/:id")
 	@ApiDoc("Update a ticket")
-	@SecuredAction("support.ticket.manage")
+	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
+	@ResourceFilter(OwnerOrLocalAdmin.class)
 	public void updateTicket(final HttpServerRequest request) {
 		final String ticketId = request.params().get("id");
 
