@@ -1,0 +1,28 @@
+<div class="twelve cell"> <!-- workflow="support.listMyTickets" -->
+	<p ng-if="tickets.isEmpty()">
+		<i18n>support.ticket.empty</i18n>
+	<p>
+	
+	<table class="twelve" ng-if="!tickets.isEmpty()">
+		<thead>
+			<tr>
+				<th class="one"><i18n>support.ticket.table.id</i18n></th>
+				<th class="one"><i18n>support.ticket.table.status</i18n></th>
+				<th class="five"><i18n>support.ticket.table.subject</i18n></th>
+				<th class="one"><i18n>support.ticket.table.category</i18n></th>
+				<th class="two"><i18n>support.ticket.table.author</i18n></th>
+				<th class="two"><i18n>support.ticket.table.last.modified</i18n></th>
+			</tr>
+			</thead>
+		<tbody>
+			<tr ng-repeat="ticket in tickets.all">
+				<td class="one" ng-click="viewTicket(ticket.id)">[[ticket.id]]</td>
+				<td class="one" ng-click="viewTicket(ticket.id)">[[getStatusLabel(ticket.status)]]</td>
+				<td class="five" ng-click="viewTicket(ticket.id)">[[ticket.subject]]</td>
+				<td class="one" ng-click="viewTicket(ticket.id)">[[getCategoryLabel(ticket.category)]]</td>
+				<td class="two" ng-click="viewTicket(ticket.id)">[[ticket.owner]]</td>
+				<td class="two" ng-click="viewTicket(ticket.id)">[[formatDate(ticket.modified)]]</td>
+			</tr>
+		</tbody>
+	</table>
+</div>

@@ -1,0 +1,24 @@
+<article class="twelve cell">
+	<form class="row">
+		<div class="row">
+			<label class="one cell"><i18n>support.ticket.category</i18n></label>
+			<select class="eleven cell" ng-model="ticket.category" ng-options="app.address as app.name for app in me.apps">
+			</select>
+		</div>
+		<div class="row">
+			<label class="one cell"><i18n>support.ticket.subject</i18n></label>
+			<input class="eleven cell" type="text" ng-model="ticket.subject" />
+		</div>
+		<div class="row">
+			<label class="one cell"><i18n>support.ticket.description</i18n></label>
+			<div class="eleven cell">
+				<html-editor ng-model="ticket.description"></html-editor>
+			</div>
+		</div>
+		<div class="row">
+			<button class="right-magnet" ng-click="createTicket()" translate content="support.ticket.save"></button>
+			<button class="right-magnet cancel" ng-click="cancelCreateTicket()" translate content="support.ticket.cancel"></button>
+		</div>
+		<div class="clear"></div>
+	</form>
+</article>

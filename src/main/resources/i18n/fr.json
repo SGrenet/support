@@ -1,3 +1,31 @@
 {
-	"support.title": "Aide et support"
+	"support.title" : "Aide et support",
+	
+	"support.ticket.create" : "Nouvelle demande",
+	
+	"support.ticket.author" : "Demandeur",
+	"support.ticket.category" : "Catégorie",
+	"support.ticket.description" : "Description",
+	"support.ticket.id" : "Identifiant",
+	"support.ticket.creation.date" : "Date de création",
+	"support.ticket.modification.date" : "Dernière modification",
+	"support.ticket.school" : "Etablissement",
+	"support.ticket.status" : "Statut",
+	"support.ticket.subject" : "Sujet",
+	"support.ticket.save" : "Enregistrer",
+	"support.ticket.cancel" : "Annuler",
+	
+	"support.ticket.table.author" : "Demandeur",
+	"support.ticket.table.category" : "Catégorie",
+	"support.ticket.table.id" : "Id",
+	"support.ticket.table.last.modified" : "Dernière modification",	
+	"support.ticket.table.status" : "Statut",
+	"support.ticket.table.subject" : "Sujet",
+	"support.ticket.empty" : "Aucune demande",
+	
+	"support.ticket.status.new" : "Nouveau",
+	"support.ticket.status.opened" : "Ouvert",
+	"support.ticket.status.resolved" : "Résolu",
+	"support.ticket.status.closed" : "Fermé"
+
 }

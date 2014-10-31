@@ -1,0 +1,43 @@
+<article class="twelve cell">
+	<form class="row">
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.id</i18n></p>
+			<p class="eleven cell">[[ticket.id]]</p>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.author</i18n></p>
+			<p class="eleven cell">[[ticket.owner]]</p>
+		</div>		
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.school</i18n></p>
+			<p class="eleven cell">[[ticket.school_id]]</p>
+		</div>
+
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.status</i18n></p>
+			<p class="eleven cell">[[getStatusLabel(ticket.status)]]</p>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.creation.date</i18n></p>
+			<p class="eleven cell">[[formatDate(ticket.created)]]</p>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.modification.date</i18n></p>
+			<p class="eleven cell">[[formatDate(ticket.modified)]]</p>
+		</div>
+
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.category</i18n></p>
+			<p class="eleven cell">[[getCategoryLabel(ticket.category)]]</p>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.subject</i18n></p>
+			<p class="eleven cell">[[ticket.subject]]</p>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.description</i18n></p>
+			<div class="eleven cell" bind-html="ticket.description" />
+		</div>
+		<div class="clear"></div>
+	</form>
+</article>

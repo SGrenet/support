@@ -11,7 +11,8 @@
       "type": "string"
     },
     "category": {
-      "type": "integer"
+      "type": "string",
+      "maxLength": 255
     },
     "school_id": {
       "type": "string",
