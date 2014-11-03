@@ -1,0 +1,54 @@
+<article class="twelve cell">
+	<form class="row">
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.id</i18n></p>
+			<p class="eleven cell">[[editedTicket.id]]</p>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.author</i18n></p>
+			<p class="eleven cell">[[editedTicket.owner]]</p>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.school</i18n></p>
+			<p class="eleven cell">[[editedTicket.school_id]]</p>
+		</div>
+
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.status</i18n></p>
+			<select class="eleven cell" ng-model="editedTicket.status"
+				ng-options="object.value as object.i18nValue for (key, object) in statuses">
+			</select>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.creation.date</i18n></p>
+			<p class="eleven cell">[[formatDate(editedTicket.created)]]</p>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.modification.date</i18n></p>
+			<p class="eleven cell">[[formatDate(editedTicket.modified)]]</p>
+		</div>
+
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.category</i18n></p>
+			<select class="eleven cell" ng-model="editedTicket.category" 
+				ng-options="app.address as app.name for app in apps">
+			</select>
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.subject</i18n></p>
+			<input class="eleven cell" type="text" ng-model="editedTicket.subject" />
+		</div>
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.description</i18n></p>
+			<div class="eleven cell">
+				<html-editor ng-model="editedTicket.description"></html-editor>
+			</div>
+		</div>
+		
+		<div class="row">
+			<button class="right-magnet" ng-click="editTicket()" translate content="support.ticket.save"></button>
+			<button class="right-magnet cancel" ng-click="cancelEditTicket()" translate content="support.ticket.cancel"></button>
+		</div>
+		<div class="clear"></div>
+	</form>
+</article>

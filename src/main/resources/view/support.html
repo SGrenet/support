@@ -22,6 +22,9 @@
 					<button ng-click="newTicket()" workflow="support.createTicket" class="cell right-magnet">
 						<i18n>support.ticket.create</i18n>
 					</button>
+					<button ng-click="editTicket()" ng-if="ticket && ticket.id" class="cell right-magnet">
+						<i18n>support.ticket.edit</i18n>
+					</button>
 				</div>
 			</div>
 			<section >

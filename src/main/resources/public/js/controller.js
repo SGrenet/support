@@ -28,10 +28,19 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		
 		$scope.tickets = model.tickets;
 		$scope.apps = orderByFilter(model.me.apps, 'name');
+		
+		// Clone status enum and add i18n value
+		var statusEnum = JSON.parse(JSON.stringify(model.ticketStatusEnum));
+		for (var status in statusEnum.properties) {
+			if (statusEnum.properties.hasOwnProperty(status)) {
+				statusEnum.properties[status].i18nValue = $scope.getStatusLabel(statusEnum.properties[status].value);			
+			}
+		}
+		$scope.statuses = statusEnum.properties;
 	};
 	
+	// View tickets
 	$scope.displayTicketList = function() {
-		// model.tickets.unbind('sync');
 		$scope.registerViewTicketListEvent();
     	model.tickets.sync();
 	};
@@ -64,6 +73,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		template.open('main', 'view-ticket');
 	};
 	
+	// Create ticket
 	$scope.newTicket = function() {
 		$scope.ticket = new Ticket();
 		template.open('main', 'create-ticket');
@@ -79,6 +89,24 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	$scope.cancelCreateTicket = function() {
 		template.open('main', 'list-tickets');
 	};
+	
+	// Update ticket
+	$scope.editTicket = function() {
+		$scope.editedTicket = _.find(model.tickets.all, function(ticket){
+			return ticket.id === $scope.ticket.id;
+		});
+		template.open('main', 'edit-ticket');
+	};
+	
+	$scope.updateTicket = function() {
+		// TODO
+	};
+	
+	$scope.cancelEditTicket = function() {
+		$scope.editedTicket = new Ticket();
+		template.open('main', 'view-ticket');
+	};
+	
 	
 	// Date functions
 	$scope.formatDate = function(date) {

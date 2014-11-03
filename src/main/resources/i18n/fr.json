@@ -2,6 +2,7 @@
 	"support.title" : "Aide et support",
 	
 	"support.ticket.create" : "Nouvelle demande",
+	"support.ticket.edit" : "Mettre à jour la demande",
 	
 	"support.ticket.author" : "Demandeur",
 	"support.ticket.category" : "Catégorie",
