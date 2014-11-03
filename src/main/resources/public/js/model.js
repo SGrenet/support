@@ -5,10 +5,10 @@ model.ticketStatusEnum = {
 	RESOLVED: 3,
 	ClOSED: 4,
 	properties: {
-	    1: {i18n: "support.ticket.status.new", value: 1},
-	    2: {i18n: "support.ticket.status.opened", value: 2},
-	    3: {i18n: "support.ticket.status.resolved", value: 3},
-	    4: {i18n: "support.ticket.status.closed", value: 4}
+	    1: {i18n: "support.ticket.status.new"},
+	    2: {i18n: "support.ticket.status.opened",},
+	    3: {i18n: "support.ticket.status.resolved"},
+	    4: {i18n: "support.ticket.status.closed"}
 	}
 };
 
@@ -28,6 +28,7 @@ function Ticket(){
 Ticket.prototype.createTicket = function(data, callback) {
 	http().postJson('/support/ticket', data).done(function(result){
 		this.updateData(result);
+		model.tickets.push(this);
 		if(typeof callback === 'function'){
 			callback();
 		}

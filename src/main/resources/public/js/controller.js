@@ -1,20 +1,23 @@
 routes.define(function($routeProvider){
     $routeProvider
       .when('/ticket/:ticketId', {
-        action: 'viewTicket'
+        action: 'displayTicket'
+      })
+      .when('/list-tickets', {
+		action: 'listTickets'
       })
       .otherwise({
-    	  action: 'defaultView'
+    	redirectTo: '/list-tickets'
       });
 });
 
 function SupportController($scope, template, model, route, $location, orderByFilter){
 
 	route({
-		viewTicket: function(params) {
-			$scope.viewTicket(params.ticketId);
+		displayTicket: function(params) {
+			$scope.displayTicket(params.ticketId);
 		},
-        defaultView: function() {
+		listTickets: function() {
         	$scope.registerViewTicketListEvent();	    
         }
 	});
@@ -28,21 +31,36 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 	
 	$scope.displayTicketList = function() {
+		// model.tickets.unbind('sync');
 		$scope.registerViewTicketListEvent();
     	model.tickets.sync();
 	};
 
 	$scope.registerViewTicketListEvent = function() {
     	model.tickets.one('sync', function() {
-	    	window.location.hash = '';
+    		window.location.hash = '';
 			template.open('main', 'list-tickets');
     	});		
 	};
 	
+	$scope.displayTicket = function(ticketId) {
+		if(model.tickets.all === undefined || model.tickets.isEmpty()) {
+	    	model.tickets.one('sync', function() {
+	    		$scope.viewTicket(ticketId);
+	    	});
+	    	model.tickets.sync();
+		}
+		else {
+			$scope.viewTicket(ticketId);
+		}
+	};
+	
 	$scope.viewTicket = function(ticketId) {
+		var id = parseInt(ticketId,10);
 		$scope.ticket = _.find(model.tickets.all, function(ticket){
-			return ticket.id === ticketId;
+			return ticket.id === id;
 		});
+		window.location.hash = '/ticket/' + $scope.ticket.id;
 		template.open('main', 'view-ticket');
 	};
 	
@@ -53,7 +71,9 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	
 	$scope.createTicket = function() {
 		template.open('main', 'view-ticket');
-		$scope.ticket.createTicket($scope.ticket);
+		$scope.ticket.createTicket($scope.ticket, function() {
+			window.location.hash = '/ticket/' + $scope.ticket.id;
+		});
 	};
 	
 	$scope.cancelCreateTicket = function() {
