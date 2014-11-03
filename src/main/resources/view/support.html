@@ -18,7 +18,7 @@
 						<a ng-click="displayTicketList()"><i18n>support.title</i18n></a>
 					</h1>
 				</div>
-				<div class="contextual-buttons four cell">
+				<div class="contextual-buttons four cell" ng-if="!isCreatingOrEditing()">
 					<button ng-click="newTicket()" workflow="support.createTicket" class="cell right-magnet">
 						<i18n>support.ticket.create</i18n>
 					</button>

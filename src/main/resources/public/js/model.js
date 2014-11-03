@@ -36,8 +36,8 @@ Ticket.prototype.createTicket = function(data, callback) {
 };
 
 Ticket.prototype.updateTicket = function(data, callback) {
-	http().putJson('/support/ticket', data).done(function(result){
-		// this.updateData(result);
+	http().putJson('/support/ticket/' + this.id, data).done(function(result){
+		this.updateData(result);
 		this.trigger('change');
 		if(typeof callback === 'function'){
 			callback();
@@ -52,6 +52,9 @@ Ticket.prototype.toJSON = function() {
 		    category : this.category,
 		    school_id : model.me.structures[0] // TODO : à modifier
 	};
+	if(this.status !== undefined) {
+		json.status = this.status;
+	}
 	
 	return json;
 };

@@ -99,7 +99,9 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 	
 	$scope.updateTicket = function() {
-		// TODO
+		$scope.editedTicket.updateTicket($scope.editedTicket, function() {
+			template.open('main', 'view-ticket');
+		});
 	};
 	
 	$scope.cancelEditTicket = function() {
@@ -107,6 +109,10 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		template.open('main', 'view-ticket');
 	};
 	
+	$scope.isCreatingOrEditing = function() {
+		return (template.contains('main', 'create-ticket') || 
+				template.contains('main', 'edit-ticket'));
+	};
 	
 	// Date functions
 	$scope.formatDate = function(date) {

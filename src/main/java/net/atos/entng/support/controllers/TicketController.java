@@ -70,9 +70,8 @@ public class TicketController extends ControllerHelper {
 					RequestUtils.bodyToJson(request, pathPrefix + "updateTicket", new Handler<JsonObject>(){
 						@Override
 						public void handle(JsonObject ticket) {
-
 							// TODO : do not authorize description update if there is a comment
-							ticketService.update(ticketId, ticket, notEmptyResponseHandler(request));
+							ticketService.updateTicket(ticketId, ticket, user, notEmptyResponseHandler(request));
 						}
 					});
 				} else {

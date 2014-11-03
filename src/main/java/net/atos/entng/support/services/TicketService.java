@@ -10,4 +10,7 @@ import fr.wseduc.webutils.Either;
 public interface TicketService extends CrudService {
 
 	public void createTicket(JsonObject data, UserInfos user, Handler<Either<String, JsonObject>> handler);
+
+	public void updateTicket(String id, JsonObject data, UserInfos user,
+			Handler<Either<String, JsonObject>> handler);
 }
