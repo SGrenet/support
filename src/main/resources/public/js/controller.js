@@ -8,7 +8,7 @@ routes.define(function($routeProvider){
       });
 });
 
-function SupportController($scope, template, model, route, $location){
+function SupportController($scope, template, model, route, $location, orderByFilter){
 
 	route({
 		viewTicket: function(params) {
@@ -24,7 +24,7 @@ function SupportController($scope, template, model, route, $location){
 		$scope.me = model.me;
 		
 		$scope.tickets = model.tickets;
-		$scope.categories = model.me.apps;
+		$scope.apps = orderByFilter(model.me.apps, 'name');
 	};
 	
 	$scope.displayTicketList = function() {
@@ -54,6 +54,10 @@ function SupportController($scope, template, model, route, $location){
 	$scope.createTicket = function() {
 		template.open('main', 'view-ticket');
 		$scope.ticket.createTicket($scope.ticket);
+	};
+	
+	$scope.cancelCreateTicket = function() {
+		template.open('main', 'list-tickets');
 	};
 	
 	// Date functions

@@ -4,12 +4,12 @@ import static net.atos.entng.support.TicketStatus.*;
 import static org.entcore.common.http.response.DefaultResponseHandler.arrayResponseHandler;
 import static org.entcore.common.http.response.DefaultResponseHandler.notEmptyResponseHandler;
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
+import net.atos.entng.support.services.TicketService;
+import net.atos.entng.support.services.TicketServiceSqlImpl;
 
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;
-import org.entcore.common.service.CrudService;
 import org.entcore.common.service.VisibilityFilter;
-import org.entcore.common.service.impl.SqlCrudService;
 import org.entcore.common.user.UserInfos;
 import org.entcore.common.user.UserUtils;
 import org.vertx.java.core.Handler;
@@ -27,10 +27,10 @@ import fr.wseduc.webutils.request.RequestUtils;
 
 public class TicketController extends ControllerHelper {
 
-	private CrudService ticketService;
+	private TicketService ticketService;
 
 	public TicketController() {
-		ticketService = new SqlCrudService("support", "tickets");
+		ticketService = new TicketServiceSqlImpl();
 	}
 
 	@Post("/ticket")
@@ -45,7 +45,7 @@ public class TicketController extends ControllerHelper {
 						@Override
 						public void handle(JsonObject ticket) {
 							ticket.putNumber("status", NEW.status());
-							ticketService.create(ticket, user, notEmptyResponseHandler(request));
+							ticketService.createTicket(ticket, user, notEmptyResponseHandler(request));
 						}
 					});
 				} else {
