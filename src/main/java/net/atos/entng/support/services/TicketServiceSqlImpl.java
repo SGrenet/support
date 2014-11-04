@@ -2,6 +2,9 @@ package net.atos.entng.support.services;
 
 import static org.entcore.common.sql.Sql.parseId;
 import static org.entcore.common.sql.SqlResult.validUniqueResultHandler;
+import static org.entcore.common.sql.SqlResult.validResultHandler;
+
+import java.util.List;
 
 import org.entcore.common.service.impl.SqlCrudService;
 import org.entcore.common.sql.SqlStatementsBuilder;
@@ -74,6 +77,37 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		// Send queries to event bus
 		sql.transaction(s.build(), validUniqueResultHandler(1, handler));
+	}
+
+	@Override
+	public void listTickets(UserInfos user, Handler<Either<String, JsonArray>> handler) {
+		StringBuilder query = new StringBuilder();
+		query.append("SELECT t.*, u.username AS owner_name FROM support.tickets AS t")
+			.append(" INNER JOIN support.users AS u ON t.owner = u.id");
+
+		List<String> structures = user.getStructures();
+		JsonArray values = new JsonArray();
+		if(structures != null && !structures.isEmpty()) {
+			query.append(" WHERE t.school_id IN (");
+			for (String structure : user.getStructures()) {
+				query.append("?,");
+				values.addString(structure);
+			}
+			query.deleteCharAt(query.length() - 1);
+			query.append(")");
+		}
+
+		sql.prepared(query.toString(), values, validResultHandler(handler));
+	}
+
+	@Override
+	public void listMyTickets(UserInfos user, Handler<Either<String, JsonArray>> handler) {
+		String query = "SELECT t.*, u.username AS owner_name FROM support.tickets AS t"
+			+ " INNER JOIN support.users AS u ON t.owner = u.id"
+			+ " WHERE t.owner = ?";
+		JsonArray values = new JsonArray().add(user.getUserId());
+
+		sql.prepared(query.toString(), values, validResultHandler(handler));
 	}
 
 }

@@ -12,7 +12,6 @@ import net.atos.entng.support.services.TicketServiceSqlImpl;
 
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;
-import org.entcore.common.service.VisibilityFilter;
 import org.entcore.common.user.DefaultFunctions;
 import org.entcore.common.user.UserInfos;
 import org.entcore.common.user.UserUtils;
@@ -96,10 +95,10 @@ public class TicketController extends ControllerHelper {
 				if (user != null) {
 					Map<String, UserInfos.Function> functions = user.getFunctions();
 					if (functions.containsKey(DefaultFunctions.ADMIN_LOCAL)) {
-						ticketService.list(arrayResponseHandler(request));
+						ticketService.listTickets(user, arrayResponseHandler(request));
 					}
 					else {
-						ticketService.list(VisibilityFilter.OWNER, user, arrayResponseHandler(request));
+						ticketService.listMyTickets(user, arrayResponseHandler(request));
 					}
 				} else {
 					log.debug("User not found in session.");

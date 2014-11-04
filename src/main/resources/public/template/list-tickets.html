@@ -23,7 +23,7 @@
 					<i18n>support.ticket.table.category</i18n></a>
 				</th>
 				<th class="two">
-					<a ng-click="switchSortBy('owner')" ng-class="{selected: sort.expression === 'owner'}">
+					<a ng-click="switchSortBy('owner_name')" ng-class="{selected: sort.expression === 'owner_name'}">
 					<i18n>support.ticket.table.author</i18n></a>
 				</th>
 				<th class="two">
@@ -38,7 +38,7 @@
 				<td class="one" ng-click="viewTicket(ticket.id)">[[getStatusLabel(ticket.status)]]</td>
 				<td class="five" ng-click="viewTicket(ticket.id)">[[ticket.subject]]</td>
 				<td class="one" ng-click="viewTicket(ticket.id)">[[getCategoryLabel(ticket.category)]]</td>
-				<td class="two" ng-click="viewTicket(ticket.id)">[[ticket.owner]]</td>
+				<td class="two" ng-click="viewTicket(ticket.id)">[[ticket.owner_name]]</td>
 				<td class="two" ng-click="viewTicket(ticket.id)">[[formatDate(ticket.modified)]]</td>
 			</tr>
 		</tbody>
