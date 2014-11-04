@@ -3,6 +3,9 @@ package net.atos.entng.support.controllers;
 import static net.atos.entng.support.TicketStatus.*;
 import static org.entcore.common.http.response.DefaultResponseHandler.arrayResponseHandler;
 import static org.entcore.common.http.response.DefaultResponseHandler.notEmptyResponseHandler;
+
+import java.util.Map;
+
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.TicketService;
 import net.atos.entng.support.services.TicketServiceSqlImpl;
@@ -10,6 +13,7 @@ import net.atos.entng.support.services.TicketServiceSqlImpl;
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;
 import org.entcore.common.service.VisibilityFilter;
+import org.entcore.common.user.DefaultFunctions;
 import org.entcore.common.user.UserInfos;
 import org.entcore.common.user.UserUtils;
 import org.vertx.java.core.Handler;
@@ -83,21 +87,20 @@ public class TicketController extends ControllerHelper {
 	}
 
 	@Get("/tickets")
-	@ApiDoc("Get all tickets")
-	@SecuredAction("support.ticket.manage")
-	public void listTickets(final HttpServerRequest request) {
-		ticketService.list(arrayResponseHandler(request));
-	}
-
-	@Get("/tickets/mine")
-	@ApiDoc("Get all tickets created by current user")
+	@ApiDoc("If current user is local admin, get all tickets. Otherwise, get my tickets")
 	@SecuredAction("support.ticket.list")
 	public void listUserTickets(final HttpServerRequest request) {
 		UserUtils.getUserInfos(eb, request, new Handler<UserInfos>() {
 			@Override
 			public void handle(final UserInfos user) {
 				if (user != null) {
-					ticketService.list(VisibilityFilter.OWNER, user, arrayResponseHandler(request));
+					Map<String, UserInfos.Function> functions = user.getFunctions();
+					if (functions.containsKey(DefaultFunctions.ADMIN_LOCAL)) {
+						ticketService.list(arrayResponseHandler(request));
+					}
+					else {
+						ticketService.list(VisibilityFilter.OWNER, user, arrayResponseHandler(request));
+					}
 				} else {
 					log.debug("User not found in session.");
 					unauthorized(request);

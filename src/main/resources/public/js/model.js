@@ -80,7 +80,7 @@ model.build = function() {
 
 	this.collection(Ticket, {
 		sync : function() {
-			http().get('/support/tickets/mine').done(function(tickets) {
+			http().get('/support/tickets').done(function(tickets) {
 				this.load(tickets);
 			}.bind(this));
 		}, 
