@@ -31,5 +31,7 @@
 	"support.ticket.status.resolved" : "Résolu",
 	"support.ticket.status.closed" : "Fermé",
 
-	"support.ticket.notfound.or.unauthorized" : "La demande de support n'existe pas, a été supprimée, ou vous n'avez pas les droits pour y accéder."
+	"support.ticket.notfound.or.unauthorized" : "La demande de support n'existe pas, a été supprimée, ou vous n'avez pas les droits pour y accéder.",
+	"support.ticket.validation.error.subject.is.empty" : "Le champ 'Sujet' doit être renseigné",
+	"support.ticket.validation.error.description.is.empty" : "Le champ 'Description' doit être renseigné"
 }

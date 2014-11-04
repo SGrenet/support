@@ -30,6 +30,11 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.apps = orderByFilter(model.me.apps, 'name');
 		$scope.notFound = false;
 		
+		$scope.sort = {
+			expression : 'modified',
+			reverse : true
+		};
+		
 		// Clone status enum and add i18n value
 		var statusEnum = JSON.parse(JSON.stringify(model.ticketStatusEnum));
 		for (var status in statusEnum.properties) {
@@ -38,6 +43,21 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			}
 		}
 		$scope.statuses = statusEnum.properties;
+	};
+
+	// Sort
+	$scope.sortCategoryFunction = function(ticket) {
+		return $scope.getCategoryLabel(ticket.category);
+	}
+	
+	$scope.switchSortBy = function(expression) {
+		if (expression === $scope.sort.expression) {
+			$scope.sort.reverse = ! $scope.sort.reverse;
+		}
+		else {
+			$scope.sort.expression = expression;
+			$scope.sort.reverse = false;
+		}
 	};
 	
 	// View tickets
@@ -89,6 +109,15 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 	
 	$scope.createTicket = function() {
+		if (!$scope.ticket.subject || $scope.ticket.subject.trim().length === 0){
+			notify.error('support.ticket.validation.error.subject.is.empty');
+			return;
+		}
+		if (!$scope.ticket.description || $scope.ticket.description.trim().length === 0){
+			notify.error('support.ticket.validation.error.description.is.empty');
+			return;
+		}
+		
 		template.open('main', 'view-ticket');
 		$scope.ticket.createTicket($scope.ticket, function() {
 			window.location.hash = '/ticket/' + $scope.ticket.id;
@@ -108,6 +137,15 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 	
 	$scope.updateTicket = function() {
+		if (!$scope.editedTicket.subject || $scope.editedTicket.subject.trim().length === 0){
+			notify.error('support.ticket.validation.error.subject.is.empty');
+			return;
+		}
+		if (!$scope.editedTicket.description || $scope.editedTicket.description.trim().length === 0){
+			notify.error('support.ticket.validation.error.description.is.empty');
+			return;
+		}
+
 		$scope.ticket = $scope.editedTicket;
 		$scope.ticket.updateTicket($scope.ticket, function() {
 			if($scope.ticket.newComment !== undefined && 
