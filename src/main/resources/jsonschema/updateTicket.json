@@ -22,6 +22,9 @@
     "status": {
       "description" : "A value of enum TicketStatus.java",
       "enum": [ 1, 2, 3, 4 ]
+    },
+    "newComment": {
+      "type": "string"
     }
   }
 }

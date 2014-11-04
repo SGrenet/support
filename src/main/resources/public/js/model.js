@@ -55,14 +55,28 @@ Ticket.prototype.toJSON = function() {
 	if(this.status !== undefined) {
 		json.status = this.status;
 	}
+	if(this.newComment !== undefined) {
+		json.newComment = this.newComment;
+	}
 	
 	return json;
+};
+
+Ticket.prototype.getComments = function(callback) {
+	http().get('/support/ticket/' + this.id + '/comments').done(function(result){
+		if(result.length > 0) {
+			this.comments.load(result);
+		}
+		if(typeof callback === 'function'){
+			callback();
+		}
+	}.bind(this));
 };
 
 
 model.build = function() {
 	model.me.workflow.load(['support']);
-	this.makeModels([ Ticket ]);
+	this.makeModels([ Ticket, Comment ]);
 
 	this.collection(Ticket, {
 		sync : function() {

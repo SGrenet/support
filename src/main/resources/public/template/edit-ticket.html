@@ -5,9 +5,9 @@
 				<p class="three cell"><i18n>support.ticket.id</i18n></p>
 				<p class="nine cell">[[editedTicket.id]]</p>
 			</div>
-			<div class="three cell">
-				<p class="nine cell"><i18n>support.ticket.status</i18n></p>
-				<select class="eleven cell" ng-model="editedTicket.status"
+			<div class="six cell">
+				<p class="three cell"><i18n>support.ticket.status</i18n></p>
+				<select class="nine cell" ng-model="editedTicket.status"
 					ng-options="object.value as object.i18nValue for (key, object) in statuses">
 				</select>
 			</div>
@@ -49,7 +49,14 @@
 				<html-editor ng-model="editedTicket.description"></html-editor>
 			</div>
 		</div>
-		
+
+		<div class="row">
+			<p class="one cell"><i18n>support.ticket.new.comment</i18n></p>
+			<div class="eleven cell">
+				<textarea ng-model="editedTicket.newComment"></textarea>
+			</div>
+		</div>
+
 		<div class="row">
 			<button class="right-magnet" ng-click="updateTicket()" translate content="support.ticket.save"></button>
 			<button class="right-magnet cancel" ng-click="cancelEditTicket()" translate content="support.ticket.cancel"></button>

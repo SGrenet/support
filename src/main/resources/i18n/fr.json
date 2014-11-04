@@ -10,11 +10,13 @@
 	"support.ticket.id" : "Identifiant",
 	"support.ticket.creation.date" : "Date de création",
 	"support.ticket.modification.date" : "Dernière modification",
+	"support.ticket.new.comment" : "Nouveau commentaire",
 	"support.ticket.school" : "Etablissement",
 	"support.ticket.status" : "Statut",
 	"support.ticket.subject" : "Sujet",
 	"support.ticket.save" : "Enregistrer",
 	"support.ticket.cancel" : "Annuler",
+	"support.on" : "le",
 	
 	"support.ticket.table.author" : "Demandeur",
 	"support.ticket.table.category" : "Catégorie",

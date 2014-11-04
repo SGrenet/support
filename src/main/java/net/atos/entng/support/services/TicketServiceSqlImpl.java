@@ -48,8 +48,10 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		StringBuilder sb = new StringBuilder();
 		JsonArray values = new JsonArray();
 		for (String attr : data.getFieldNames()) {
-			sb.append(attr).append(" = ?, ");
-			values.add(data.getValue(attr));
+			if(!"newComment".equals(attr)) {
+				sb.append(attr).append(" = ?, ");
+				values.add(data.getValue(attr));
+			}
 		}
 		values.add(parseId(id));
 
@@ -57,6 +59,18 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 				" SET " + sb.toString() + "modified = NOW() " +
 				"WHERE id = ? RETURNING modified";
 		s.prepared(updateTicketQuery, values);
+
+		// Add comment
+		String comment = data.getString("newComment", null);
+		if(comment != null && !comment.trim().isEmpty()) {
+			String insertCommentQuery =
+					"INSERT INTO support.comments (ticket_id, owner, content) VALUES(?, ?, ?)";
+			JsonArray commentValues = new JsonArray();
+			commentValues.add(parseId(id))
+				.add(user.getUserId())
+				.add(comment);
+			s.prepared(insertCommentQuery, commentValues);
+		}
 
 		// Send queries to event bus
 		sql.transaction(s.build(), validUniqueResultHandler(1, handler));

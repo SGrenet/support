@@ -55,22 +55,26 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	$scope.displayTicket = function(ticketId) {
 		if(model.tickets.all === undefined || model.tickets.isEmpty()) {
 	    	model.tickets.one('sync', function() {
-	    		$scope.viewTicket(ticketId);
+	    		$scope.openTicket(ticketId);
 	    	});
 	    	model.tickets.sync();
 		}
 		else {
-			$scope.viewTicket(ticketId);
+			$scope.openTicket(ticketId);
 		}
 	};
 	
-	$scope.viewTicket = function(ticketId) {
+	$scope.openTicket = function(ticketId) {
 		var id = parseInt(ticketId,10);
 		$scope.ticket = _.find(model.tickets.all, function(ticket){
 			return ticket.id === id;
 		});
-		window.location.hash = '/ticket/' + $scope.ticket.id;
 		template.open('main', 'view-ticket');
+		$scope.ticket.getComments();
+	};
+	
+	$scope.viewTicket = function(ticketId) {
+		window.location.hash = '/ticket/' + ticketId;
 	};
 	
 	// Create ticket
@@ -99,7 +103,13 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 	
 	$scope.updateTicket = function() {
-		$scope.editedTicket.updateTicket($scope.editedTicket, function() {
+		$scope.ticket = $scope.editedTicket;
+		$scope.ticket.updateTicket($scope.ticket, function() {
+			if($scope.ticket.newComment !== undefined && 
+					$scope.ticket.newComment.length > 0) {
+				$scope.ticket.getComments();
+			}
+			$scope.ticket.newComment = '';
 			template.open('main', 'view-ticket');
 		});
 	};
