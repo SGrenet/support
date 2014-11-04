@@ -1,31 +1,36 @@
 <article class="twelve cell">
 	<form class="row">
 		<div class="row">
-			<p class="one cell"><i18n>support.ticket.id</i18n></p>
-			<p class="eleven cell">[[editedTicket.id]]</p>
+			<div class="six cell">
+				<p class="three cell"><i18n>support.ticket.id</i18n></p>
+				<p class="nine cell">[[editedTicket.id]]</p>
+			</div>
+			<div class="three cell">
+				<p class="nine cell"><i18n>support.ticket.status</i18n></p>
+				<select class="eleven cell" ng-model="editedTicket.status"
+					ng-options="object.value as object.i18nValue for (key, object) in statuses">
+				</select>
+			</div>
 		</div>
 		<div class="row">
-			<p class="one cell"><i18n>support.ticket.author</i18n></p>
-			<p class="eleven cell">[[editedTicket.owner]]</p>
+			<div class="six cell">
+				<p class="three cell"><i18n>support.ticket.author</i18n></p>
+				<p class="nine cell">[[editedTicket.owner]]</p>
+			</div>
+			<div class="six cell">
+				<p class="three cell"><i18n>support.ticket.creation.date</i18n></p>
+				<p class="nine cell">[[formatDate(editedTicket.created)]]</p>
+			</div>
 		</div>
 		<div class="row">
-			<p class="one cell"><i18n>support.ticket.school</i18n></p>
-			<p class="eleven cell">[[editedTicket.school_id]]</p>
-		</div>
-
-		<div class="row">
-			<p class="one cell"><i18n>support.ticket.status</i18n></p>
-			<select class="eleven cell" ng-model="editedTicket.status"
-				ng-options="object.value as object.i18nValue for (key, object) in statuses">
-			</select>
-		</div>
-		<div class="row">
-			<p class="one cell"><i18n>support.ticket.creation.date</i18n></p>
-			<p class="eleven cell">[[formatDate(editedTicket.created)]]</p>
-		</div>
-		<div class="row">
-			<p class="one cell"><i18n>support.ticket.modification.date</i18n></p>
-			<p class="eleven cell">[[formatDate(editedTicket.modified)]]</p>
+			<div class="six cell">
+				<p class="three cell"><i18n>support.ticket.school</i18n></p>
+				<p class="nine cell">[[editedTicket.school_id]]</p>
+			</div>
+			<div class="six cell">
+				<p class="three cell"><i18n>support.ticket.modification.date</i18n></p>
+				<p class="nine cell">[[formatDate(editedTicket.modified)]]</p>
+			</div>
 		</div>
 
 		<div class="row">
