@@ -28,6 +28,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		
 		$scope.tickets = model.tickets;
 		$scope.apps = orderByFilter(model.me.apps, 'name');
+		$scope.notFound = false;
 		
 		// Clone status enum and add i18n value
 		var statusEnum = JSON.parse(JSON.stringify(model.ticketStatusEnum));
@@ -69,6 +70,10 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.ticket = _.find(model.tickets.all, function(ticket){
 			return ticket.id === id;
 		});
+    	if(!$scope.ticket) {
+    		$scope.notFound = true;
+    		return;
+    	}
 		template.open('main', 'view-ticket');
 		$scope.ticket.getComments();
 	};
@@ -130,7 +135,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 
 	$scope.formatMoment = function(moment) {
-		return moment.lang('fr').format('D/MM/YYYY H:mm');
+		return moment.lang('fr').format('DD/MM/YYYY H:mm');
 	};
 	
 	// Functions to display proper label

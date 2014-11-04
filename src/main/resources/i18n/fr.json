@@ -29,6 +29,7 @@
 	"support.ticket.status.new" : "Nouveau",
 	"support.ticket.status.opened" : "Ouvert",
 	"support.ticket.status.resolved" : "Résolu",
-	"support.ticket.status.closed" : "Fermé"
+	"support.ticket.status.closed" : "Fermé",
 
+	"support.ticket.notfound.or.unauthorized" : "La demande de support n'existe pas, a été supprimée, ou vous n'avez pas les droits pour y accéder."
 }
