@@ -11,6 +11,8 @@ import org.entcore.common.sql.SqlConfs;
 
 public class Support extends BaseServer {
 
+	public final static String SUPPORT_NAME = "SUPPORT";
+
 	@Override
 	public void start() {
 		super.start();

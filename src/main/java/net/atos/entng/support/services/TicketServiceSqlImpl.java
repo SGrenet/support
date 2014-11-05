@@ -31,7 +31,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		s.prepared(upsertUserQuery, new JsonArray().add(user.getUserId()).add(user.getUsername()));
 
 		data.putString("owner", user.getUserId());
-		String returnedFields = "id, owner, school_id, status";
+		String returnedFields = "id, owner, school_id, status, created, modified";
 		s.insert(resourceTable, data, returnedFields);
 
 		sql.transaction(s.build(), validUniqueResultHandler(1, handler));
