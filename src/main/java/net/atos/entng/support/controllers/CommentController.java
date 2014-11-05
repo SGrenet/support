@@ -9,15 +9,12 @@ import net.atos.entng.support.services.CommentServiceSqlImpl;
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;
 import org.entcore.common.http.filter.sql.OwnerOnly;
-import org.entcore.common.user.UserInfos;
-import org.entcore.common.user.UserUtils;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.json.JsonObject;
 
 import fr.wseduc.rs.ApiDoc;
 import fr.wseduc.rs.Get;
-import fr.wseduc.rs.Post;
 import fr.wseduc.rs.Put;
 import fr.wseduc.security.ActionType;
 import fr.wseduc.security.SecuredAction;
@@ -33,32 +30,6 @@ public class CommentController extends ControllerHelper {
 		crudService = commentService;
 	}
 
-	@Post("/ticket/:id/comment")
-	@ApiDoc("Add a comment to a ticket")
-	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
-	@ResourceFilter(OwnerOrLocalAdmin.class)
-	public void createComment(final HttpServerRequest request) {
-		final String ticketId = request.params().get("id");
-
-		UserUtils.getUserInfos(eb, request, new Handler<UserInfos>() {
-			@Override
-			public void handle(final UserInfos user) {
-				if (user != null) {
-					RequestUtils.bodyToJson(request, pathPrefix + "createOrUpdateComment", new Handler<JsonObject>(){
-						@Override
-						public void handle(JsonObject comment) {
-							comment.putNumber("ticket_id", Long.parseLong(ticketId));
-							commentService.create(comment, user, notEmptyResponseHandler(request));
-						}
-					});
-				} else {
-					log.debug("User not found in session.");
-					unauthorized(request);
-				}
-			}
-		});
-	}
-
 	@Put("comment/:id")
 	@ApiDoc("Update a comment")
 	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
@@ -66,7 +37,7 @@ public class CommentController extends ControllerHelper {
 	public void updateComment(final HttpServerRequest request) {
 		final String commentId = request.params().get("id");
 
-		RequestUtils.bodyToJson(request, pathPrefix + "createOrUpdateComment", new Handler<JsonObject>(){
+		RequestUtils.bodyToJson(request, pathPrefix + "updateComment", new Handler<JsonObject>(){
 			@Override
 			public void handle(JsonObject comment) {
 				commentService.update(commentId, comment, notEmptyResponseHandler(request));
