@@ -18,7 +18,10 @@ public class CommentServiceSqlImpl extends SqlCrudService implements CommentServ
 	@Override
 	public void listTicketComments(String ticketId, Handler<Either<String, JsonArray>> handler) {
 
-		String query = "SELECT * FROM support.comments WHERE ticket_id = ?";
+		String query = "SELECT c.*, u.username AS owner_name"
+				+ " FROM support.comments AS c"
+				+ " INNER JOIN support.users AS u ON c.owner = u.id"
+				+ " WHERE ticket_id = ?";
 		JsonArray values = new JsonArray().add(Sql.parseId(ticketId));
 
 		sql.prepared(query, values, validResultHandler(handler));

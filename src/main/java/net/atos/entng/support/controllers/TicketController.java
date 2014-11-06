@@ -79,9 +79,11 @@ public class TicketController extends ControllerHelper {
 			@Override
 			public void handle(Either<String, JsonObject> event) {
 				if (event.isRight()) {
-					if (event.right().getValue() != null && event.right().getValue().size() > 0) {
-						notifyTicketCreated(request, user, event.right().getValue(), ticket);
-						renderJson(request, event.right().getValue(), 200);
+					JsonObject response = event.right().getValue();
+					if (response != null && response.size() > 0) {
+						notifyTicketCreated(request, user, response, ticket);
+						response.putString("owner_name", user.getUsername());
+						renderJson(request, response, 200);
 					} else {
 						notFound(request);
 					}
@@ -128,19 +130,20 @@ public class TicketController extends ControllerHelper {
 						}
 
 						List<String> recipients = new ArrayList<>(recipientSet);
+						if(!recipients.isEmpty()) {
+							JsonObject params = new JsonObject();
+							params.putString("uri", container.config().getString("userbook-host") +
+									"/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
+							params.putString("ticketUri", container.config().getString("host")
+									+ "/support#/ticket/" + ticketId)
+								.putString("username", user.getUsername())
+								.putString("ticketid", ticketId)
+								.putString("ticketdate", ticketDate)
+								.putString("ticketsubject", ticketSubject);
 
-						JsonObject params = new JsonObject();
-						params.putString("uri", container.config().getString("userbook-host") +
-								"/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
-						params.putString("ticketUri", container.config().getString("host")
-								+ "/support#/ticket/" + ticketId)
-							.putString("username", user.getUsername())
-							.putString("ticketid", ticketId)
-							.putString("ticketdate", ticketDate)
-							.putString("ticketsubject", ticketSubject);
-
-						notification.notifyTimeline(request, user, SUPPORT_NAME, eventType,
-								recipients, ticketId, template, params);
+							notification.notifyTimeline(request, user, SUPPORT_NAME, eventType,
+									recipients, ticketId, template, params);
+						}
 
 					} else {
 						log.error("Unable to send timeline "+ eventType

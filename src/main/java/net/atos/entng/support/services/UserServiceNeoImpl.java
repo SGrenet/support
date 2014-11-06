@@ -23,6 +23,7 @@ public class UserServiceNeoImpl implements UserService {
 		query.append("MATCH (u:User)-[hf:HAS_FUNCTION]->(:Function{externalId : \"")
 			.append(DefaultFunctions.ADMIN_LOCAL)
 			.append("\"}) WHERE ANY (s IN {structures} WHERE s in hf.structures)")
+			.append(" AND u.id <> {currentUserId}")
 			.append(" return DISTINCT u.id as userId");
 
 		JsonObject parameters = new JsonObject();
@@ -30,7 +31,8 @@ public class UserServiceNeoImpl implements UserService {
 		for (String s : user.getStructures()) {
 			structures.addString(s);
 		}
-		parameters.putArray("structures", structures);
+		parameters.putArray("structures", structures)
+			.putString("currentUserId", user.getUserId());
 
 		neo.execute(query.toString(), parameters, validResultHandler(handler));
 	}

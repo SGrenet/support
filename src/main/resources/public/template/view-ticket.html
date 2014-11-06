@@ -47,7 +47,7 @@
 	<div class="row" ng-if="ticket.comments !== undefined && !ticket.comments.isEmpty()">
 		<div class="row" ng-repeat="comment in ticket.comments.all">
 			<article class="comment reduce-block-eight">
-				<a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner]]</a>
+				<a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
 				<em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
 				<p>[[comment.content]]</p>
 			</article>
