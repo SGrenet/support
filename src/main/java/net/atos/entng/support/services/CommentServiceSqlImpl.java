@@ -18,13 +18,16 @@ public class CommentServiceSqlImpl extends SqlCrudService implements CommentServ
 	@Override
 	public void listTicketComments(String ticketId, Handler<Either<String, JsonArray>> handler) {
 
-		String query = "SELECT c.*, u.username AS owner_name"
-				+ " FROM support.comments AS c"
-				+ " INNER JOIN support.users AS u ON c.owner = u.id"
-				+ " WHERE ticket_id = ?";
+		StringBuilder query = new StringBuilder();
+		query.append("SELECT c.*, u.username AS owner_name")
+			.append(" FROM support.comments AS c")
+			.append(" INNER JOIN support.users AS u ON c.owner = u.id")
+			.append(" WHERE c.ticket_id = ?")
+			.append(" ORDER BY c.modified");
+
 		JsonArray values = new JsonArray().add(Sql.parseId(ticketId));
 
-		sql.prepared(query, values, validResultHandler(handler));
+		sql.prepared(query.toString(), values, validResultHandler(handler));
 	}
 
 

@@ -62,6 +62,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	
 	// View tickets
 	$scope.displayTicketList = function() {
+		$scope.ticket = new Ticket();
 		$scope.registerViewTicketListEvent();
     	model.tickets.sync();
 	};

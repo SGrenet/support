@@ -1,5 +1,6 @@
 {
 	"timeline.support.has.created" : "has created ",
+	"timeline.support.has.updated" : "has updated",
 	"timeline.support.ticket" : "ticket",
 	"timeline.support.on" : "on"
 }
