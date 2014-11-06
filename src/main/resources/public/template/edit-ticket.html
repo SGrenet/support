@@ -1,58 +1,57 @@
-<article class="twelve cell">
+<article class="twelve cell details">
 	<form class="row">
 		<div class="row">
 			<div class="six cell">
-				<p class="three cell"><i18n>support.ticket.id</i18n></p>
-				<p class="nine cell">[[editedTicket.id]]</p>
+				<label class="three cell"><i18n>support.ticket.id</i18n></label>
+				<span class="nine cell">[[editedTicket.id]]</span>
 			</div>
 			<div class="six cell">
-				<p class="three cell"><i18n>support.ticket.status</i18n></p>
-				<select class="nine cell" ng-model="editedTicket.status"
+				<label class="five cell"><i18n>support.ticket.status</i18n></label>
+				<select class="seven cell" ng-model="editedTicket.status"
 					ng-options="object.value as object.i18nValue for (key, object) in statuses">
 				</select>
 			</div>
 		</div>
 		<div class="row">
 			<div class="six cell">
-				<p class="three cell"><i18n>support.ticket.author</i18n></p>
-				<p class="nine cell">[[editedTicket.owner_name]]</p>
+				<label class="three cell"><i18n>support.ticket.author</i18n></label>
+				<span class="nine cell">[[editedTicket.owner_name]]</span>
 			</div>
 			<div class="six cell">
-				<p class="three cell"><i18n>support.ticket.creation.date</i18n></p>
-				<p class="nine cell">[[formatDate(editedTicket.created)]]</p>
+				<label class="five cell"><i18n>support.ticket.creation.date</i18n></label>
+				<span class="seven cell">[[formatDate(editedTicket.created)]]</span>
 			</div>
 		</div>
 		<div class="row">
 			<div class="six cell">
-				<p class="three cell"><i18n>support.ticket.school</i18n></p>
-				<p class="nine cell">[[editedTicket.school_id]]</p>
+				<label class="three cell"><i18n>support.ticket.school</i18n></label>
+				<span class="nine cell">[[editedTicket.school_id]]</span>
 			</div>
 			<div class="six cell">
-				<p class="three cell"><i18n>support.ticket.modification.date</i18n></p>
-				<p class="nine cell">[[formatDate(editedTicket.modified)]]</p>
+				<label class="five cell"><i18n>support.ticket.modification.date</i18n></label>
+				<span class="seven cell">[[formatDate(editedTicket.modified)]]</span>
 			</div>
 		</div>
-
 		<div class="row">
-			<p class="one cell"><i18n>support.ticket.category</i18n></p>
-			<select class="eleven cell" ng-model="editedTicket.category" 
+			<label class="two cell"><i18n>support.ticket.category</i18n></label>
+			<select class="ten cell" ng-model="editedTicket.category" 
 				ng-options="app.address as app.name for app in apps">
 			</select>
 		</div>
 		<div class="row">
-			<p class="one cell"><i18n>support.ticket.subject</i18n></p>
-			<input class="eleven cell" type="text" ng-model="editedTicket.subject" />
+			<label class="two cell"><i18n>support.ticket.subject</i18n></label>
+			<input class="ten cell" type="text" ng-model="editedTicket.subject" />
 		</div>
 		<div class="row">
-			<p class="one cell"><i18n>support.ticket.description</i18n></p>
-			<div class="eleven cell">
+			<label class="two cell"><i18n>support.ticket.description</i18n></label>
+			<div class="ten cell">
 				<html-editor ng-model="editedTicket.description"></html-editor>
 			</div>
 		</div>
 
 		<div class="row">
-			<p class="one cell"><i18n>support.ticket.new.comment</i18n></p>
-			<div class="eleven cell">
+			<label class="two cell"><i18n>support.ticket.new.comment</i18n></label>
+			<div class="ten cell">
 				<textarea ng-model="editedTicket.newComment"></textarea>
 			</div>
 		</div>

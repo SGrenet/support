@@ -1,46 +1,46 @@
-<article class="twelve cell">
+<article class="twelve cell details">
 	<div class="row">
 		<div class="six cell">
-			<p class="three cell"><i18n>support.ticket.id</i18n></p>
-			<p class="nine cell">[[ticket.id]]</p>
+			<label class="three cell"><i18n>support.ticket.id</i18n></label>
+			<span class="nine cell">[[ticket.id]]</span>
 		</div>
 		<div class="six cell">
-			<p class="three cell"><i18n>support.ticket.status</i18n></p>
-			<p class="nine cell">[[getStatusLabel(ticket.status)]]</p>
+			<label class="five cell"><i18n>support.ticket.status</i18n></label>
+			<span class="seven cell">[[getStatusLabel(ticket.status)]]</span>
 		</div>
 	</div>
 	<div class="row">
 		<div class="six cell">
-			<p class="three cell"><i18n>support.ticket.author</i18n></p>
-			<p class="nine cell">[[ticket.owner_name]]</p>
+			<label class="three cell"><i18n>support.ticket.author</i18n></label>
+			<span class="nine cell">[[ticket.owner_name]]</span>
 		</div>
 		<div class="six cell">
-			<p class="three cell"><i18n>support.ticket.creation.date</i18n></p>
-			<p class="nine cell">[[formatDate(ticket.created)]]</p>
+			<label class="five cell"><i18n>support.ticket.creation.date</i18n></label>
+			<span class="seven cell">[[formatDate(ticket.created)]]</span>
 		</div>
 	</div>
 	<div class="row">
 		<div class="six cell">
-			<p class="three cell"><i18n>support.ticket.school</i18n></p>
-			<p class="nine cell">[[ticket.school_id]]</p>
+			<label class="three cell"><i18n>support.ticket.school</i18n></label>
+			<span class="nine cell">[[ticket.school_id]]</span>
 		</div>
 		<div class="six cell">
-			<p class="three cell"><i18n>support.ticket.modification.date</i18n></p>
-			<p class="nine cell">[[formatDate(ticket.modified)]]</p>
+			<label class="five cell"><i18n>support.ticket.modification.date</i18n></label>
+			<span class="seven cell">[[formatDate(ticket.modified)]]</span>
 		</div>
 	</div>
 
 	<div class="row">
-		<p class="one cell"><i18n>support.ticket.category</i18n></p>
-		<p class="eleven cell">[[getCategoryLabel(ticket.category)]]</p>
+		<label class="two cell"><i18n>support.ticket.category</i18n></label>
+		<span class="ten cell">[[getCategoryLabel(ticket.category)]]</span>
 	</div>
 	<div class="row">
-		<p class="one cell"><i18n>support.ticket.subject</i18n></p>
-		<p class="eleven cell">[[ticket.subject]]</p>
+		<label class="two cell"><i18n>support.ticket.subject</i18n></label>
+		<span class="ten cell">[[ticket.subject]]</span>
 	</div>
 	<div class="row">
-		<p class="one cell"><i18n>support.ticket.description</i18n></p>
-		<div class="eleven cell" bind-html="ticket.description" />
+		<label class="two cell"><i18n>support.ticket.description</i18n></label>
+		<div class="ten cell" bind-html="ticket.description" />
 	</div>
 	<div class="clear"></div>
 
@@ -49,7 +49,7 @@
 			<article class="comment reduce-block-eight">
 				<a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
 				<em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
-				<p>[[comment.content]]</p>
+				<p>[[comment.content]]</span>
 			</article>
 		</div>
 	</div>
