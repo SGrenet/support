@@ -10,7 +10,7 @@
 		<div class="row" ng-hide="schools.length === 1">
 			<label class="two cell"><i18n>support.ticket.school</i18n></label>
 			<select class="ten cell" ng-model="ticket.school_id" 
-				ng-init="schools[0].id"
+				ng-init="ticket.school_id = schools[0].id"
 				ng-options="school.id as school.name for school in schools">
 			</select>
 		</div>
