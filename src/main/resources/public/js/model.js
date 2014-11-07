@@ -73,14 +73,6 @@ Ticket.prototype.getComments = function(callback) {
 	}.bind(this));
 };
 
-model.getSchools = function(schoolId, callback) {
-	http().get('/directory/school/' + schoolId).done(function(result){
-		if(typeof callback === 'function'){
-			callback(result);
-		}
-	}.bind(this));
-};
-
 model.build = function() {
 	model.me.workflow.load(['support']);
 	this.makeModels([ Ticket, Comment ]);

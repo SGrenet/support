@@ -22,10 +22,6 @@ function SupportController($scope, template, model, route, $location, orderByFil
         }
 	});
 	
-	var addSchool = function(school){
-		$scope.schools.push({id: school.id, name: school.name});
-	};
-	
 	this.initialize = function() {
 		$scope.template = template;
 		$scope.me = model.me;
@@ -39,15 +35,9 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			reverse : true
 		};
 		
-		// Get schools'names
-		if(model.me.structures && model.me.structures.length > 1) {
-			$scope.schools = [];
-			for (var i=0; i < model.me.structures.length; i++) {
-				model.getSchools(model.me.structures[i], addSchool);
-			}
-		}
-		else {
-			$scope.schools = [{id: model.me.structures[0], name: model.me.schoolName}];
+		$scope.schools = [];
+		for (var i=0; i < model.me.structures.length; i++) {
+			$scope.schools.push({id: model.me.structures[i], name: model.me.structureNames[i]});
 		}
 		
 		// Clone status enum and add i18n value
