@@ -22,6 +22,10 @@ function SupportController($scope, template, model, route, $location, orderByFil
         }
 	});
 	
+	var addSchool = function(school){
+		$scope.schools.push({id: school.id, name: school.name});
+	};
+	
 	this.initialize = function() {
 		$scope.template = template;
 		$scope.me = model.me;
@@ -34,6 +38,17 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			expression : 'modified',
 			reverse : true
 		};
+		
+		// Get schools'names
+		if(model.me.structures && model.me.structures.length > 1) {
+			$scope.schools = [];
+			for (var i=0; i < model.me.structures.length; i++) {
+				model.getSchools(model.me.structures[i], addSchool);
+			}
+		}
+		else {
+			$scope.schools = [{id: model.me.structures[0], name: model.me.schoolName}];
+		}
 		
 		// Clone status enum and add i18n value
 		var statusEnum = JSON.parse(JSON.stringify(model.ticketStatusEnum));
@@ -48,7 +63,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	// Sort
 	$scope.sortCategoryFunction = function(ticket) {
 		return $scope.getCategoryLabel(ticket.category);
-	}
+	};
 	
 	$scope.switchSortBy = function(expression) {
 		if (expression === $scope.sort.expression) {
@@ -193,6 +208,14 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		var label = (app !== undefined) ? app.name : undefined;
 		return label;
 	};
+	
+	$scope.getSchoolName = function(schoolId) {
+		var school = _.find($scope.schools, function(school){
+			return school.id === schoolId;
+		});
+		var schoolName = (school !== undefined) ? school.name : undefined;
+		return schoolName;
+	}
 	
 	
 	this.initialize();

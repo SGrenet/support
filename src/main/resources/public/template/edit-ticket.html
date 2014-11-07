@@ -7,9 +7,10 @@
 			</div>
 			<div class="six cell">
 				<label class="five cell"><i18n>support.ticket.status</i18n></label>
-				<select class="seven cell" ng-model="editedTicket.status"
+				<select class="six cell" ng-model="editedTicket.status"
 					ng-options="object.value as object.i18nValue for (key, object) in statuses">
 				</select>
+				<span class="one cell"></span>
 			</div>
 		</div>
 		<div class="row">
@@ -24,8 +25,17 @@
 		</div>
 		<div class="row">
 			<div class="six cell">
-				<label class="three cell"><i18n>support.ticket.school</i18n></label>
-				<span class="nine cell">[[editedTicket.school_id]]</span>
+				<div ng-if="schools.length === 1">
+					<label class="three cell"><i18n>support.ticket.school</i18n></label>
+					<span class="nine cell">[[getSchoolName(editedTicket.school_id)]]</span>
+				</div>
+				<div ng-if="schools.length > 1">
+					<label class="three cell"><i18n>support.ticket.school</i18n></label>
+					<select class="eight cell" ng-model="ticket.school_id" 
+						ng-options="school.id as school.name for school in schools">
+					</select>
+					<span class="one cell"></span>
+				</div>
 			</div>
 			<div class="six cell">
 				<label class="five cell"><i18n>support.ticket.modification.date</i18n></label>
@@ -62,4 +72,15 @@
 		</div>
 		<div class="clear"></div>
 	</form>
+
+	<div class="row" ng-if="editedTicket.comments !== undefined && !editedTicket.comments.isEmpty()">
+		<div class="row" ng-repeat="comment in editedTicket.comments.all">
+			<article class="comment reduce-block-eight">
+				<a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
+				<em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
+				<p>[[comment.content]]</span>
+			</article>
+		</div>
+	</div>
+	
 </article>
