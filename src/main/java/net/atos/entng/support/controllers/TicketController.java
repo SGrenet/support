@@ -4,11 +4,7 @@ import static net.atos.entng.support.Support.SUPPORT_NAME;
 import static net.atos.entng.support.TicketStatus.*;
 import static org.entcore.common.http.response.DefaultResponseHandler.arrayResponseHandler;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,8 +41,6 @@ public class TicketController extends ControllerHelper {
 	private static final String TICKET_CREATED_EVENT_TYPE = SUPPORT_NAME + "_TICKET_CREATED";
 	private static final String TICKET_UPDATED_EVENT_TYPE = SUPPORT_NAME + "_TICKET_UPDATED";
 	private static final int SUBJECT_LENGTH_IN_NOTIFICATION = 50;
-	private static final String DATE_FORMAT_FROM_POSTGRESQL_MOD = "yyyy-MM-dd'T'HH:mm:ss.SSS";
-	private static final String NOTIFICATION_DATE_FORMAT = "dd/MM/yy HH:mm";
 
 	private TicketService ticketService;
 	private UserService userService;
@@ -117,16 +111,14 @@ public class TicketController extends ControllerHelper {
 
 		try {
 			final long id = response.getLong("id", 0L);
-			String date = response.getString("created", null);
 			final String ticketSubject = ticket.getString("subject", null);
 
-			if(id == 0L || date == null || ticketSubject == null) {
-				log.error("Could not get parameters id, created or subject. Unable to send timeline "+ eventType
+			if(id == 0L || ticketSubject == null) {
+				log.error("Could not get parameters id or subject. Unable to send timeline "+ eventType
 								+ " notification.");
 				return;
 			}
 			final String ticketId = Long.toString(id);
-			final String ticketDate = getFormattedDate(date);
 
 			userService.getLocalAdministrators(user, new Handler<Either<String, JsonArray>>() {
 				@Override
@@ -149,7 +141,6 @@ public class TicketController extends ControllerHelper {
 									+ "/support#/ticket/" + ticketId)
 								.putString("username", user.getUsername())
 								.putString("ticketid", ticketId)
-								.putString("ticketdate", ticketDate)
 								.putString("ticketsubject", shortenSubject(ticketSubject));
 
 							notification.notifyTimeline(request, user, SUPPORT_NAME, eventType,
@@ -176,16 +167,6 @@ public class TicketController extends ControllerHelper {
 		}
 		return subject;
 	}
-
-	// Format date for notifications
-	private String getFormattedDate(String date) throws ParseException {
-		DateFormat sourceFormat = new SimpleDateFormat(DATE_FORMAT_FROM_POSTGRESQL_MOD);
-		DateFormat targetFormat = new SimpleDateFormat(NOTIFICATION_DATE_FORMAT);
-
-		Date aDate = sourceFormat.parse(date);
-		return targetFormat.format(aDate);
-	}
-
 
 	@Put("/ticket/:id")
 	@ApiDoc("Update a ticket")
@@ -224,17 +205,15 @@ public class TicketController extends ControllerHelper {
 		final String template = "notify-ticket-updated.html";
 
 		try {
-			String date = response.getString("modified", null);
 			final String ticketSubject = response.getString("subject", null);
 			final String ticketOwner = response.getString("owner", null);
 			final String ticketId = request.params().get("id");
 
-			if(date == null || ticketSubject == null || ticketOwner == null) {
+			if(ticketSubject == null || ticketOwner == null) {
 				log.error("Could not get parameters modified, subject or owner. Unable to send timeline "+ eventType
 								+ " notification.");
 				return;
 			}
-			final String ticketDate = getFormattedDate(date);
 
 			final Set<String> recipientSet = new HashSet<>();
 			if(!ticketOwner.equals(user.getUserId())) {
@@ -262,7 +241,6 @@ public class TicketController extends ControllerHelper {
 									+ "/support#/ticket/" + ticketId)
 								.putString("username", user.getUsername())
 								.putString("ticketid", ticketId)
-								.putString("ticketdate", ticketDate)
 								.putString("ticketsubject", shortenSubject(ticketSubject));
 
 							notification.notifyTimeline(request, user, SUPPORT_NAME, eventType,
