@@ -50,7 +50,7 @@ Ticket.prototype.toJSON = function() {
 		    subject : this.subject,
 		    description : this.description,
 		    category : this.category,
-		    school_id : model.me.structures[0] // TODO : à modifier
+		    school_id : this.school_id
 	};
 	if(this.status !== undefined) {
 		json.status = this.status;
