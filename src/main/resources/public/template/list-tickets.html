@@ -6,22 +6,34 @@
 	<table class="list-view twelve" ng-if="!tickets.isEmpty()">
 		<thead>
 			<tr>
-				<th class="one" ng-click="switchSortBy('id')" ng-class="{selected: sort.expression === 'id'}">
+				<th class="one" ng-click="switchSortBy('id')" 
+				ng-class="{'order-by-reversed': (sort.expression === 'id' && sort.reverse === false),
+							'order-by': (sort.expression === 'id' && sort.reverse === true)}">
 					<i18n>support.ticket.table.id</i18n>
 				</th>
-				<th class="one" ng-click="switchSortBy('status')" ng-class="{selected: sort.expression === 'status'}">
+				<th class="one" ng-click="switchSortBy('status')" 
+				ng-class="{'order-by-reversed': (sort.expression === 'status' && sort.reverse === false),
+							'order-by': (sort.expression === 'status' && sort.reverse === true)}">
 					<i18n>support.ticket.table.status</i18n>
 				</th>
-				<th class="five" ng-click="switchSortBy('subject')" ng-class="{selected: sort.expression === 'subject'}">
+				<th class="five" ng-click="switchSortBy('subject')" 
+				ng-class="{'order-by-reversed': (sort.expression === 'subject' && sort.reverse === false),
+							'order-by': (sort.expression === 'subject' && sort.reverse === true)}">
 					<i18n>support.ticket.table.subject</i18n>
 				</th>
-				<th class="one" ng-click="switchSortBy(sortCategoryFunction)" ng-class="{selected: sort.expression === sortCategoryFunction}">
+				<th class="one" ng-click="switchSortBy(sortCategoryFunction)" 
+				ng-class="{'order-by-reversed': (sort.expression === sortCategoryFunction && sort.reverse === false),
+							'order-by': (sort.expression === sortCategoryFunction && sort.reverse === true)}">
 					<i18n>support.ticket.table.category</i18n>
 				</th>
-				<th class="two" ng-click="switchSortBy('owner_name')" ng-class="{selected: sort.expression === 'owner_name'}">
+				<th class="two" ng-click="switchSortBy('owner_name')" 
+				ng-class="{'order-by-reversed': (sort.expression === 'owner_name' && sort.reverse === false),
+							'order-by': (sort.expression === 'owner_name' && sort.reverse === true)}">
 					<i18n>support.ticket.table.author</i18n>
 				</th>
-				<th class="two" ng-click="switchSortBy('modified')" ng-class="{selected: sort.expression === 'modified'}">
+				<th class="two" ng-click="switchSortBy('modified')" 
+				ng-class="{'order-by-reversed': (sort.expression === 'modified' && sort.reverse === false),
+							'order-by': (sort.expression === 'modified' && sort.reverse === true)}">
 					<i18n>support.ticket.table.last.modified</i18n>
 				</th>
 			</tr>
