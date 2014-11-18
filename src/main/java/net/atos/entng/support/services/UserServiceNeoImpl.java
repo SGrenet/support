@@ -16,22 +16,18 @@ public class UserServiceNeoImpl implements UserService {
 	private final Neo4j neo = Neo4j.getInstance();
 
 	@Override
-	public void getLocalAdministrators(final UserInfos user,
+	public void getLocalAdministrators(final UserInfos user, final String structure,
 			final Handler<Either<String, JsonArray>> handler) {
 
 		StringBuilder query = new StringBuilder();
 		query.append("MATCH (u:User)-[hf:HAS_FUNCTION]->(:Function{externalId : \"")
 			.append(DefaultFunctions.ADMIN_LOCAL)
-			.append("\"}) WHERE ANY (s IN {structures} WHERE s in hf.structures)")
+			.append("\"}) WHERE {structure} in hf.scope")
 			.append(" AND u.id <> {currentUserId}")
 			.append(" return DISTINCT u.id as userId");
 
 		JsonObject parameters = new JsonObject();
-		JsonArray structures = new JsonArray();
-		for (String s : user.getStructures()) {
-			structures.addString(s);
-		}
-		parameters.putArray("structures", structures)
+		parameters.putString("structure", structure)
 			.putString("currentUserId", user.getUserId());
 
 		neo.execute(query.toString(), parameters, validResultHandler(handler));

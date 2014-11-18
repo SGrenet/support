@@ -60,7 +60,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		String updateTicketQuery = "UPDATE support.tickets" +
 				" SET " + sb.toString() + "modified = NOW() " +
-				"WHERE id = ? RETURNING modified, subject, owner";
+				"WHERE id = ? RETURNING modified, subject, owner, school_id";
 		s.prepared(updateTicketQuery, values);
 
 		// Add comment

@@ -8,7 +8,7 @@ import fr.wseduc.webutils.Either;
 
 public interface UserService {
 
-	public void getLocalAdministrators(final UserInfos user,
+	public void getLocalAdministrators(final UserInfos user, final String structure,
 			final Handler<Either<String, JsonArray>> handler);
 
 }

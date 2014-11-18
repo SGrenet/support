@@ -112,15 +112,16 @@ public class TicketController extends ControllerHelper {
 		try {
 			final long id = response.getLong("id", 0L);
 			final String ticketSubject = ticket.getString("subject", null);
+			final String structure = ticket.getString("school_id", null);
 
-			if(id == 0L || ticketSubject == null) {
-				log.error("Could not get parameters id or subject. Unable to send timeline "+ eventType
+			if(id == 0L || ticketSubject == null || structure == null) {
+				log.error("Could not get parameters id, subject or school_id. Unable to send timeline "+ eventType
 								+ " notification.");
 				return;
 			}
 			final String ticketId = Long.toString(id);
 
-			userService.getLocalAdministrators(user, new Handler<Either<String, JsonArray>>() {
+			userService.getLocalAdministrators(user, structure, new Handler<Either<String, JsonArray>>() {
 				@Override
 				public void handle(Either<String, JsonArray> event) {
 					if (event.isRight()) {
@@ -207,10 +208,11 @@ public class TicketController extends ControllerHelper {
 		try {
 			final String ticketSubject = response.getString("subject", null);
 			final String ticketOwner = response.getString("owner", null);
+			final String structure = response.getString("school_id", null);
 			final String ticketId = request.params().get("id");
 
-			if(ticketSubject == null || ticketOwner == null) {
-				log.error("Could not get parameters modified, subject or owner. Unable to send timeline "+ eventType
+			if(ticketSubject == null || ticketOwner == null || structure == null) {
+				log.error("Could not get parameters subject, owner or school_id. Unable to send timeline "+ eventType
 								+ " notification.");
 				return;
 			}
@@ -220,7 +222,7 @@ public class TicketController extends ControllerHelper {
 				recipientSet.add(ticketOwner);
 			}
 
-			userService.getLocalAdministrators(user, new Handler<Either<String, JsonArray>>() {
+			userService.getLocalAdministrators(user, structure, new Handler<Either<String, JsonArray>>() {
 				@Override
 				public void handle(Either<String, JsonArray> event) {
 					if (event.isRight()) {
