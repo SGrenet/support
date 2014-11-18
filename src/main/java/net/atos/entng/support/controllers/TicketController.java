@@ -14,7 +14,7 @@ import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.TicketService;
 import net.atos.entng.support.services.TicketServiceSqlImpl;
 import net.atos.entng.support.services.UserService;
-import net.atos.entng.support.services.UserServiceNeoImpl;
+import net.atos.entng.support.services.UserServiceDirectoryImpl;
 
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;
@@ -22,6 +22,7 @@ import org.entcore.common.user.DefaultFunctions;
 import org.entcore.common.user.UserInfos;
 import org.entcore.common.user.UserUtils;
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
@@ -45,9 +46,9 @@ public class TicketController extends ControllerHelper {
 	private TicketService ticketService;
 	private UserService userService;
 
-	public TicketController() {
+	public TicketController(EventBus eb) {
 		ticketService = new TicketServiceSqlImpl();
-		userService = new UserServiceNeoImpl();
+		userService = new UserServiceDirectoryImpl(eb);
 	}
 
 	@Post("/ticket")
@@ -121,15 +122,17 @@ public class TicketController extends ControllerHelper {
 			}
 			final String ticketId = Long.toString(id);
 
-			userService.getLocalAdministrators(user, structure, new Handler<Either<String, JsonArray>>() {
+			userService.getLocalAdministrators(structure, new Handler<JsonArray>() {
 				@Override
-				public void handle(Either<String, JsonArray> event) {
-					if (event.isRight()) {
+				public void handle(JsonArray event) {
+					if (event != null) {
 						Set<String> recipientSet = new HashSet<>();
-						for (Object user : event.right().getValue()) {
-							if(user instanceof JsonObject) {
-								String userId = ((JsonObject) user).getString("userId");
-								recipientSet.add(userId);
+						for (Object o : event) {
+							if (!(o instanceof JsonObject)) continue;
+							JsonObject j = (JsonObject) o;
+							String id = j.getString("id");
+							if(!user.getUserId().equals(id)) {
+								recipientSet.add(id);
 							}
 						}
 
@@ -147,11 +150,6 @@ public class TicketController extends ControllerHelper {
 							notification.notifyTimeline(request, user, SUPPORT_NAME, eventType,
 									recipients, ticketId, template, params);
 						}
-
-					} else {
-						log.error("Unable to send timeline "+ eventType
-								+ " notification. Error when calling service getLocalAdministrators : "
-								+ event.left().getValue());
 					}
 				}
 			});
@@ -222,17 +220,19 @@ public class TicketController extends ControllerHelper {
 				recipientSet.add(ticketOwner);
 			}
 
-			userService.getLocalAdministrators(user, structure, new Handler<Either<String, JsonArray>>() {
+			userService.getLocalAdministrators(structure,  new Handler<JsonArray>() {
 				@Override
-				public void handle(Either<String, JsonArray> event) {
-					if (event.isRight()) {
-
-						for (Object user : event.right().getValue()) {
-							if(user instanceof JsonObject) {
-								String userId = ((JsonObject) user).getString("userId");
-								recipientSet.add(userId);
+				public void handle(JsonArray event) {
+					if (event != null) {
+						for (Object o : event) {
+							if (!(o instanceof JsonObject)) continue;
+							JsonObject j = (JsonObject) o;
+							String id = j.getString("id");
+							if(!user.getUserId().equals(id)) {
+								recipientSet.add(id);
 							}
 						}
+
 						List<String> recipients = new ArrayList<>(recipientSet);
 
 						if(!recipients.isEmpty()) {
@@ -248,11 +248,6 @@ public class TicketController extends ControllerHelper {
 							notification.notifyTimeline(request, user, SUPPORT_NAME, eventType,
 									recipients, ticketId, template, params);
 						}
-
-					} else {
-						log.error("Unable to send timeline "+ eventType
-								+ " notification. Error when calling service getLocalAdministrators : "
-								+ event.left().getValue());
 					}
 				}
 			});
