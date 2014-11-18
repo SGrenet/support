@@ -8,7 +8,9 @@ import java.util.List;
 
 import org.entcore.common.service.impl.SqlCrudService;
 import org.entcore.common.sql.SqlStatementsBuilder;
+import org.entcore.common.user.DefaultFunctions;
 import org.entcore.common.user.UserInfos;
+import org.entcore.common.user.UserInfos.Function;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
@@ -85,16 +87,20 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		query.append("SELECT t.*, u.username AS owner_name FROM support.tickets AS t")
 			.append(" INNER JOIN support.users AS u ON t.owner = u.id");
 
-		List<String> structures = user.getStructures();
 		JsonArray values = new JsonArray();
-		if(structures != null && !structures.isEmpty()) {
-			query.append(" WHERE t.school_id IN (");
-			for (String structure : user.getStructures()) {
-				query.append("?,");
-				values.addString(structure);
+		Function adminLocal = user.getFunctions().get(DefaultFunctions.ADMIN_LOCAL);
+
+		if (adminLocal != null) {
+			List<String> scopesList = adminLocal.getScope();
+			if(scopesList != null && !scopesList.isEmpty()) {
+				query.append(" WHERE t.school_id IN (");
+				for (String scope : scopesList) {
+					query.append("?,");
+					values.addString(scope);
+				}
+				query.deleteCharAt(query.length() - 1);
+				query.append(")");
 			}
-			query.deleteCharAt(query.length() - 1);
-			query.append(")");
 		}
 
 		sql.prepared(query.toString(), values, validResultHandler(handler));
