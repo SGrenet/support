@@ -129,9 +129,9 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			return;
 		}
 		
-		template.open('main', 'view-ticket');
+		template.open('main', 'list-tickets');
 		$scope.ticket.createTicket($scope.ticket, function() {
-			window.location.hash = '/ticket/' + $scope.ticket.id;
+			notify.info('support.ticket.has.been.created');
 		});
 	};
 	

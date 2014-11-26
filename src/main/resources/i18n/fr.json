@@ -30,6 +30,8 @@
 	"support.ticket.status.opened" : "Ouvert",
 	"support.ticket.status.resolved" : "Résolu",
 	"support.ticket.status.closed" : "Fermé",
+	
+	"support.ticket.has.been.created" : "Votre demande de support a été créée",
 
 	"support.ticket.notfound.or.unauthorized" : "La demande de support n'existe pas, a été supprimée, ou vous n'avez pas les droits pour y accéder.",
 	"support.ticket.validation.error.subject.is.empty" : "Le champ 'Sujet' doit être renseigné",
