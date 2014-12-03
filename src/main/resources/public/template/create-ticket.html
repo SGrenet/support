@@ -25,9 +25,11 @@
 			</div>
 		</div>
 		<div class="row">
+			<attachments apps="['workspace']" ng-model="ticket.attachments"></attachments>
+		</div>
+		<div class="row">
 			<button class="right-magnet" ng-click="createTicket()" translate content="support.ticket.save"></button>
 			<button class="right-magnet cancel" ng-click="cancelCreateTicket()" translate content="support.ticket.cancel"></button>
 		</div>
-		<div class="clear"></div>
 	</form>
 </article>
