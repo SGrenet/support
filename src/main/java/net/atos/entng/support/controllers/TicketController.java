@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
+import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
 import net.atos.entng.support.services.TicketServiceSqlImpl;
 import net.atos.entng.support.services.UserService;
@@ -22,10 +23,13 @@ import org.entcore.common.user.DefaultFunctions;
 import org.entcore.common.user.UserInfos;
 import org.entcore.common.user.UserUtils;
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.Vertx;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.core.http.RouteMatcher;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
+import org.vertx.java.platform.Container;
 
 import fr.wseduc.rs.ApiDoc;
 import fr.wseduc.rs.Get;
@@ -45,10 +49,17 @@ public class TicketController extends ControllerHelper {
 
 	private TicketService ticketService;
 	private UserService userService;
+	private EscalationService escalationService;
 
-	public TicketController(EventBus eb) {
+	public TicketController(EventBus eb, EscalationService es) {
 		ticketService = new TicketServiceSqlImpl();
 		userService = new UserServiceDirectoryImpl(eb);
+		escalationService = es;
+	}
+
+	@Override
+	public void init(Vertx vertx, Container container, RouteMatcher rm, Map<String, fr.wseduc.webutils.security.SecuredAction> securedActions) {
+		super.init(vertx, container, rm, securedActions);
 	}
 
 	@Post("/ticket")
@@ -280,6 +291,37 @@ public class TicketController extends ControllerHelper {
 			}
 		});
 
+	}
+
+	// TODO filter "LocalAdmin" : only local administrators can escalate
+	@Post("/ticket/:id/escalate")
+	@ApiDoc("Escalate ticket : the ticket is forwarded to an external bug tracker, and a copy of the ticket is saved and regularly synchronized")
+	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
+	@ResourceFilter(OwnerOrLocalAdmin.class)
+	public void escalateTicket(final HttpServerRequest request) {
+
+		escalationService.escalateTicket(request, new Handler<JsonObject>() {
+			@Override
+			public void handle(JsonObject event) {
+				// TODO
+				renderJson(request, event);
+			}
+		});
+	}
+
+	// TODO : remove this temporary webservice, used to test vertx HttpClient
+	@Get("/tickets/redmine")
+	@ApiDoc("List tickets")
+	@SecuredAction(value = "support.manager", type= ActionType.AUTHENTICATED)
+	public void getRedmineTickets(final HttpServerRequest request) {
+
+		escalationService.getTickets(new Handler<JsonObject>() {
+			@Override
+			public void handle(JsonObject event) {
+				// TODO
+				renderJson(request, event);
+			}
+		});
 	}
 
 }

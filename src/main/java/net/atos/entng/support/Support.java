@@ -3,6 +3,8 @@ package net.atos.entng.support;
 import net.atos.entng.support.controllers.CommentController;
 import net.atos.entng.support.controllers.DisplayController;
 import net.atos.entng.support.controllers.TicketController;
+import net.atos.entng.support.services.EscalationService;
+import net.atos.entng.support.services.EscalationServiceRedmineImpl;
 
 import org.entcore.common.http.BaseServer;
 import org.entcore.common.sql.SqlConf;
@@ -21,7 +23,8 @@ public class Support extends BaseServer {
 
 		addController(new DisplayController());
 
-		TicketController ticketController = new TicketController(eb);
+		EscalationService escalationService = new EscalationServiceRedmineImpl(vertx, container, log);
+		TicketController ticketController = new TicketController(eb, escalationService);
 		addController(ticketController);
 
 		SqlConf commentSqlConf = SqlConfs.createConf(CommentController.class.getName());
@@ -29,7 +32,6 @@ public class Support extends BaseServer {
 		commentSqlConf.setSchema("support");
 		CommentController commentController = new CommentController();
 		addController(commentController);
-
 	}
 
 }

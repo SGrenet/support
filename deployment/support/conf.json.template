@@ -14,6 +14,9 @@
         "auto-redeploy": false,
         "userbook-host": "${host}",
         "integration-mode" : "HTTP",
-        "mode" : "${mode}"
+        "mode" : "${mode}",
+        "bug-tracker-host" : "support.web-education.net",
+        "bug-tracker-port" : 80,
+        "bug-tracker-api-key" : "f8ffdbfb0ee9bae2448713d70172b7df0142d270"
       }
     }
