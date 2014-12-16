@@ -300,6 +300,7 @@ public class TicketController extends ControllerHelper {
 	@ResourceFilter(OwnerOrLocalAdmin.class)
 	public void escalateTicket(final HttpServerRequest request) {
 
+		// TODO : get ticket with attachments' ids and comments
 		escalationService.escalateTicket(request, new Handler<JsonObject>() {
 			@Override
 			public void handle(JsonObject event) {
@@ -314,8 +315,7 @@ public class TicketController extends ControllerHelper {
 	@ApiDoc("List tickets")
 	@SecuredAction(value = "support.manager", type= ActionType.AUTHENTICATED)
 	public void getRedmineTickets(final HttpServerRequest request) {
-
-		escalationService.getTickets(new Handler<JsonObject>() {
+		escalationService.listTickets(new Handler<JsonObject>() {
 			@Override
 			public void handle(JsonObject event) {
 				// TODO

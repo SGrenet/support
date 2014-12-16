@@ -23,7 +23,7 @@ public class Support extends BaseServer {
 
 		addController(new DisplayController());
 
-		EscalationService escalationService = new EscalationServiceRedmineImpl(vertx, container, log);
+		EscalationService escalationService = new EscalationServiceRedmineImpl(vertx, container, log, eb);
 		TicketController ticketController = new TicketController(eb, escalationService);
 		addController(ticketController);
 

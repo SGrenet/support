@@ -8,5 +8,7 @@ public interface EscalationService {
 
 	public void escalateTicket(HttpServerRequest request, Handler<JsonObject> handler);
 
-	public void getTickets(Handler<JsonObject> handler);
+	public void listTickets(Handler<JsonObject> handler);
+
+	public void getTicket(int issueId, Handler<JsonObject> handler);
 }
