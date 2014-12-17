@@ -149,7 +149,6 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		JsonObject data = new JsonObject()
 			.putNumber("project_id", 39) // TODO : put project_id in module conf
 			.putNumber("priority_id", 10)
-			.putNumber("tracker_id", 3)
 			.putString("subject", "Création d'une demande avec org.vertx.java.core.http.HttpClient")
 			.putString("description", "Description de la demande créée avec org.vertx.java.core.http.HttpClient");
 		JsonObject ticket = new JsonObject().putObject("issue", data);

@@ -74,7 +74,10 @@ public class TicketController extends ControllerHelper {
 						@Override
 						public void handle(JsonObject ticket) {
 							ticket.putNumber("status", NEW.status());
-							ticketService.createTicket(ticket, user, getCreateOrUpdateTicketHandler(request, user, ticket, true));
+
+							JsonArray attachments = ticket.getArray("attachments", null);
+							ticket.removeField("attachments");
+							ticketService.createTicket(ticket, attachments, user, getCreateOrUpdateTicketHandler(request, user, ticket, true));
 						}
 					});
 				} else {

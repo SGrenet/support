@@ -24,7 +24,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 	}
 
 	@Override
-	public void createTicket(JsonObject data, UserInfos user,
+	public void createTicket(JsonObject ticket, JsonArray attachments, UserInfos user,
 			Handler<Either<String, JsonObject>> handler) {
 
 		SqlStatementsBuilder s = new SqlStatementsBuilder();
@@ -32,9 +32,30 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		String upsertUserQuery = "SELECT support.merge_users(?,?)";
 		s.prepared(upsertUserQuery, new JsonArray().add(user.getUserId()).add(user.getUsername()));
 
-		data.putString("owner", user.getUserId());
+		ticket.putString("owner", user.getUserId());
 		String returnedFields = "id, school_id, status, created, modified";
-		s.insert(resourceTable, data, returnedFields);
+		s.insert(resourceTable, ticket, returnedFields);
+
+		if(attachments != null && attachments.size() > 0) {
+			StringBuilder attachmentsQuery = new StringBuilder();
+			attachmentsQuery.append("INSERT INTO support.attachments(gridfs_id, name, size, owner, ticket_id)")
+				.append(" VALUES");
+
+			JsonArray attachmentsValues = new JsonArray();
+			for (Object a : attachments) {
+				if(!(a instanceof JsonObject)) continue;
+				JsonObject jo = (JsonObject) a;
+				attachmentsQuery.append("(?, ?, ?, ?, (SELECT currval('support.tickets_id_seq'))),");
+				attachmentsValues.add(jo.getString("id"))
+					.add(jo.getString("name"))
+					.add(jo.getInteger("size"))
+					.add(user.getUserId());
+			}
+			// remove trailing comma
+			attachmentsQuery.deleteCharAt(attachmentsQuery.length() - 1);
+
+			s.prepared(attachmentsQuery.toString(), attachmentsValues);
+		}
 
 		sql.transaction(s.build(), validUniqueResultHandler(1, handler));
 	}

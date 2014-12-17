@@ -55,17 +55,20 @@
 		<div class="row">
 			<label class="two cell"><i18n>support.ticket.description</i18n></label>
 			<div class="ten cell">
-				<html-editor ng-model="editedTicket.description"></html-editor>
+				<text-editor ng-model="editedTicket.description"></text-editor>
 			</div>
 		</div>
 
 		<div class="row">
 			<label class="two cell"><i18n>support.ticket.new.comment</i18n></label>
 			<div class="ten cell">
-				<html-editor ng-model="editedTicket.newComment"></html-editor>
+				<text-editor ng-model="editedTicket.newComment"></text-editor>
 			</div>
 		</div>
 
+		<div class="row">
+			<attachments apps="['workspace']" ng-model="editedTicket.attachments"></attachments>
+		</div>
 		<div class="row">
 			<button class="right-magnet" ng-click="updateTicket()" translate content="support.ticket.save"></button>
 			<button class="right-magnet cancel" ng-click="cancelEditTicket()" translate content="support.ticket.cancel"></button>
