@@ -125,7 +125,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			return;
 		}
 		
-		if (!$scope.ticket.description || angular.element($scope.ticket.description).text().length === 0){
+		if (!$scope.ticket.description || $scope.ticket.description.trim().length === 0){
 			notify.error('support.ticket.validation.error.description.is.empty');
 			return;
 		}
@@ -158,7 +158,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			return;
 		}
 		
-		if (!$scope.editedTicket.description || angular.element($scope.editedTicket.description).text().length === 0){
+		if (!$scope.editedTicket.description || $scope.editedTicket.description.trim().length === 0){
 			notify.error('support.ticket.validation.error.description.is.empty');
 			return;
 		}

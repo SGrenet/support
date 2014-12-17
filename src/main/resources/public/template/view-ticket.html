@@ -40,7 +40,7 @@
 	</div>
 	<div class="row">
 		<label class="two cell"><i18n>support.ticket.description</i18n></label>
-		<div class="ten cell" bind-html="ticket.description" />
+		<p class="with-newlines ten cell">[[ticket.description]]</p>
 		
 		<div class="ten cell right-magnet" ng-if="ticket.attachments !== undefined && !ticket.attachments.isEmpty()">
 			<ul>
@@ -57,7 +57,7 @@
 			<article class="comment reduce-block-eight">
 				<a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
 				<em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
-				<div bind-html="comment.content" />
+				<p class="with-newlines">[[comment.content]]</p>
 			</article>
 		</div>
 	</div>

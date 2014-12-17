@@ -1,3 +1,7 @@
 .details label {
 	font-weight: bold;
 }
+
+.with-newlines {
+  white-space: pre-wrap;
+}
