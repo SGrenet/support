@@ -64,10 +64,18 @@
 			<div class="ten cell">
 				<text-editor ng-model="editedTicket.newComment"></text-editor>
 			</div>
+			<div class="ten cell right-magnet" ng-if="ticket.attachments !== undefined && !ticket.attachments.isEmpty()">
+				<ul>
+					<li class="row" ng-repeat="attachment in ticket.attachments.all">
+						<a href="/workspace/document/[[attachment.gridfs_id]]">[[attachment.name]]</a>
+						&nbsp;<em>[[attachment.owner_name]] <i18n>support.on</i18n> [[formatDate(attachment.created)]]</em>
+					</li>
+				</ul>
+			</div>
 		</div>
 
 		<div class="row">
-			<attachments apps="['workspace']" ng-model="editedTicket.attachments"></attachments>
+			<attachments apps="['workspace']" ng-model="editedTicket.newAttachments"></attachments>
 		</div>
 		<div class="row">
 			<button class="right-magnet" ng-click="updateTicket()" translate content="support.ticket.save"></button>

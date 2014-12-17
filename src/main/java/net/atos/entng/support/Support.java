@@ -1,5 +1,6 @@
 package net.atos.entng.support;
 
+import net.atos.entng.support.controllers.AttachmentController;
 import net.atos.entng.support.controllers.CommentController;
 import net.atos.entng.support.controllers.DisplayController;
 import net.atos.entng.support.controllers.TicketController;
@@ -32,6 +33,9 @@ public class Support extends BaseServer {
 		commentSqlConf.setSchema("support");
 		CommentController commentController = new CommentController();
 		addController(commentController);
+
+		AttachmentController attachmentController = new AttachmentController();
+		addController(attachmentController);
 	}
 
 }

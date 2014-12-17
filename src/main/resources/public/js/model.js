@@ -17,12 +17,13 @@ if (Object.freeze) {
 }
 
 
-function Comment(){
+function Comment(){}
 
-}
+function Attachment(){}
 
 function Ticket(){
 	this.collection(Comment);
+	this.collection(Attachment);
 }
 
 Ticket.prototype.createTicket = function(data, callback) {
@@ -58,6 +59,16 @@ Ticket.prototype.toJSON = function() {
 	if(this.newComment !== undefined) {
 		json.newComment = this.newComment;
 	}
+	if(this.newAttachments && this.newAttachments.length > 0) {
+		json.attachments = [];
+		for (var i=0; i < this.newAttachments.length; i++) {
+			json.attachments.push({
+				id: this.newAttachments[i]._id, 
+				name: this.newAttachments[i].title,
+				size: this.newAttachments[i].metadata.size
+			});
+		}
+	}
 	
 	return json;
 };
@@ -73,9 +84,20 @@ Ticket.prototype.getComments = function(callback) {
 	}.bind(this));
 };
 
+Ticket.prototype.getAttachments = function(callback) {
+	http().get('/support/ticket/' + this.id + '/attachments').done(function(result){
+		if(result.length > 0) {
+			this.attachments.load(result);
+		}
+		if(typeof callback === 'function'){
+			callback();
+		}
+	}.bind(this));
+};
+
 model.build = function() {
 	model.me.workflow.load(['support']);
-	this.makeModels([ Ticket, Comment ]);
+	this.makeModels([ Ticket, Comment, Attachment ]);
 
 	this.collection(Ticket, {
 		sync : function() {

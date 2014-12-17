@@ -41,15 +41,23 @@
 	<div class="row">
 		<label class="two cell"><i18n>support.ticket.description</i18n></label>
 		<div class="ten cell" bind-html="ticket.description" />
+		
+		<div class="ten cell right-magnet" ng-if="ticket.attachments !== undefined && !ticket.attachments.isEmpty()">
+			<ul>
+				<li class="row" ng-repeat="attachment in ticket.attachments.all">
+					<a href="/workspace/document/[[attachment.gridfs_id]]">[[attachment.name]]</a>
+					&nbsp;<em>[[attachment.owner_name]] <i18n>support.on</i18n> [[formatDate(attachment.created)]]</em>
+				</li>
+			</ul>
+		</div>
 	</div>
-	<div class="clear"></div>
 
 	<div class="row" ng-if="ticket.comments !== undefined && !ticket.comments.isEmpty()">
 		<div class="row" ng-repeat="comment in ticket.comments.all">
 			<article class="comment reduce-block-eight">
 				<a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
 				<em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
-				<p>[[comment.content]]</span>
+				<div bind-html="comment.content" />
 			</article>
 		</div>
 	</div>

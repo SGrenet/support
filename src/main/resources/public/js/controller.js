@@ -101,6 +101,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
     		return;
     	}
 		template.open('main', 'view-ticket');
+		$scope.ticket.getAttachments();
 		$scope.ticket.getComments();
 	};
 	
