@@ -36,32 +36,13 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		String returnedFields = "id, school_id, status, created, modified";
 		s.insert(resourceTable, ticket, returnedFields);
 
-		if(attachments != null && attachments.size() > 0) {
-			StringBuilder attachmentsQuery = new StringBuilder();
-			attachmentsQuery.append("INSERT INTO support.attachments(gridfs_id, name, size, owner, ticket_id)")
-				.append(" VALUES");
-
-			JsonArray attachmentsValues = new JsonArray();
-			for (Object a : attachments) {
-				if(!(a instanceof JsonObject)) continue;
-				JsonObject jo = (JsonObject) a;
-				attachmentsQuery.append("(?, ?, ?, ?, (SELECT currval('support.tickets_id_seq'))),");
-				attachmentsValues.add(jo.getString("id"))
-					.add(jo.getString("name"))
-					.add(jo.getInteger("size"))
-					.add(user.getUserId());
-			}
-			// remove trailing comma
-			attachmentsQuery.deleteCharAt(attachmentsQuery.length() - 1);
-
-			s.prepared(attachmentsQuery.toString(), attachmentsValues);
-		}
+		this.insertAttachments(attachments, user, s, null);
 
 		sql.transaction(s.build(), validUniqueResultHandler(1, handler));
 	}
 
 	@Override
-	public void updateTicket(String id, JsonObject data, UserInfos user,
+	public void updateTicket(String ticketId, JsonObject data, UserInfos user,
 			Handler<Either<String, JsonObject>> handler) {
 
 		SqlStatementsBuilder s = new SqlStatementsBuilder();
@@ -74,12 +55,12 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		StringBuilder sb = new StringBuilder();
 		JsonArray values = new JsonArray();
 		for (String attr : data.getFieldNames()) {
-			if(!"newComment".equals(attr)) {
+			if( !"newComment".equals(attr) && !"attachments".equals(attr) ) {
 				sb.append(attr).append(" = ?, ");
 				values.add(data.getValue(attr));
 			}
 		}
-		values.add(parseId(id));
+		values.add(parseId(ticketId));
 
 		String updateTicketQuery = "UPDATE support.tickets" +
 				" SET " + sb.toString() + "modified = NOW() " +
@@ -92,15 +73,60 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			String insertCommentQuery =
 					"INSERT INTO support.comments (ticket_id, owner, content) VALUES(?, ?, ?)";
 			JsonArray commentValues = new JsonArray();
-			commentValues.add(parseId(id))
+			commentValues.add(parseId(ticketId))
 				.add(user.getUserId())
 				.add(comment);
 			s.prepared(insertCommentQuery, commentValues);
 		}
 
+		// Add attachments
+		JsonArray attachments = data.getArray("attachments", null);
+		this.insertAttachments(attachments, user, s, ticketId);
+
 		// Send queries to event bus
 		sql.transaction(s.build(), validUniqueResultHandler(1, handler));
 	}
+
+
+	/**
+	 * Append query "insert attachments" to SqlStatementsBuilder s
+	 *
+	 * @param ticketId : must be null when creating a ticket, and supplied when updating a ticket
+	 */
+	private void insertAttachments(final JsonArray attachments,
+			final UserInfos user, final SqlStatementsBuilder s, final String ticketId) {
+
+		if(attachments != null && attachments.size() > 0) {
+			StringBuilder query = new StringBuilder();
+			query.append("INSERT INTO support.attachments(gridfs_id, name, size, owner, ticket_id)")
+				.append(" VALUES");
+
+			JsonArray values = new JsonArray();
+			for (Object a : attachments) {
+				if(!(a instanceof JsonObject)) continue;
+				JsonObject jo = (JsonObject) a;
+				query.append("(?, ?, ?, ?, ");
+				values.add(jo.getString("id"))
+					.add(jo.getString("name"))
+					.add(jo.getInteger("size"))
+					.add(user.getUserId());
+
+				if(ticketId == null){
+					query.append("(SELECT currval('support.tickets_id_seq'))),");
+				}
+				else {
+					query.append("?),");
+					values.add(ticketId);
+				}
+			}
+			// remove trailing comma
+			query.deleteCharAt(query.length() - 1);
+
+			s.prepared(query.toString(), values);
+		}
+
+	}
+
 
 	@Override
 	public void listTickets(UserInfos user, Handler<Either<String, JsonArray>> handler) {

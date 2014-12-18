@@ -25,6 +25,28 @@
     },
     "newComment": {
       "type": "string"
-    }
+    },
+    "attachments": {
+      "type": "array",
+      "additionalProperties": false,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+	}
   }
 }

@@ -132,6 +132,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		
 		template.open('main', 'list-tickets');
 		$scope.ticket.createTicket($scope.ticket, function() {
+			$scope.ticket.newAttachments = [];
 			notify.info('support.ticket.has.been.created');
 		});
 	};
@@ -162,14 +163,47 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			notify.error('support.ticket.validation.error.description.is.empty');
 			return;
 		}
+		
+		// check that the "new" attachments have not already been saved for the current ticket 
+		if($scope.ticket.newAttachments && $scope.ticket.newAttachments.length > 0) {
+			var attachmentsIds = $scope.ticket.attachments.pluck('gridfs_id');
+			var newAttachmentsInDuplicate = [];
+			
+			for (var i=0; i < $scope.ticket.newAttachments.length; i++) {
+				if(_.contains(attachmentsIds, $scope.ticket.newAttachments[i]._id)) {
+					newAttachmentsInDuplicate.push({
+						id: $scope.ticket.newAttachments[i]._id, 
+						name: $scope.ticket.newAttachments[i].title
+					});
+				}
+			}
+			
+			if(newAttachmentsInDuplicate.length > 0) {
+				if(newAttachmentsInDuplicate.length === 1) {
+					notify.error(lang.translate('support.ticket.validation.error.attachment') + 
+							newAttachmentsInDuplicate[0].name + 
+							lang.translate('support.ticket.validation.error.already.linked.to.ticket'));
+				}
+				else {
+					notify.error(lang.translate('support.ticket.validation.error.attachments.already.linked.to.ticket') + 
+							_.pluck(newAttachmentsInDuplicate,'name').join(", "));
+				}
+				return;
+			}
+		}
 
 		$scope.ticket = $scope.editedTicket;
 		$scope.ticket.updateTicket($scope.ticket, function() {
-			if($scope.ticket.newComment !== undefined && 
-					$scope.ticket.newComment.length > 0) {
+			if($scope.ticket.newAttachments && $scope.ticket.newAttachments.length > 0) {
+				$scope.ticket.getAttachments();
+			}
+			$scope.ticket.newAttachments = [];
+			
+			if($scope.ticket.newComment && $scope.ticket.newComment.length > 0) {
 				$scope.ticket.getComments();
 			}
 			$scope.ticket.newComment = '';
+			
 			template.open('main', 'view-ticket');
 		});
 	};
@@ -216,7 +250,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		});
 		var schoolName = (school !== undefined) ? school.name : undefined;
 		return schoolName;
-	}
+	};
 	
 	
 	this.initialize();
