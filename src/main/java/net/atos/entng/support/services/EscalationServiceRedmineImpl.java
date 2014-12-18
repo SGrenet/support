@@ -10,6 +10,7 @@ import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpHeaders;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
@@ -78,8 +79,8 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 	@Override
-	public void escalateTicket(final HttpServerRequest request,
-			final Handler<JsonObject> handler) {
+	public void escalateTicket(final HttpServerRequest request, final JsonObject ticket,
+			final JsonArray comments, final JsonArray attachments, final Handler<JsonObject> handler) {
 
 		/*
 		 * TODO
@@ -88,44 +89,49 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		 * 3) update the issue with each comment
 		 */
 
+
+		// 1) if there are attachments, upload each attachement. Redmine returns a token for each attachement
+
 		// temporary code - try to upload file to redmine
-		wksHelper.readDocument("ee40b029-2ef5-45e7-af29-76f8f6cf095d", new Handler<WorkspaceHelper.Document>() {
-			@Override
-			public void handle(Document event) {
-				JsonObject doc = event.getDocument();
-				Buffer data = event.getData();
-
-				EscalationServiceRedmineImpl.this.uploadAttachment(data, new Handler<HttpClientResponse>() {
-					@Override
-					public void handle(HttpClientResponse resp) {
-						resp.bodyHandler(new Handler<Buffer>() {
-							@Override
-							public void handle(Buffer event) {
-								log.info(event.toString());
-								JsonObject response = new JsonObject(event.toString());
-								String token = response.getObject("upload").getString("token");
-								handler.handle(response);
-							}
-						});
-					}
-				});
-			}
-		});
-
-//		this.createIssue(new Handler<HttpClientResponse>() {
+//		wksHelper.readDocument("ee40b029-2ef5-45e7-af29-76f8f6cf095d", new Handler<WorkspaceHelper.Document>() {
 //			@Override
-//			public void handle(HttpClientResponse resp) {
-//				// TODO : check status. Should be 201
+//			public void handle(Document event) {
+//				JsonObject doc = event.getDocument();
+//				Buffer data = event.getData();
 //
-//				resp.bodyHandler(new Handler<Buffer>() {
+//				EscalationServiceRedmineImpl.this.uploadAttachment(data, new Handler<HttpClientResponse>() {
 //					@Override
-//					public void handle(Buffer data) {
-//						JsonObject response = new JsonObject(data.toString());
-//						handler.handle(response);
+//					public void handle(HttpClientResponse resp) {
+//						resp.bodyHandler(new Handler<Buffer>() {
+//							@Override
+//							public void handle(Buffer event) {
+//								log.info(event.toString());
+//								JsonObject response = new JsonObject(event.toString());
+//								String token = response.getObject("upload").getString("token");
+//								handler.handle(response);
+//							}
+//						});
 //					}
 //				});
 //			}
 //		});
+
+		this.createIssue(ticket, new Handler<HttpClientResponse>() {
+			@Override
+			public void handle(HttpClientResponse resp) {
+				// TODO : check status. Should be 201
+
+				resp.bodyHandler(new Handler<Buffer>() {
+					@Override
+					public void handle(Buffer data) {
+						// TODO : if status 201, then update the issue with each comment
+
+						JsonObject response = new JsonObject(data.toString());
+						handler.handle(response);
+					}
+				});
+			}
+		});
 
 	}
 
@@ -142,19 +148,20 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 
-	private void createIssue(final Handler<HttpClientResponse> handler) {
+	private void createIssue(final JsonObject ticket, final Handler<HttpClientResponse> handler) {
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
 
-		// TODO : remove temporary code used for test
 		JsonObject data = new JsonObject()
-			.putNumber("project_id", 39) // TODO : put project_id in module conf
+			.putNumber("project_id", 39) // TODO : put project_id and priority_if in module conf
 			.putNumber("priority_id", 10)
-			.putString("subject", "Création d'une demande avec org.vertx.java.core.http.HttpClient")
-			.putString("description", "Description de la demande créée avec org.vertx.java.core.http.HttpClient");
-		JsonObject ticket = new JsonObject().putObject("issue", data);
+			.putString("subject", ticket.getString("subject"))
+			.putString("description", ticket.getString("description"));
+		// TODO : add application name and school name to description
+
+		JsonObject issue = new JsonObject().putObject("issue", data);
 
 		Buffer buffer = new Buffer();
-		buffer.appendString(ticket.toString());
+		buffer.appendString(issue.toString());
 
 		httpClient.post(url, handler)
 				.putHeader(HttpHeaders.HOST, redmineHost)
@@ -164,14 +171,12 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				.write(buffer).end();
 	}
 
-	private void updateIssue(final int issueId, final Handler<HttpClientResponse> handler) {
+	private void updateIssue(final int issueId, final JsonObject comment, final Handler<HttpClientResponse> handler) {
 		String path = "/issues/" + issueId + ".json";
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + path) : path;
 
-		// TODO : remove temporary code used for test
 		JsonObject data = new JsonObject()
-			.putString("subject", "Maj d'une demande avec org.vertx.java.core.http.HttpClient")
-			.putString("notes", "Mise à jour avec org.vertx.java.core.http.HttpClient");
+			.putString("notes", comment.getString("content"));
 		JsonObject ticket = new JsonObject().putObject("issue", data);
 
 		Buffer buffer = new Buffer().appendString(ticket.toString());

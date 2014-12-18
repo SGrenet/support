@@ -163,4 +163,30 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		sql.prepared(query.toString(), values, validResultHandler(handler));
 	}
 
+	/**
+	 * Get a ticket with its attachments' ids and its comments
+	 */
+	@Override
+	public void getTicketForEscalation(String ticketId, Handler<Either<String, JsonObject>> handler) {
+		StringBuilder query = new StringBuilder();
+		query.append("SELECT t.subject, t.description, t.category, t.school_id,")
+			/*  When no rows are selected, json_agg returns a JSON array whose objects' fields have null values.
+			 * We use CASE to return an empty array instead. */
+			.append(" CASE WHEN COUNT(a.gridfs_id) = 0 THEN '[]' ELSE json_agg(DISTINCT a.gridfs_id) END AS attachments,")
+
+			.append(" CASE WHEN COUNT(c.id) = 0 THEN '[]' ")
+				.append(" ELSE json_agg(DISTINCT(c.created, c.id, c.content)::support.comment_tuple ORDER BY (c.created, c.id, c.content)::support.comment_tuple)")
+				.append(" END AS comments")
+
+			.append(" FROM support.tickets AS t")
+			.append(" LEFT JOIN support.attachments AS a ON t.id = a.ticket_id")
+			.append(" LEFT JOIN support.comments AS c ON t.id = c.ticket_id")
+			.append(" WHERE t.id = ?")
+			.append(" GROUP BY t.id");
+
+		JsonArray values = new JsonArray().add(ticketId);
+
+		sql.prepared(query.toString(), values, validUniqueResultHandler(handler));
+	}
+
 }

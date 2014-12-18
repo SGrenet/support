@@ -302,15 +302,39 @@ public class TicketController extends ControllerHelper {
 	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
 	@ResourceFilter(OwnerOrLocalAdmin.class)
 	public void escalateTicket(final HttpServerRequest request) {
+		final String ticketId = request.params().get("id");
 
-		// TODO : get ticket with attachments' ids and comments
-		escalationService.escalateTicket(request, new Handler<JsonObject>() {
+		// *** TODO : check escalation status, update escalation status to "in_progress" and set escalation_date
+
+		ticketService.getTicketForEscalation(ticketId, new Handler<Either<String,JsonObject>>() {
 			@Override
-			public void handle(JsonObject event) {
-				// TODO
-				renderJson(request, event);
+			public void handle(Either<String, JsonObject> event) {
+				if(event.isRight()) {
+					JsonObject ticket = event.right().getValue();
+					JsonArray comments = new JsonArray(ticket.getString("comments"));
+					JsonArray attachments = new JsonArray(ticket.getString("attachments"));
+
+					log.info(ticket.toString());
+					log.info(comments.toString());
+					log.info(attachments.toString());
+
+					escalationService.escalateTicket(request, ticket, comments, attachments, new Handler<JsonObject>() {
+						@Override
+						public void handle(JsonObject event) {
+							// TODO : update escalation status and date ; save redmine issue in PostgreSQL
+							renderJson(request, event);
+						}
+					});
+
+				}
+				else {
+					log.error("Error when calling service getTicket. " + event.left().getValue());
+					// TODO specify error message
+					renderError(request);
+				}
 			}
 		});
+
 	}
 
 	// TODO : remove this temporary webservice, used to test vertx HttpClient
