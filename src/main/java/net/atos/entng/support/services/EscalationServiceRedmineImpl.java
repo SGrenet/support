@@ -24,14 +24,15 @@ import fr.wseduc.webutils.Either;
 
 public class EscalationServiceRedmineImpl implements EscalationService {
 
-	private Logger log;
+	private final Logger log;
 
-	private HttpClient httpClient;
-	private String redmineHost;
-	private int redminePort;
+	private final HttpClient httpClient;
+	private final String redmineHost;
+	private final int redminePort;
 	private boolean proxyIsDefined;
+	private final int redmineProjectId;
 
-	private WorkspaceHelper wksHelper;
+	private final WorkspaceHelper wksHelper;
 
 	/*
 	 * According to http://www.redmine.org/projects/redmine/wiki/Rest_api#Authentication :
@@ -46,9 +47,10 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 
 	public EscalationServiceRedmineImpl(Vertx vertx, Container container, Logger logger, EventBus eb) {
+		JsonObject config = container.config();
 		log = logger;
 		httpClient = vertx.createHttpClient();
-		wksHelper = new WorkspaceHelper(container.config().getString("gridfs-address", "wse.gridfs.persistor"), eb);
+		wksHelper = new WorkspaceHelper(config.getString("gridfs-address", "wse.gridfs.persistor"), eb);
 
 		String proxyHost = System.getProperty("http.proxyHost", null);
 		int proxyPort = 80;
@@ -58,11 +60,11 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			log.error("JVM property 'http.proxyPort' must be an integer", e);
 		}
 
-		redmineHost = container.config().getString("bug-tracker-host", null);
+		redmineHost = config.getString("bug-tracker-host", null);
 		if (redmineHost == null || redmineHost.trim().isEmpty()) {
 			log.error("Module property 'bug-tracker-host' must be defined");
 		}
-		redminePort = container.config().getInteger("bug-tracker-port", 80);
+		redminePort = config.getInteger("bug-tracker-port", 80);
 
 		if (proxyHost != null && !proxyHost.trim().isEmpty()) {
 			proxyIsDefined = true;
@@ -73,17 +75,25 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				.setPort(redminePort);
 		}
 
-		redmineApiKey = container.config().getString("bug-tracker-api-key", null);
+		redmineApiKey = config.getString("bug-tracker-api-key", null);
 		if (redmineApiKey == null || redmineApiKey.trim().isEmpty()) {
 			log.error("Module property 'bug-tracker-api-key' must be defined");
 		}
 
-		// TODO : maxPoolSize, keepAlive and TryUseCompression should be configurable
-		httpClient.setMaxPoolSize(16)
-			.setKeepAlive(false)
-			.setTryUseCompression(true)
-		// TODO : .exceptionHandler(handler)
-		;
+		redmineProjectId = config.getInteger("bug-tracker-projectid", -1);
+		if(redmineProjectId == -1) {
+			log.error("Module property 'bug-tracker-projectid' must be defined");
+		}
+
+		httpClient.setMaxPoolSize(config.getInteger("escalation-httpclient-maxpoolsize",  16))
+			.setKeepAlive(config.getBoolean("escalation-httpclient-keepalive", false))
+			.setTryUseCompression(config.getBoolean("escalation-httpclient-tryusecompression", true))
+			.exceptionHandler(new Handler<Throwable>() {
+				@Override
+				public void handle(Throwable t) {
+					log.error("Error in redmine escalation httpClient", t);
+				}
+			});
 	}
 
 	@Override
@@ -271,8 +281,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
 
 		JsonObject data = new JsonObject()
-			.putNumber("project_id", 39) // TODO : put project_id and priority_if in module conf
-			.putNumber("priority_id", 10)
+			.putNumber("project_id", redmineProjectId)
 			.putString("subject", ticket.getString("subject"))
 			.putString("description", ticket.getString("description"));
 		// TODO : add application name and school name to description
