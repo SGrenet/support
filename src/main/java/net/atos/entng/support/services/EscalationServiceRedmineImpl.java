@@ -1,7 +1,12 @@
 package net.atos.entng.support.services;
 
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.entcore.common.bus.WorkspaceHelper;
+import org.entcore.common.bus.WorkspaceHelper.Document;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
@@ -73,9 +78,10 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			log.error("Module property 'bug-tracker-api-key' must be defined");
 		}
 
-		// TODO : maxPoolSize and keepAlive should be configurable
+		// TODO : maxPoolSize, keepAlive and TryUseCompression should be configurable
 		httpClient.setMaxPoolSize(16)
 			.setKeepAlive(false)
+			.setTryUseCompression(true)
 		// TODO : .exceptionHandler(handler)
 		;
 	}
@@ -85,40 +91,78 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			final JsonArray comments, final JsonArray attachments, final Handler<Either<String, JsonObject>> handler) {
 
 		/*
-		 * TODO
+		 * Escalation steps
 		 * 1) if there are attachments, upload each attachement. Redmine returns a token for each attachement
 		 * 2) create the issue with all its attachments
 		 * 3) update the issue with all comments
 		 */
 
+		final ConcurrentMap<String, JsonObject> attachmentMap = new ConcurrentHashMap<>();
 
-		// 1) if there are attachments, upload each attachement. Redmine returns a token for each attachement
+		if(attachments != null && attachments.size() > 0) {
+			final AtomicInteger remaining = new AtomicInteger(attachments.size());
 
-		// temporary code - try to upload file to redmine
-//		wksHelper.readDocument("ee40b029-2ef5-45e7-af29-76f8f6cf095d", new Handler<WorkspaceHelper.Document>() {
-//			@Override
-//			public void handle(Document event) {
-//				JsonObject doc = event.getDocument();
-//				Buffer data = event.getData();
-//
-//				EscalationServiceRedmineImpl.this.uploadAttachment(data, new Handler<HttpClientResponse>() {
-//					@Override
-//					public void handle(HttpClientResponse resp) {
-//						resp.bodyHandler(new Handler<Buffer>() {
-//							@Override
-//							public void handle(Buffer event) {
-//								log.info(event.toString());
-//								JsonObject response = new JsonObject(event.toString());
-//								String token = response.getObject("upload").getString("token");
-//								handler.handle(response);
-//							}
-//						});
-//					}
-//				});
-//			}
-//		});
+			for (Object o : attachments) {
+				if(!(o instanceof String)) continue;
+				final String attachmentId = (String) o;
 
-		this.createIssue(ticket, new Handler<HttpClientResponse>() {
+				// read attachment from workspace, and upload it to redmine
+				wksHelper.readDocument(attachmentId, new Handler<WorkspaceHelper.Document>() {
+					@Override
+					public void handle(final Document file) {
+						final String filename = file.getDocument().getString("name");
+						final String contentType = file.getDocument().getObject("metadata").getString("content-type");
+
+						EscalationServiceRedmineImpl.this.uploadAttachment(file.getData(), new Handler<HttpClientResponse>() {
+							@Override
+							public void handle(final HttpClientResponse resp) {
+
+								resp.bodyHandler(new Handler<Buffer>() {
+									@Override
+									public void handle(final Buffer event) {
+										if(resp.statusCode() == 201) {
+											// Response from redmine is for instance {"upload":{"token":"781.687411f12da55bbd5a3d991675ac2135"}}
+											JsonObject response = new JsonObject(event.toString());
+											String token = response.getObject("upload").getString("token");
+
+											JsonObject attachment = new JsonObject().putString("token", token)
+													.putString("filename", filename)
+													.putString("content_type", contentType);
+
+											attachmentMap.put(attachmentId, attachment);
+
+											if (remaining.decrementAndGet() < 1 && !attachmentMap.isEmpty()) {
+												EscalationServiceRedmineImpl.this.createIssue(ticket,
+														getCreateIssueHandler(comments, handler), attachmentMap);
+											}
+										}
+										else {
+											log.error("Error during escalation. Could not upload attachment to Redmine. Response status is "
+														+ resp.statusCode() + " instead of 201.");
+											log.info(event.toString());
+
+											// TODO : i18n for error message
+											handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not upload attachment to Redmine"));
+										}
+									}
+								});
+							}
+						});
+					}
+				});
+
+			}
+		}
+		else {
+			this.createIssue(ticket, getCreateIssueHandler(comments, handler), attachmentMap);
+		}
+
+	}
+
+	private Handler<HttpClientResponse> getCreateIssueHandler(final JsonArray comments,
+			final Handler<Either<String, JsonObject>> handler) {
+
+		return new Handler<HttpClientResponse>() {
 			@Override
 			public void handle(final HttpClientResponse resp) {
 				resp.bodyHandler(new Handler<Buffer>() {
@@ -154,7 +198,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 					}
 				});
 			}
-		});
+		};
 
 	}
 
@@ -221,7 +265,9 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 
-	private void createIssue(final JsonObject ticket, final Handler<HttpClientResponse> handler) {
+	private void createIssue(final JsonObject ticket, final Handler<HttpClientResponse> handler,
+			 ConcurrentMap<String, JsonObject> attachmentMap) {
+
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
 
 		JsonObject data = new JsonObject()
@@ -230,6 +276,14 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			.putString("subject", ticket.getString("subject"))
 			.putString("description", ticket.getString("description"));
 		// TODO : add application name and school name to description
+
+		JsonArray uploads = new JsonArray();
+		for (JsonObject attachment : attachmentMap.values()) {
+			uploads.add(attachment);
+		}
+		if(uploads.size() > 0) {
+			data.putArray("uploads", uploads);
+		}
 
 		JsonObject issue = new JsonObject().putObject("issue", data);
 
