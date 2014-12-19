@@ -298,49 +298,89 @@ public class TicketController extends ControllerHelper {
 
 	// TODO filter "LocalAdmin" : only local administrators can escalate
 	@Post("/ticket/:id/escalate")
-	@ApiDoc("Escalate ticket : the ticket is forwarded to an external bug tracker, and a copy of the ticket is saved and regularly synchronized")
+	@ApiDoc("Escalate ticket : the ticket is forwarded to an external bug tracker, a copy of the ticket is saved and will be regularly synchronized")
 	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
 	@ResourceFilter(OwnerOrLocalAdmin.class)
 	public void escalateTicket(final HttpServerRequest request) {
 		final String ticketId = request.params().get("id");
 
-		// *** TODO : check escalation status, update escalation status to "in_progress" and set escalation_date
-
-		ticketService.getTicketForEscalation(ticketId, new Handler<Either<String,JsonObject>>() {
+		UserUtils.getUserInfos(eb, request, new Handler<UserInfos>() {
 			@Override
-			public void handle(Either<String, JsonObject> event) {
-				if(event.isRight()) {
-					JsonObject ticket = event.right().getValue();
+			public void handle(final UserInfos user) {
+				if (user != null) {
+					ticketService.getTicketForEscalation(ticketId, getTicketForEscalationHandler(request, ticketId, user));
+				} else {
+					log.debug("User not found in session.");
+					unauthorized(request);
+				}
+			}
+		});
+
+	}
+
+	private Handler<Either<String,JsonObject>> getTicketForEscalationHandler(final HttpServerRequest request,
+			final String ticketId, final UserInfos user) {
+
+		return new Handler<Either<String,JsonObject>>() {
+			@Override
+			public void handle(Either<String, JsonObject> getTicketResponse) {
+				if(getTicketResponse.isRight()) {
+					JsonObject ticket = getTicketResponse.right().getValue();
+					if(ticket == null || ticket.size() == 0) {
+						log.error("Ticket cannot be escalated : its status should be new or opened, and its escalation status should be not_done or in_progress");
+						// TODO add i18n error message
+						badRequest(request, "Ticket cannot be escalated : its status should be new or opened, and its escalation status should be not_done or in_progress");
+						return;
+					}
+
 					JsonArray comments = new JsonArray(ticket.getString("comments"));
 					JsonArray attachments = new JsonArray(ticket.getString("attachments"));
 
-					log.info(ticket.toString());
-					log.info(comments.toString());
-					log.info(attachments.toString());
-
 					escalationService.escalateTicket(request, ticket, comments, attachments, new Handler<Either<String, JsonObject>>() {
 						@Override
-						public void handle(Either<String, JsonObject> event) {
-							if(event.isRight()) {
-								// TODO : update escalation status and date ; save redmine issue in PostgreSQL
-								renderJson(request, event.right().getValue());
+						public void handle(final Either<String, JsonObject> escalationResponse) {
+							if(escalationResponse.isRight()) {
+								final JsonObject issue = escalationResponse.right().getValue(); // TODO : call escalationService.getTicket to get whole issue
+								Integer issueId = escalationService.extractIdFromIssue(issue);
+
+								ticketService.endSuccessfulEscalation(ticketId, issue, issueId, user, new Handler<Either<String,JsonObject>>() {
+									@Override
+									public void handle(Either<String, JsonObject> event) {
+										if(event.isRight()) {
+											renderJson(request, issue);
+										}
+										else {
+											log.error("Error when trying to update escalation status to successful and to save bug tracker issue");
+											renderError(request, new JsonObject().putString("error", event.left().getValue()));
+										}
+									}
+								});
+
 							}
 							else {
-								renderError(request, new JsonObject().putString("error", event.left().getValue()));
+								ticketService.endFailedEscalation(ticketId, user, new Handler<Either<String,JsonObject>>() {
+									@Override
+									public void handle(Either<String, JsonObject> event) {
+										if(event.isLeft()) {
+											log.error("Error when updating escalation status to failed");
+										}
+									}
+								});
+								renderError(request, new JsonObject().putString("error", escalationResponse.left().getValue()));
 							}
 						}
 					});
 
 				}
 				else {
-					log.error("Error when calling service getTicket. " + event.left().getValue());
+					log.error("Error when calling service getTicketForEscalation. " + getTicketResponse.left().getValue());
 					// TODO specify error message
 					renderError(request);
 				}
 			}
-		});
-
+		};
 	}
+
 
 	// TODO : remove this temporary webservice, used to test vertx HttpClient
 	@Get("/tickets/redmine")

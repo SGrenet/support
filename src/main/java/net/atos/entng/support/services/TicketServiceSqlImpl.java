@@ -1,10 +1,14 @@
 package net.atos.entng.support.services;
 
+import static net.atos.entng.support.EscalationStatus.*;
 import static org.entcore.common.sql.Sql.parseId;
 import static org.entcore.common.sql.SqlResult.validUniqueResultHandler;
 import static org.entcore.common.sql.SqlResult.validResultHandler;
 
 import java.util.List;
+
+import net.atos.entng.support.EscalationStatus;
+import net.atos.entng.support.TicketStatus;
 
 import org.entcore.common.service.impl.SqlCrudService;
 import org.entcore.common.sql.SqlStatementsBuilder;
@@ -164,11 +168,34 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 	}
 
 	/**
-	 * Get a ticket with its attachments' ids and its comments
+	 * If escalation status is "not_done" or "failed", and ticket status is new or opened,
+	 * update escalation status to "in_progress" and return the ticket with its attachments' ids and its comments.
+	 *
+	 * Else (escalation is not allowed) return null.
 	 */
 	@Override
 	public void getTicketForEscalation(String ticketId, Handler<Either<String, JsonObject>> handler) {
+
 		StringBuilder query = new StringBuilder();
+		JsonArray values = new JsonArray();
+
+		// 1) WITH query to update status
+		query.append("WITH updated_ticket AS (")
+			.append(" UPDATE support.tickets")
+			.append(" SET escalation_status = ?, escalation_date = NOW()")
+			.append(" WHERE id = ?");
+		values.add(IN_PROGRESS.status())
+			.add(ticketId);
+
+		query.append(" AND escalation_status NOT IN (?, ?)")
+			.append(" AND status NOT IN (?, ?)")
+			.append(" RETURNING * )");
+		values.add(IN_PROGRESS.status())
+			.add(SUCCESSFUL.status())
+			.add(TicketStatus.RESOLVED.status())
+			.add(TicketStatus.CLOSED.status());
+
+		// 2) query to select ticket, attachments' ids and comments
 		query.append("SELECT t.subject, t.description, t.category, t.school_id,")
 			/*  When no rows are selected, json_agg returns a JSON array whose objects' fields have null values.
 			 * We use CASE to return an empty array instead. */
@@ -178,15 +205,59 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 				.append(" ELSE json_agg(DISTINCT(c.created, c.id, c.content)::support.comment_tuple ORDER BY (c.created, c.id, c.content)::support.comment_tuple)")
 				.append(" END AS comments")
 
-			.append(" FROM support.tickets AS t")
+			.append(" FROM updated_ticket AS t")
 			.append(" LEFT JOIN support.attachments AS a ON t.id = a.ticket_id")
 			.append(" LEFT JOIN support.comments AS c ON t.id = c.ticket_id")
-			.append(" WHERE t.id = ?")
-			.append(" GROUP BY t.id");
-
-		JsonArray values = new JsonArray().add(ticketId);
+			.append(" GROUP BY t.id, t.subject, t.description, t.category, t.school_id");
 
 		sql.prepared(query.toString(), values, validUniqueResultHandler(handler));
 	}
+
+
+	private void updateTicketAfterEscalation(String ticketId, EscalationStatus targetStatus, JsonObject issue, Integer issueId,
+			UserInfos user, Handler<Either<String, JsonObject>> handler) {
+		String query = "UPDATE support.tickets"
+				+ " SET escalation_status = ?, escalation_date = NOW()"
+				+ " WHERE id = ?";
+
+		JsonArray values = new JsonArray()
+			.add(targetStatus.status())
+			.add(ticketId);
+
+		if(!EscalationStatus.SUCCESSFUL.equals(targetStatus)) {
+			sql.prepared(query, values, validUniqueResultHandler(handler));
+		}
+		else {
+			SqlStatementsBuilder statements = new SqlStatementsBuilder();
+			statements.prepared(query, values);
+
+			// Save bug tracker issue in ENT, so that local administrators can see it
+			String insertQuery = "INSERT INTO support.bug_tracker_issues(id, ticket_id, content, owner)"
+					+ " VALUES(?, ?, ?, ?)";
+
+			JsonArray insertValues = new JsonArray().add(issueId)
+					.add(ticketId)
+					.add(issue.toString())
+					.add(user.getUserId());
+
+			statements.prepared(insertQuery, insertValues);
+
+			sql.transaction(statements.build(), validUniqueResultHandler(1, handler));
+		}
+
+	}
+
+	@Override
+	public void endSuccessfulEscalation(String ticketId, JsonObject issue,
+			Integer issueId, UserInfos user, Handler<Either<String, JsonObject>> handler) {
+
+		this.updateTicketAfterEscalation(ticketId, SUCCESSFUL, issue, issueId, user, handler);
+	}
+
+	@Override
+	public void endFailedEscalation(String ticketId, UserInfos user, Handler<Either<String, JsonObject>> handler) {
+		this.updateTicketAfterEscalation(ticketId, FAILED, null, null, user, handler);
+	}
+
 
 }

@@ -15,4 +15,6 @@ public interface EscalationService {
 	public void listTickets(Handler<JsonObject> handler);
 
 	public void getTicket(int issueId, Handler<JsonObject> handler);
+
+	public Integer extractIdFromIssue(JsonObject issue);
 }

@@ -20,4 +20,10 @@ public interface TicketService extends CrudService {
 	public void listMyTickets(UserInfos user, Handler<Either<String, JsonArray>> handler);
 
 	public void getTicketForEscalation(String ticketId, Handler<Either<String, JsonObject>> handler);
+
+	public void endSuccessfulEscalation(String ticketId, JsonObject issue, Integer issueId,
+			UserInfos user, Handler<Either<String, JsonObject>> handler);
+
+	public void endFailedEscalation(String ticketId, UserInfos user, Handler<Either<String, JsonObject>> handler);
+
 }

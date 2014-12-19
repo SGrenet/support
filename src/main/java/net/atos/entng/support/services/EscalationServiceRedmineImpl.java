@@ -187,7 +187,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 								}
 
 								// Add all comments to the redmine issue
-								Integer issueId = (Integer) response.getObject("issue").getNumber("id");
+								Integer issueId = EscalationServiceRedmineImpl.this.extractIdFromIssue(response);
 								EscalationServiceRedmineImpl.this.updateIssue(issueId, aggregateComments(comments),
 										getUpdateIssueHandler(response, handler));
 
@@ -396,6 +396,11 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		.putHeader(HEADER_REDMINE_API_KEY, redmineApiKey)
 		.putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 		.end();
+	}
+
+	@Override
+	public Integer extractIdFromIssue(JsonObject issue) {
+		return (Integer) issue.getObject("issue").getNumber("id");
 	}
 
 }
