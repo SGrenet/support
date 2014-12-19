@@ -318,11 +318,16 @@ public class TicketController extends ControllerHelper {
 					log.info(comments.toString());
 					log.info(attachments.toString());
 
-					escalationService.escalateTicket(request, ticket, comments, attachments, new Handler<JsonObject>() {
+					escalationService.escalateTicket(request, ticket, comments, attachments, new Handler<Either<String, JsonObject>>() {
 						@Override
-						public void handle(JsonObject event) {
-							// TODO : update escalation status and date ; save redmine issue in PostgreSQL
-							renderJson(request, event);
+						public void handle(Either<String, JsonObject> event) {
+							if(event.isRight()) {
+								// TODO : update escalation status and date ; save redmine issue in PostgreSQL
+								renderJson(request, event.right().getValue());
+							}
+							else {
+								renderError(request, new JsonObject().putString("error", event.left().getValue()));
+							}
 						}
 					});
 

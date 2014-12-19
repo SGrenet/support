@@ -1,7 +1,7 @@
 package net.atos.entng.support.services;
 
+
 import org.entcore.common.bus.WorkspaceHelper;
-import org.entcore.common.bus.WorkspaceHelper.Document;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
@@ -14,6 +14,8 @@ import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
+
+import fr.wseduc.webutils.Either;
 
 public class EscalationServiceRedmineImpl implements EscalationService {
 
@@ -80,13 +82,13 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 	@Override
 	public void escalateTicket(final HttpServerRequest request, final JsonObject ticket,
-			final JsonArray comments, final JsonArray attachments, final Handler<JsonObject> handler) {
+			final JsonArray comments, final JsonArray attachments, final Handler<Either<String, JsonObject>> handler) {
 
 		/*
 		 * TODO
 		 * 1) if there are attachments, upload each attachement. Redmine returns a token for each attachement
 		 * 2) create the issue with all its attachments
-		 * 3) update the issue with each comment
+		 * 3) update the issue with all comments
 		 */
 
 
@@ -118,21 +120,92 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 		this.createIssue(ticket, new Handler<HttpClientResponse>() {
 			@Override
-			public void handle(HttpClientResponse resp) {
-				// TODO : check status. Should be 201
-
+			public void handle(final HttpClientResponse resp) {
 				resp.bodyHandler(new Handler<Buffer>() {
 					@Override
-					public void handle(Buffer data) {
-						// TODO : if status 201, then update the issue with each comment
+					public void handle(final Buffer data) {
+						if(resp.statusCode() == 201) { // Issue creation was successful
+							try {
+								final JsonObject response = new JsonObject(data.toString());
+								if(comments == null || comments.size() == 0) {
+									handler.handle(new Either.Right<String, JsonObject>(response));
+									return;
+								}
 
-						JsonObject response = new JsonObject(data.toString());
-						handler.handle(response);
+								// Add all comments to the redmine issue
+								Integer issueId = (Integer) response.getObject("issue").getNumber("id");
+								EscalationServiceRedmineImpl.this.updateIssue(issueId, aggregateComments(comments),
+										getUpdateIssueHandler(response, handler));
+
+							} catch (Exception e) {
+								log.error("Redmine issue was created. Error when trying to update it, i.e. when adding comment", e);
+
+								// TODO : i18n for error message
+								handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not create redmine issue"));
+							}
+						}
+						else {
+							log.error("Error during escalation. Could not create redmine issue. Response status is " + resp.statusCode() + " instead of 201.");
+							log.info(data.toString());
+
+							// TODO : i18n for error message
+							handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not create redmine issue"));
+						}
 					}
 				});
 			}
 		});
 
+	}
+
+	private Handler<HttpClientResponse> getUpdateIssueHandler(final JsonObject response,
+			final Handler<Either<String, JsonObject>> handler) {
+
+		return new Handler<HttpClientResponse>() {
+			@Override
+			public void handle(final HttpClientResponse event) {
+				event.bodyHandler(new Handler<Buffer>() {
+					@Override
+					public void handle(Buffer buffer) {
+						if(event.statusCode() == 200) {
+							// TODO : add comments to "response"
+							handler.handle(new Either.Right<String, JsonObject>(response));
+						}
+						else {
+							log.error("Error during escalation. Could not update redmine issue to add comment. Response status is "
+									+ event.statusCode() + " instead of 200.");
+							log.info(buffer.toString());
+
+							// TODO : i18n for error message
+							handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not update redmine issue"));
+						}
+					}
+				});
+			}
+		};
+	}
+
+
+	/*
+	 * Return a JsonObject containing all comments
+	 */
+	private JsonObject aggregateComments(JsonArray comments) {
+		JsonObject result = new JsonObject();
+		if(comments != null && comments.size() > 0) {
+			StringBuilder sb = new StringBuilder();
+			for (Object o : comments) {
+				if(!(o instanceof JsonObject)) continue;
+				JsonObject c = (JsonObject) o;
+				sb.append("Le ").append(c.getString("created"))
+					.append("\n")
+					.append(c.getString("content"))
+					.append("\n\n");
+			}
+
+			result.putString("content", sb.toString());
+		}
+
+		return result;
 	}
 
 	private void uploadAttachment(final Buffer data, final Handler<HttpClientResponse> handler) {
@@ -244,7 +317,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private void downloadAttachment(final String attachmentUrl, final Handler<JsonObject> handler) {
 		String url = proxyIsDefined ? attachmentUrl : attachmentUrl.substring(attachmentUrl.indexOf(redmineHost) + redmineHost.length());
 
-		httpClient.get(attachmentUrl, new Handler<HttpClientResponse>() {
+		httpClient.get(url, new Handler<HttpClientResponse>() {
 			@Override
 			public void handle(HttpClientResponse resp) {
 				resp.bodyHandler(new Handler<Buffer>() {
