@@ -13,7 +13,6 @@ import java.util.Set;
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
-import net.atos.entng.support.services.TicketServiceSqlImpl;
 import net.atos.entng.support.services.UserService;
 import net.atos.entng.support.services.UserServiceDirectoryImpl;
 
@@ -51,8 +50,8 @@ public class TicketController extends ControllerHelper {
 	private UserService userService;
 	private EscalationService escalationService;
 
-	public TicketController(EventBus eb, EscalationService es) {
-		ticketService = new TicketServiceSqlImpl();
+	public TicketController(EventBus eb, EscalationService es, TicketService ts) {
+		ticketService = ts;
 		userService = new UserServiceDirectoryImpl(eb);
 		escalationService = es;
 	}
@@ -387,13 +386,7 @@ public class TicketController extends ControllerHelper {
 	@ApiDoc("List tickets")
 	@SecuredAction(value = "support.manager", type= ActionType.AUTHENTICATED)
 	public void getRedmineTickets(final HttpServerRequest request) {
-		escalationService.listTickets(new Handler<JsonObject>() {
-			@Override
-			public void handle(JsonObject event) {
-				// TODO
-				renderJson(request, event);
-			}
-		});
+		escalationService.pullAndSynchronizeTickets();
 	}
 
 }

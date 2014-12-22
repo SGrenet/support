@@ -12,9 +12,11 @@ public interface EscalationService {
 	public void escalateTicket(HttpServerRequest request, JsonObject ticket,
 			JsonArray comments, JsonArray attachments, Handler<Either<String, JsonObject>> handler);
 
-	public void listTickets(Handler<JsonObject> handler);
+	public void listIssues(Handler<Either<String, JsonObject>> handler);
 
-	public void getTicket(int issueId, Handler<JsonObject> handler);
+	public void getIssue(int issueId, Handler<Either<String, JsonObject>> handler);
 
 	public Integer extractIdFromIssue(JsonObject issue);
+
+	public void pullAndSynchronizeTickets();
 }

@@ -259,5 +259,18 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		this.updateTicketAfterEscalation(ticketId, FAILED, null, null, user, handler);
 	}
 
+	@Override
+	public void updateIssue(int issueId, String content, Handler<Either<String, JsonObject>> handler) {
+		String query = "UPDATE support.bug_tracker_issues"
+				+ " SET content = ?, modified = now() "
+				+ " WHERE id = ?";
+
+		JsonArray values = new JsonArray()
+			.addString(content)
+			.addNumber(issueId);
+
+		sql.prepared(query, values, validUniqueResultHandler(handler));
+	}
+
 
 }

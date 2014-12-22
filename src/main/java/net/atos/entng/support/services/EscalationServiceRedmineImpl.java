@@ -1,6 +1,5 @@
 package net.atos.entng.support.services;
 
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,6 +32,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private final int redmineProjectId;
 
 	private final WorkspaceHelper wksHelper;
+	private final TicketService ticketService;
 
 	/*
 	 * According to http://www.redmine.org/projects/redmine/wiki/Rest_api#Authentication :
@@ -46,11 +46,12 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private static final String REDMINE_UPLOAD_ATTACHMENT_PATH = "/uploads.json";
 
 
-	public EscalationServiceRedmineImpl(Vertx vertx, Container container, Logger logger, EventBus eb) {
+	public EscalationServiceRedmineImpl(Vertx vertx, Container container, Logger logger, EventBus eb, TicketService ts) {
 		JsonObject config = container.config();
 		log = logger;
 		httpClient = vertx.createHttpClient();
 		wksHelper = new WorkspaceHelper(config.getString("gridfs-address", "wse.gridfs.persistor"), eb);
+		ticketService = ts;
 
 		String proxyHost = System.getProperty("http.proxyHost", null);
 		int proxyPort = 80;
@@ -94,6 +95,16 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 					log.error("Error in redmine escalation httpClient", t);
 				}
 			});
+
+		// TODO add delay to conf.json.template
+//		Long delay = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
+//		vertx.setPeriodic(delay, new Handler<Long>() {
+//			@Override
+//			public void handle(Long timerId) {
+//				EscalationServiceRedmineImpl.this.pullAndSynchronizeTickets();
+//			}
+//		});
+
 	}
 
 	@Override
@@ -149,7 +160,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 										else {
 											log.error("Error during escalation. Could not upload attachment to Redmine. Response status is "
 														+ resp.statusCode() + " instead of 201.");
-											log.info(event.toString());
+											log.error(event.toString());
 
 											// TODO : i18n for error message
 											handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not upload attachment to Redmine"));
@@ -200,7 +211,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 						}
 						else {
 							log.error("Error during escalation. Could not create redmine issue. Response status is " + resp.statusCode() + " instead of 201.");
-							log.info(data.toString());
+							log.error(data.toString());
 
 							// TODO : i18n for error message
 							handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not create redmine issue"));
@@ -228,7 +239,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 						else {
 							log.error("Error during escalation. Could not update redmine issue to add comment. Response status is "
 									+ event.statusCode() + " instead of 200.");
-							log.info(buffer.toString());
+							log.error(buffer.toString());
 
 							// TODO : i18n for error message
 							handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not update redmine issue"));
@@ -328,17 +339,38 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 
 	@Override
-	public void listTickets(final Handler<JsonObject> handler) {
+	public void listIssues(final Handler<Either<String, JsonObject>> handler) {
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
+
+		/*
+		 * According to http://www.redmine.org/projects/redmine/wiki/Rest_Issues :
+		 * "status_id=*" : open and closed issues
+		 * "updated_on=%3E%3D2014-12-19" : updated after a certain date. NB : operators containing ">", "<" or "=" should be hex-encoded
+		 */
+		// TODO : use feature http://www.redmine.org/issues/8842 to get created/updated issues after a specific timestamp. Needs redmine 2.5.0
+
+		// TODO : gérer offset/limit. Récupérer la date de dernière mise à jour
+		String query = "?status_id=*&updated_on=%3E%3D2014-12-19";
+		url += query;
 
 		httpClient.get(url, new Handler<HttpClientResponse>() {
 			@Override
-			public void handle(HttpClientResponse resp) {
+			public void handle(final HttpClientResponse resp) {
 				resp.bodyHandler(new Handler<Buffer>() {
 					@Override
 					public void handle(Buffer data) {
 						JsonObject response = new JsonObject(data.toString());
-						handler.handle(response);
+						if(resp.statusCode() == 200) {
+							handler.handle(new Either.Right<String, JsonObject>(response));
+						}
+						else {
+							log.error("Error when listing redmine tickets. Response status is "
+									+ resp.statusCode() + " instead of 200.");
+							log.error(response.toString());
+
+							// TODO : i18n for error message
+							handler.handle(new Either.Left<String, JsonObject>("Error when listing redmine tickets"));
+						}
 					}
 				});
 			}
@@ -350,20 +382,103 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 	@Override
-	public void getTicket(final int issueId, final Handler<JsonObject> handler) {
+	public void pullAndSynchronizeTickets() {
+		/*
+		 * Steps :
+		 * 1) list issues that have been created/updated since last time
+		 *
+		 * 2) for each issue,
+		 * i/ get the "whole" issue (i.e. with its attachments' metadata and with its comments).
+		 * ii/ If there are "new" attachments, download them, store them in gridfs
+		 * iii/ update the issue in Postgresql, so that local administrators can see the last changes
+		 *
+		 */
+
+		this.listIssues(new Handler<Either<String, JsonObject>>() {
+			@Override
+			public void handle(Either<String, JsonObject> event) {
+				if(event.isRight()) {
+					try {
+						JsonArray issues = event.right().getValue().getArray("issues", null);
+						if (issues != null && issues.size() > 0) {
+							final AtomicInteger remaining = new AtomicInteger(issues.size());
+
+							for (Object o : issues) {
+								if(!(o instanceof JsonObject)) continue;
+								JsonObject jo = (JsonObject) o;
+								final Integer issueId = (Integer) jo.getNumber("id");
+
+								// TODO : get and update ticket only if it has been changed since last update
+								EscalationServiceRedmineImpl.this.getIssue(issueId, new Handler<Either<String, JsonObject>>() {
+									@Override
+									public void handle(Either<String, JsonObject> event) {
+										if(event.isRight()) {
+											// TODO : if there are "new" attachments, download them
+											// temporary code
+//											EscalationServiceRedmineImpl.this.downloadAttachment("http://support.web-education.net/attachments/download/784/test_pj.png", handler);
+
+											// update issue in postgresql
+											JsonObject issue = event.right().getValue();
+											ticketService.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
+												@Override
+												public void handle(Either<String, JsonObject> event) {
+													if(event.isRight()) {
+														log.info("pullAndSynchronize OK for issue n°"+issueId);
+
+														if(remaining.decrementAndGet() < 1) {
+															log.info("pullAndSynchronize OK for all issues !");
+														}
+													}
+													else {
+														log.error("Error when updating issue n°"+issueId);
+													}
+												}
+											});
+
+										}
+										else {
+											log.error(event.left().getValue());
+										}
+									}
+								});
+							}
+						}
+
+					} catch (Exception e) {
+						log.error("Service pullAndSynchronizeTickets : error after listing issues", e);
+					}
+				}
+				else {
+					log.error("Error when listing issues. " + event.left().getValue());
+				}
+			}
+
+		});
+	}
+
+	@Override
+	public void getIssue(final int issueId, final Handler<Either<String, JsonObject>> handler) {
 		String path = "/issues/" + issueId + ".json?include=journals,attachments";
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + path) : path;
 
 		httpClient.get(url, new Handler<HttpClientResponse>() {
 			@Override
-			public void handle(HttpClientResponse resp) {
+			public void handle(final HttpClientResponse resp) {
 				resp.bodyHandler(new Handler<Buffer>() {
 					@Override
 					public void handle(Buffer data) {
 						JsonObject response = new JsonObject(data.toString());
-						// TODO : download attachments
-						// temporary code
-						EscalationServiceRedmineImpl.this.downloadAttachment("http://support.web-education.net/attachments/download/784/test_pj.png", handler);
+						if(resp.statusCode() == 200) {
+							handler.handle(new Either.Right<String, JsonObject>(response));
+						}
+						else {
+							log.error("Error when getting a redmine ticket. Response status is "
+									+ resp.statusCode() + " instead of 200.");
+							log.error(response.toString());
+
+							// TODO : i18n for error message
+							handler.handle(new Either.Left<String, JsonObject>("Error when getting a redmine ticket"));
+						}
 					}
 				});
 			}

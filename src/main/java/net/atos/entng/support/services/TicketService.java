@@ -26,4 +26,5 @@ public interface TicketService extends CrudService {
 
 	public void endFailedEscalation(String ticketId, UserInfos user, Handler<Either<String, JsonObject>> handler);
 
+	public void updateIssue(int issueId, String content, Handler<Either<String, JsonObject>> handler);
 }
