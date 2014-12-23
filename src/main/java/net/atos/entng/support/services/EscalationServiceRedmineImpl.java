@@ -1,6 +1,5 @@
 package net.atos.entng.support.services;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -107,9 +106,16 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 	}
 
+
+
+	/**
+	 * 	@inheritDoc
+	 */
 	@Override
 	public void escalateTicket(final HttpServerRequest request, final JsonObject ticket,
-			final JsonArray comments, final JsonArray attachments, final Handler<Either<String, JsonObject>> handler) {
+			final JsonArray comments, final JsonArray attachmentsIds,
+			final ConcurrentMap<Integer, String> attachmentMap,
+			final Handler<Either<String, JsonObject>> handler) {
 
 		/*
 		 * Escalation steps
@@ -117,13 +123,13 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		 * 2) create the issue with all its attachments
 		 * 3) update the issue with all comments
 		 */
+		final JsonArray attachments = new JsonArray();
 
-		final ConcurrentMap<String, JsonObject> attachmentMap = new ConcurrentHashMap<>();
+		if(attachmentsIds != null && attachmentsIds.size() > 0) {
+			final AtomicInteger successfulUploads = new AtomicInteger(0);
+			final AtomicInteger failedUploads = new AtomicInteger(0);
 
-		if(attachments != null && attachments.size() > 0) {
-			final AtomicInteger remaining = new AtomicInteger(attachments.size());
-
-			for (Object o : attachments) {
+			for (Object o : attachmentsIds) {
 				if(!(o instanceof String)) continue;
 				final String attachmentId = (String) o;
 
@@ -131,51 +137,62 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				wksHelper.readDocument(attachmentId, new Handler<WorkspaceHelper.Document>() {
 					@Override
 					public void handle(final Document file) {
-						final String filename = file.getDocument().getString("name");
-						final String contentType = file.getDocument().getObject("metadata").getString("content-type");
+						try {
+							final String filename = file.getDocument().getString("name");
+							final String contentType = file.getDocument().getObject("metadata").getString("content-type");
 
-						EscalationServiceRedmineImpl.this.uploadAttachment(file.getData(), new Handler<HttpClientResponse>() {
-							@Override
-							public void handle(final HttpClientResponse resp) {
+							EscalationServiceRedmineImpl.this.uploadAttachment(file.getData(), new Handler<HttpClientResponse>() {
+								@Override
+								public void handle(final HttpClientResponse resp) {
 
-								resp.bodyHandler(new Handler<Buffer>() {
-									@Override
-									public void handle(final Buffer event) {
-										if(resp.statusCode() == 201) {
-											// Response from redmine is for instance {"upload":{"token":"781.687411f12da55bbd5a3d991675ac2135"}}
-											JsonObject response = new JsonObject(event.toString());
-											String token = response.getObject("upload").getString("token");
+									resp.bodyHandler(new Handler<Buffer>() {
+										@Override
+										public void handle(final Buffer event) {
+											if(resp.statusCode() == 201) {
+												// Response from redmine is for instance {"upload":{"token":"781.687411f12da55bbd5a3d991675ac2135"}}
+												JsonObject response = new JsonObject(event.toString());
+												String token = response.getObject("upload").getString("token");
+												String attachmentIdInRedmine = token.substring(0, token.indexOf('.'));
+												attachmentMap.put(Integer.valueOf(attachmentIdInRedmine),
+														file.getDocument().getString("_id"));
 
-											JsonObject attachment = new JsonObject().putString("token", token)
-													.putString("filename", filename)
-													.putString("content_type", contentType);
+												JsonObject attachment = new JsonObject().putString("token", token)
+														.putString("filename", filename)
+														.putString("content_type", contentType);
+												attachments.addObject(attachment);
 
-											attachmentMap.put(attachmentId, attachment);
+												// Create redmine issue only if all attachments have been uploaded successfully
+												if (successfulUploads.incrementAndGet() == attachmentsIds.size()) {
+													EscalationServiceRedmineImpl.this.createIssue(ticket,
+															getCreateIssueHandler(comments, handler), attachments);
+												}
+											}
+											else {
+												log.error("Error during escalation. Could not upload attachment to Redmine. Response status is "
+															+ resp.statusCode() + " instead of 201.");
+												log.error(event.toString());
 
-											if (remaining.decrementAndGet() < 1 && !attachmentMap.isEmpty()) {
-												EscalationServiceRedmineImpl.this.createIssue(ticket,
-														getCreateIssueHandler(comments, handler), attachmentMap);
+												// Return error message as soon as one upload failed
+												if(failedUploads.incrementAndGet() == 1) {
+													// TODO : i18n for error message
+													handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not upload attachment(s) to Redmine"));
+												}
 											}
 										}
-										else {
-											log.error("Error during escalation. Could not upload attachment to Redmine. Response status is "
-														+ resp.statusCode() + " instead of 201.");
-											log.error(event.toString());
+									});
+								}
+							});
+						} catch (Exception e) {
+							log.error("Error when processing response from readDocument", e);
+						}
 
-											// TODO : i18n for error message
-											handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not upload attachment to Redmine"));
-										}
-									}
-								});
-							}
-						});
 					}
 				});
 
 			}
 		}
 		else {
-			this.createIssue(ticket, getCreateIssueHandler(comments, handler), attachmentMap);
+			this.createIssue(ticket, getCreateIssueHandler(comments, handler), attachments);
 		}
 
 	}
@@ -233,7 +250,6 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 					@Override
 					public void handle(Buffer buffer) {
 						if(event.statusCode() == 200) {
-							// TODO : add comments to "response"
 							handler.handle(new Either.Right<String, JsonObject>(response));
 						}
 						else {
@@ -286,8 +302,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 
-	private void createIssue(final JsonObject ticket, final Handler<HttpClientResponse> handler,
-			 ConcurrentMap<String, JsonObject> attachmentMap) {
+	private void createIssue(final JsonObject ticket, final Handler<HttpClientResponse> handler, JsonArray attachments) {
 
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
 
@@ -297,12 +312,8 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			.putString("description", ticket.getString("description"));
 		// TODO : add application name and school name to description
 
-		JsonArray uploads = new JsonArray();
-		for (JsonObject attachment : attachmentMap.values()) {
-			uploads.add(attachment);
-		}
-		if(uploads.size() > 0) {
-			data.putArray("uploads", uploads);
+		if(attachments != null && attachments.size() > 0) {
+			data.putArray("uploads", attachments);
 		}
 
 		JsonObject issue = new JsonObject().putObject("issue", data);
@@ -413,12 +424,28 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 									@Override
 									public void handle(Either<String, JsonObject> event) {
 										if(event.isRight()) {
-											// TODO : if there are "new" attachments, download them
-											// temporary code
-//											EscalationServiceRedmineImpl.this.downloadAttachment("http://support.web-education.net/attachments/download/784/test_pj.png", handler);
+											JsonObject issue = event.right().getValue();
+
+//											// If there are "new" attachments, download them
+//											// TODO WIP
+//											JsonArray attachments = issue.getArray("attachments");
+//											if(attachments != null && attachments.size() > 0) {
+//												ticketService.getIssueAttachments(issueId, new Handler<Either<String, JsonArray>>() {
+//													@Override
+//													public void handle(Either<String, JsonArray> event) {
+//														if(event.isRight() && event.right().getValue() != null) {
+//															// temporary code
+////															EscalationServiceRedmineImpl.this.downloadAttachment("http://support.web-education.net/attachments/download/784/test_pj.png", handler);
+//
+//														}
+//														else {
+//
+//														}
+//													}
+//												});
+//											}
 
 											// update issue in postgresql
-											JsonObject issue = event.right().getValue();
 											ticketService.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
 												@Override
 												public void handle(Either<String, JsonObject> event) {
@@ -430,7 +457,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 														}
 													}
 													else {
-														log.error("Error when updating issue n°"+issueId);
+														log.error("pullAndSynchronize FAILED. Error when updating issue n°"+issueId);
 													}
 												}
 											});

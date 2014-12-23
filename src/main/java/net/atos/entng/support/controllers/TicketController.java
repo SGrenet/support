@@ -9,6 +9,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.EscalationService;
@@ -334,47 +336,70 @@ public class TicketController extends ControllerHelper {
 
 					JsonArray comments = new JsonArray(ticket.getString("comments"));
 					JsonArray attachments = new JsonArray(ticket.getString("attachments"));
+					final ConcurrentMap<Integer, String> attachmentMap = new ConcurrentHashMap<Integer, String>();
 
-					escalationService.escalateTicket(request, ticket, comments, attachments, new Handler<Either<String, JsonObject>>() {
-						@Override
-						public void handle(final Either<String, JsonObject> escalationResponse) {
-							if(escalationResponse.isRight()) {
-								final JsonObject issue = escalationResponse.right().getValue(); // TODO : call escalationService.getTicket to get whole issue
-								Integer issueId = escalationService.extractIdFromIssue(issue);
-
-								ticketService.endSuccessfulEscalation(ticketId, issue, issueId, user, new Handler<Either<String,JsonObject>>() {
-									@Override
-									public void handle(Either<String, JsonObject> event) {
-										if(event.isRight()) {
-											renderJson(request, issue);
-										}
-										else {
-											log.error("Error when trying to update escalation status to successful and to save bug tracker issue");
-											renderError(request, new JsonObject().putString("error", event.left().getValue()));
-										}
-									}
-								});
-
-							}
-							else {
-								ticketService.endFailedEscalation(ticketId, user, new Handler<Either<String,JsonObject>>() {
-									@Override
-									public void handle(Either<String, JsonObject> event) {
-										if(event.isLeft()) {
-											log.error("Error when updating escalation status to failed");
-										}
-									}
-								});
-								renderError(request, new JsonObject().putString("error", escalationResponse.left().getValue()));
-							}
-						}
-					});
+					escalationService.escalateTicket(request, ticket, comments, attachments, attachmentMap,
+							getEscalateTicketHandler(request, ticketId, user, attachmentMap));
 
 				}
 				else {
 					log.error("Error when calling service getTicketForEscalation. " + getTicketResponse.left().getValue());
 					// TODO specify error message
 					renderError(request);
+				}
+			}
+		};
+	}
+
+	private Handler<Either<String,JsonObject>> getEscalateTicketHandler(final HttpServerRequest request,
+			final String ticketId, final UserInfos user, final ConcurrentMap<Integer, String> attachmentMap) {
+
+		return new Handler<Either<String, JsonObject>>() {
+			@Override
+			public void handle(final Either<String, JsonObject> escalationResponse) {
+				if(escalationResponse.isRight()) {
+					final JsonObject issue = escalationResponse.right().getValue();
+					final Integer issueId = escalationService.extractIdFromIssue(issue);
+
+					// get the whole issue (i.e. with attachments' metadata and comments) to save it in database
+					escalationService.getIssue(issueId, new Handler<Either<String, JsonObject>>() {
+						@Override
+						public void handle(Either<String, JsonObject> getWholeIssueResponse) {
+							if(getWholeIssueResponse.isRight()) {
+								final JsonObject wholeIssue = getWholeIssueResponse.right().getValue();
+								ticketService.endSuccessfulEscalation(ticketId, wholeIssue, issueId, attachmentMap, user, new Handler<Either<String,JsonObject>>() {
+
+									@Override
+									public void handle(Either<String, JsonObject> event) {
+										if(event.isRight()) {
+											renderJson(request, wholeIssue);
+										}
+										else {
+											log.error("Error when trying to update escalation status to successful and to save bug tracker issue");
+											renderError(request, new JsonObject().putString("error", event.left().getValue()));
+										}
+									}
+
+								});
+							}
+							else {
+								log.error("Error when trying to get bug tracker issue");
+								renderError(request, new JsonObject().putString("error", getWholeIssueResponse.left().getValue()));
+							}
+						}
+					});
+
+				}
+				else {
+					ticketService.endFailedEscalation(ticketId, user, new Handler<Either<String,JsonObject>>() {
+						@Override
+						public void handle(Either<String, JsonObject> event) {
+							if(event.isLeft()) {
+								log.error("Error when updating escalation status to failed");
+							}
+						}
+					});
+					renderError(request, new JsonObject().putString("error", escalationResponse.left().getValue()));
 				}
 			}
 		};

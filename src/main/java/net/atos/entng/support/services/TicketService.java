@@ -1,5 +1,7 @@
 package net.atos.entng.support.services;
 
+import java.util.concurrent.ConcurrentMap;
+
 import org.entcore.common.service.CrudService;
 import org.entcore.common.user.UserInfos;
 import org.vertx.java.core.Handler;
@@ -21,10 +23,15 @@ public interface TicketService extends CrudService {
 
 	public void getTicketForEscalation(String ticketId, Handler<Either<String, JsonObject>> handler);
 
+	/**
+	 * @param attachmentMap : key = attachmentId in bug tracker, value = attachmentId in gridfs
+	 */
 	public void endSuccessfulEscalation(String ticketId, JsonObject issue, Integer issueId,
-			UserInfos user, Handler<Either<String, JsonObject>> handler);
+			ConcurrentMap<Integer, String> attachmentMap, UserInfos user, Handler<Either<String, JsonObject>> handler);
 
 	public void endFailedEscalation(String ticketId, UserInfos user, Handler<Either<String, JsonObject>> handler);
 
 	public void updateIssue(int issueId, String content, Handler<Either<String, JsonObject>> handler);
+
+	public void getIssueAttachments(int issueId, Handler<Either<String, JsonArray>> handler);
 }
