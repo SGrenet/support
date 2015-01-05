@@ -31,9 +31,33 @@
 	</div>
 
 	<div class="row">
-		<label class="two cell"><i18n>support.ticket.category</i18n></label>
-		<span class="ten cell">[[getCategoryLabel(ticket.category)]]</span>
+		<div class="six cell">
+			<label class="three cell"><i18n>support.ticket.category</i18n></label>
+			<span class="nine cell">[[getCategoryLabel(ticket.category)]]</span>
+		</div>
+		<div class="six cell">
+			<div ng-if="userIsLocalAdmin() === true">
+				<div loading-panel="escalation-request">
+					<a ng-if="ticket.escalation_status === 1" ng-click="escalateTicket()">
+						<i18n>support.escalate.ticket</i18n>
+					</a>
+				</div>
+				<span ng-if="ticket.escalation_status === 2">
+					<i18n>support.escalation.in.progress</i18n>
+				</span>
+				<a ng-if="ticket.escalation_status === 3" ng-click="openBugTrackerIssue()">
+					<i18n>support.open.escalated.ticket</i18n>
+				</a>
+				<span ng-if="ticket.escalation_status === 4">
+					<label><i18n>support.escalation.failed</i18n></label>&nbsp;
+					<div loading-panel="escalation-request">
+						<a ng-click="escalateTicket()"><i18n>support.retry.escalation</i18n></a>
+					</div>
+				</span>
+			</div>
+		</div>
 	</div>
+	
 	<div class="row">
 		<label class="two cell"><i18n>support.ticket.subject</i18n></label>
 		<span class="ten cell">[[ticket.subject]]</span>

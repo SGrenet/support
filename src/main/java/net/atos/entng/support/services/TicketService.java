@@ -34,4 +34,6 @@ public interface TicketService extends CrudService {
 	public void updateIssue(int issueId, String content, Handler<Either<String, JsonObject>> handler);
 
 	public void getIssueAttachments(int issueId, Handler<Either<String, JsonArray>> handler);
+
+	public void getIssue(String ticketId, Handler<Either<String, JsonArray>> handler);
 }

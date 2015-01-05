@@ -12,6 +12,8 @@ model.ticketStatusEnum = {
 	}
 };
 
+// TODO : enum for escalationStatus
+
 if (Object.freeze) {
 	Object.freeze(model.ticketStatusEnum);	
 }
@@ -44,6 +46,27 @@ Ticket.prototype.updateTicket = function(data, callback) {
 			callback();
 		}
 	}.bind(this));
+};
+
+Ticket.prototype.escalateTicket = function(callback, errorCallback) {
+	http().postJson('/support/ticket/' + this.id + '/escalate', null, {requestName: 'escalation-request' })
+	.done(function(result){
+			this.escalation_status = 3;
+			this.issue = result.issue;
+			this.trigger('change');
+			if(typeof callback === 'function'){
+				callback();
+			}
+		}.bind(this)
+	)
+	.e500(function(){
+			this.escalation_status = 4;
+			this.trigger('change');
+			if(typeof errorCallback === 'function'){
+				errorCallback();
+			}
+		}.bind(this)
+	);
 };
 
 Ticket.prototype.toJSON = function() {
@@ -88,6 +111,20 @@ Ticket.prototype.getAttachments = function(callback) {
 	http().get('/support/ticket/' + this.id + '/attachments').done(function(result){
 		if(result.length > 0) {
 			this.attachments.load(result);
+		}
+		if(typeof callback === 'function'){
+			callback();
+		}
+	}.bind(this));
+};
+
+Ticket.prototype.getBugTrackerIssue = function(callback) {
+	http().get('/support/ticket/' + this.id + '/bugtrackerissue').done(function(result){
+		if(result.length > 0 && result[0] && result[0].content) {
+			var content = JSON.parse(result[0].content);
+			if(content && content.issue) {
+				this.issue = content.issue;
+			}
 		}
 		if(typeof callback === 'function'){
 			callback();

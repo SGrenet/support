@@ -5,7 +5,7 @@
         "port" : 8027,
         "sql" : true,
         "mongodb" : false,
-        "neo4j" : true,
+        "neo4j" : false,
         "app-name" : "Aide et support",
         "app-address" : "/support",
         "app-icon" : "support-large",

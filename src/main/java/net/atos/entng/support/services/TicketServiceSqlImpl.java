@@ -39,7 +39,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		s.prepared(upsertUserQuery, new JsonArray().add(user.getUserId()).add(user.getUsername()));
 
 		ticket.putString("owner", user.getUserId());
-		String returnedFields = "id, school_id, status, created, modified";
+		String returnedFields = "id, school_id, status, created, modified, escalation_status, escalation_date";
 		s.insert(resourceTable, ticket, returnedFields);
 
 		this.insertAttachments(attachments, user, s, null);
@@ -331,5 +331,15 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		sql.prepared(query, values, validResultHandler(handler));
 	}
+
+	@Override
+	public void getIssue(String ticketId, Handler<Either<String, JsonArray>> handler) {
+		// TODO : also SELECT issue's attachments
+		String query = "SELECT * FROM support.bug_tracker_issues"
+				+ " WHERE ticket_id = ?";
+		JsonArray values = new JsonArray().add(ticketId);
+
+		sql.prepared(query, values, validResultHandler(handler));
+	};
 
 }

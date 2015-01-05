@@ -1,0 +1,42 @@
+<article class="twelve cell details">
+	<div class="row">
+		<label class="three cell"><i18n>support.issue.id</i18n></label>
+		<span class="nine cell">[[ticket.issue.id]]</span>
+	</div>
+	<div class="row">
+		<label class="three cell"><i18n>support.issue.status</i18n></label>
+		<span class="nine cell">[[ticket.issue.status.name]]</span>
+	</div>
+	<div class="row">
+		<label class="three cell"><i18n>support.issue.priority</i18n></label>
+		<span class="nine cell">[[ticket.issue.priority.name]]</span>
+	</div>
+	<div class="row">
+		<label class="three cell"><i18n>support.issue.subject</i18n></label>
+		<span class="nine cell">[[ticket.issue.subject]]</span>
+	</div>
+	<div class="row">
+		<label class="three cell"><i18n>support.issue.creation.date</i18n></label>
+		<span class="nine cell">[[formatDate(ticket.issue.created_on)]]</span>
+	</div>
+	<div class="row">
+		<label class="three cell"><i18n>support.issue.modification.date</i18n></label>
+		<span class="nine cell">[[formatDate(ticket.issue.updated_on)]]</span>
+	</div>	
+	<div class="row">
+		<label class="three cell"><i18n>support.issue.description</i18n></label>
+		<span class="nine cell">[[ticket.issue.description]]</span>
+	</div>
+	<!-- TODO : pièces jointes (nom, date, lien pour télécharger la pj) -->
+	
+	<div ng-if="ticket.issue.journals && ticket.issue.journals.length > 0" class="row">
+		<div ng-repeat="journal in ticket.issue.journals">
+			<article class="comment reduce-block-eight">
+				<span>[[journal.user.name]]</span>
+				<em><i18n>support.on</i18n> [[formatDate(journal.created_on)]]</em>
+				<p class="with-newlines">[[journal.notes]]</p>
+			</article>
+		</div>
+	</div>
+
+</article>

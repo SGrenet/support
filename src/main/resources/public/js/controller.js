@@ -103,6 +103,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		template.open('main', 'view-ticket');
 		$scope.ticket.getAttachments();
 		$scope.ticket.getComments();
+		$scope.ticket.getBugTrackerIssue();
 	};
 	
 	$scope.viewTicket = function(ticketId) {
@@ -237,6 +238,24 @@ function SupportController($scope, template, model, route, $location, orderByFil
 				template.contains('main', 'edit-ticket'));
 	};
 	
+	// Functions to escalate tickets or view escalated tickets
+	$scope.escalateTicket = function() {
+		$scope.ticket.escalation_status = 2;
+		var successCallback = function() {
+			notify.info('support.ticket.escalation.successful');
+		};
+		var errorCallback = function() {
+			notify.error('support.ticket.escalation.failed');
+		};
+		
+		$scope.ticket.escalateTicket(successCallback, errorCallback);
+	};
+	
+	$scope.openBugTrackerIssue = function() {
+		template.open('main', 'view-bugtracker-issue');
+	};
+	
+	
 	// Date functions
 	$scope.formatDate = function(date) {
 		return $scope.formatMoment(moment(date));
@@ -269,6 +288,14 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		});
 		var schoolName = (school !== undefined) ? school.name : undefined;
 		return schoolName;
+	};
+	
+	// Check that current user is local administrator for the ticket's school
+	$scope.userIsLocalAdmin = function(){
+		return (model.me.functions && 
+				model.me.functions.ADMIN_LOCAL && 
+				model.me.functions.ADMIN_LOCAL.scope &&
+				_.contains(model.me.functions.ADMIN_LOCAL.scope, $scope.ticket.school_id));
 	};
 	
 	

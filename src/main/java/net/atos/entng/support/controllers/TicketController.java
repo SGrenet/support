@@ -414,4 +414,13 @@ public class TicketController extends ControllerHelper {
 		escalationService.pullAndSynchronizeTickets();
 	}
 
+	// TODO filter "LocalAdmin" : only local administrators can see the bugtracker issue
+	@Get("/ticket/:id/bugtrackerissue")
+	@ApiDoc("Get bug tracker issue saved in postgresql")
+	@SecuredAction(value = "support.manager", type= ActionType.AUTHENTICATED)
+	public void getBugTrackerIssue(final HttpServerRequest request) {
+		final String ticketId = request.params().get("id");
+		ticketService.getIssue(ticketId, arrayResponseHandler(request));
+	}
+
 }

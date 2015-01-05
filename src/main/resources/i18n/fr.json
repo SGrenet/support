@@ -32,6 +32,22 @@
 	"support.ticket.status.closed" : "Fermé",
 	
 	"support.ticket.has.been.created" : "Votre demande de support a été créée",
+	"support.ticket.escalation.successful" : "Le ticket a été escaladé",
+	"support.ticket.escalation.failed" : "Erreur serveur : le ticket n'a pas pu être escaladé",
+	
+	"support.escalate.ticket" : "Escalader le ticket",
+	"support.escalation.in.progress" : "Escalade en cours...",
+	"support.open.escalated.ticket" : "Voir le ticket escaladé",
+	"support.escalation.failed" : "Escalade en échec.",
+	"support.retry.escalation" : "Relancer l'escalade",
+	
+	"support.issue.id" : "Identifiant",
+	"support.issue.status" : "Statut",
+	"support.issue.priority" : "Priorité",
+	"support.issue.subject" : "Sujet",
+	"support.issue.creation.date" : "Date de création",
+	"support.issue.modification.date" : "Dernière modification",
+	"support.issue.description" : "Description",
 
 	"support.ticket.notfound.or.unauthorized" : "La demande de support n'existe pas, a été supprimée, ou vous n'avez pas les droits pour y accéder.",
 	"support.ticket.validation.error.subject.is.empty" : "Le champ 'Sujet' doit être renseigné",
