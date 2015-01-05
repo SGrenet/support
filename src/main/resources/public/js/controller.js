@@ -115,6 +115,15 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		template.open('main', 'create-ticket');
 	};
 	
+	this.hasDuplicateInNewAttachments = function() {
+		// each attachmentId must appear only once. Return true if there are duplicates, false otherwise
+		return _.chain($scope.ticket.newAttachments)
+			.countBy(function(attachment) { return attachment._id; })
+			.values()
+			.some(function(count){ return count > 1; })
+			.value();
+	};
+	
 	$scope.createTicket = function() {
 		if (!$scope.ticket.subject || $scope.ticket.subject.trim().length === 0){
 			notify.error('support.ticket.validation.error.subject.is.empty');
@@ -130,12 +139,17 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			return;
 		}
 		
+		if(this.hasDuplicateInNewAttachments() === true) {
+			notify.error('support.ticket.validation.error.duplicate.in.new.attachments');
+			return;
+		}
+		
 		template.open('main', 'list-tickets');
 		$scope.ticket.createTicket($scope.ticket, function() {
 			$scope.ticket.newAttachments = [];
 			notify.info('support.ticket.has.been.created');
 		});
-	};
+	}.bind(this);
 	
 	$scope.cancelCreateTicket = function() {
 		template.open('main', 'list-tickets');
@@ -161,6 +175,11 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		
 		if (!$scope.editedTicket.description || $scope.editedTicket.description.trim().length === 0){
 			notify.error('support.ticket.validation.error.description.is.empty');
+			return;
+		}
+		
+		if(this.hasDuplicateInNewAttachments() === true) {
+			notify.error('support.ticket.validation.error.duplicate.in.new.attachments');
 			return;
 		}
 		
@@ -206,7 +225,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			
 			template.open('main', 'view-ticket');
 		});
-	};
+	}.bind(this);
 	
 	$scope.cancelEditTicket = function() {
 		$scope.editedTicket = new Ticket();
