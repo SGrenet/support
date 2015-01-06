@@ -21,6 +21,7 @@
         "bug-tracker-projectid" : 39,
         "escalation-httpclient-maxpoolsize" : 16,
         "escalation-httpclient-keepalive" : false,
-        "escalation-httpclient-tryusecompression" : true
+        "escalation-httpclient-tryusecompression" : true,
+        "refresh-period" : 15
       }
     }

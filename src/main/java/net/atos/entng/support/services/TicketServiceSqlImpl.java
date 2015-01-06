@@ -1,6 +1,5 @@
 package net.atos.entng.support.services;
 
-import static net.atos.entng.support.EscalationStatus.*;
 import static org.entcore.common.sql.Sql.parseId;
 import static org.entcore.common.sql.SqlResult.validUniqueResultHandler;
 import static org.entcore.common.sql.SqlResult.validResultHandler;
@@ -186,14 +185,14 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			.append(" UPDATE support.tickets")
 			.append(" SET escalation_status = ?, escalation_date = NOW()")
 			.append(" WHERE id = ?");
-		values.add(IN_PROGRESS.status())
+		values.add(EscalationStatus.IN_PROGRESS.status())
 			.add(ticketId);
 
 		query.append(" AND escalation_status NOT IN (?, ?)")
 			.append(" AND status NOT IN (?, ?)")
 			.append(" RETURNING * )");
-		values.add(IN_PROGRESS.status())
-			.add(SUCCESSFUL.status())
+		values.add(EscalationStatus.IN_PROGRESS.status())
+			.add(EscalationStatus.SUCCESSFUL.status())
 			.add(TicketStatus.RESOLVED.status())
 			.add(TicketStatus.CLOSED.status());
 
@@ -302,12 +301,12 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			ConcurrentMap<Integer, String> attachmentMap,
 			UserInfos user, Handler<Either<String, JsonObject>> handler) {
 
-		this.updateTicketAfterEscalation(ticketId, SUCCESSFUL, issue, issueId, attachmentMap, user, handler);
+		this.updateTicketAfterEscalation(ticketId, EscalationStatus.SUCCESSFUL, issue, issueId, attachmentMap, user, handler);
 	}
 
 	@Override
 	public void endFailedEscalation(String ticketId, UserInfos user, Handler<Either<String, JsonObject>> handler) {
-		this.updateTicketAfterEscalation(ticketId, FAILED, null, null, null, user, handler);
+		this.updateTicketAfterEscalation(ticketId, EscalationStatus.FAILED, null, null, null, user, handler);
 	}
 
 	@Override
@@ -321,6 +320,14 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			.addNumber(issueId);
 
 		sql.prepared(query, values, validRowsResultHandler(handler));
+	}
+
+	@Override
+	public void getLastIssuesUpdate(Handler<Either<String, JsonArray>> handler) {
+		// TODO : faire une passe pour enlever le code spécifique redmine dans les classes autres que EscalationServiceRedmineImpl.
+		// La clause select ci-dessous est par exemple specifique à redmine
+		String query = "select max(content->'issue'->>'updated_on') as last_update from support.bug_tracker_issues";
+		sql.raw(query, validResultHandler(handler));
 	}
 
 	@Override

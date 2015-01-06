@@ -151,6 +151,8 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			return;
 		}
 		
+		// TODO : pour chaque PJ non protected, faire une copie protected à l'aide de Behaviours.applicationsBehaviours.workspace.protectedDuplicate
+		
 		template.open('main', 'list-tickets');
 		$scope.ticket.createTicket($scope.ticket, function() {
 			$scope.ticket.newAttachments = [];
@@ -217,6 +219,8 @@ function SupportController($scope, template, model, route, $location, orderByFil
 				return;
 			}
 		}
+		
+		// TODO : pour chaque PJ non protected, faire une copie protected à l'aide de Behaviours.applicationsBehaviours.workspace.protectedDuplicate
 
 		$scope.ticket = $scope.editedTicket;
 		$scope.ticket.updateTicket($scope.ticket, function() {

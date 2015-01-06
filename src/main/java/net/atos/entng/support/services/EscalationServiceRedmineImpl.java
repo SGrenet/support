@@ -1,6 +1,10 @@
 package net.atos.entng.support.services;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.entcore.common.bus.WorkspaceHelper;
@@ -45,7 +49,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private static final String REDMINE_UPLOAD_ATTACHMENT_PATH = "/uploads.json";
 
 
-	public EscalationServiceRedmineImpl(Vertx vertx, Container container, Logger logger, EventBus eb, TicketService ts) {
+	public EscalationServiceRedmineImpl(final Vertx vertx, Container container, Logger logger, EventBus eb, TicketService ts) {
 		JsonObject config = container.config();
 		log = logger;
 		httpClient = vertx.createHttpClient();
@@ -95,14 +99,49 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				}
 			});
 
-		// TODO add delay to conf.json.template
-//		Long delay = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
-//		vertx.setPeriodic(delay, new Handler<Long>() {
-//			@Override
-//			public void handle(Long timerId) {
-//				EscalationServiceRedmineImpl.this.pullAndSynchronizeTickets();
-//			}
-//		});
+		Long delayInMinutes = config.getLong("refresh-period", 30);
+		log.info("[Support] Data will be pulled from Redmine every "+delayInMinutes+" minutes");
+		final Long delay = TimeUnit.MILLISECONDS.convert(delayInMinutes, TimeUnit.MINUTES);
+
+		ticketService.getLastIssuesUpdate(new Handler<Either<String, JsonArray>>() {
+			@Override
+			public void handle(Either<String, JsonArray> event) {
+				final String lastUpdate;
+				if(event.isRight() && event.right().getValue() != null) {
+					JsonObject jo = (JsonObject) event.right().getValue().get(0);
+
+					String date = jo.getString("last_update", null);
+					log.info("[Support] Last pull from Redmine : "+date);
+					if(date != null && date.length() >= 10) {
+						lastUpdate = date.substring(0, 10); // keep only "yyyy-MM-dd"
+					}
+					else {
+						lastUpdate = null;
+					}
+				}
+				else {
+					lastUpdate = null;
+				}
+
+				vertx.setPeriodic(delay, new Handler<Long>() {
+					// initialize last update with value from database
+					String lastUpdateTime = lastUpdate;
+
+					@Override
+					public void handle(Long timerId) {
+						Date currentDate = new Date();
+						log.debug("Current date : " + currentDate.toString());
+						DateFormat df = new SimpleDateFormat("yyyy-MM-dd"); // TODO : use yyyy-MM-dd'T'HH:mm:ss'Z' when switching to redmine 2.5
+
+						EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(lastUpdateTime);
+						lastUpdateTime = df.format(currentDate);
+						log.debug("New value of lastUpdateTime : "+lastUpdateTime);
+					}
+				});
+			}
+		});
+
+
 
 	}
 
@@ -349,20 +388,29 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 
-	@Override
-	public void listIssues(final Handler<Either<String, JsonObject>> handler) {
+	private void listIssues(final String since, final int offset, final int limit, final Handler<Either<String, JsonObject>> handler) {
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
 
-		/*
-		 * According to http://www.redmine.org/projects/redmine/wiki/Rest_Issues :
-		 * "status_id=*" : open and closed issues
-		 * "updated_on=%3E%3D2014-12-19" : updated after a certain date. NB : operators containing ">", "<" or "=" should be hex-encoded
-		 */
-		// TODO : use feature http://www.redmine.org/issues/8842 to get created/updated issues after a specific timestamp. Needs redmine 2.5.0
+		StringBuilder query = new StringBuilder("?status_id=*"); // return open and closed issues
+		if(since != null) {
+			// TODO : use feature http://www.redmine.org/issues/8842 to fetch created/updated issues after a specific timestamp. Needs redmine 2.5.0
 
-		// TODO : gérer offset/limit. Récupérer la date de dernière mise à jour
-		String query = "?status_id=*&updated_on=%3E%3D2014-12-19";
-		url += query;
+			// updated_on : fetch issues updated after a certain date
+			query.append("&updated_on=%3E%3D").append(since);
+			/* "%3E%3D" is ">=" with hex-encoding.
+			 * According to http://www.redmine.org/projects/redmine/wiki/Rest_Issues : operators containing ">", "<" or "=" should be hex-encoded
+			 */
+		}
+		if(offset > -1) {
+			// offset: skip this number of issues in response
+			query.append("&offset=").append(offset);
+		}
+		if(limit > 0) {
+			// limit: number of issues per page
+			query.append("&limit=").append(limit);
+		}
+		url += query.toString();
+		log.info("Url used to list redmine issues : "+url);
 
 		httpClient.get(url, new Handler<HttpClientResponse>() {
 			@Override
@@ -392,11 +440,15 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		.end();
 	}
 
-	@Override
-	public void pullAndSynchronizeTickets() {
+
+	private void pullDataAndUpdateIssues(final String since) {
+		this.pullDataAndUpdateIssues(since, -1, -1, true);
+	}
+
+	private void pullDataAndUpdateIssues(final String since, final int offset, final int limit, final boolean allowRecursiveCall) {
 		/*
 		 * Steps :
-		 * 1) list issues that have been created/updated since last time
+		 * 1) list Redmine issues that have been created/updated since last time
 		 *
 		 * 2) for each issue,
 		 * i/ get the "whole" issue (i.e. with its attachments' metadata and with its comments).
@@ -404,8 +456,9 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		 * iii/ update the issue in Postgresql, so that local administrators can see the last changes
 		 *
 		 */
+		log.debug("Value of since : "+since);
 
-		this.listIssues(new Handler<Either<String, JsonObject>>() {
+		this.listIssues(since, offset, limit, new Handler<Either<String, JsonObject>>() {
 			@Override
 			public void handle(Either<String, JsonObject> event) {
 				if(event.isRight()) {
@@ -413,6 +466,16 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 						JsonArray issues = event.right().getValue().getArray("issues", null);
 						if (issues != null && issues.size() > 0) {
 							final AtomicInteger remaining = new AtomicInteger(issues.size());
+
+							if(allowRecursiveCall) {
+								int aTotalCount = event.right().getValue().getInteger("total_count", -1);
+								int aOffset = event.right().getValue().getInteger("offset", -1);
+								int aLimit = event.right().getValue().getInteger("limit", -1);
+								if(aTotalCount!=-1 && aOffset!=-1 && aLimit!=-1 && (aTotalCount > aLimit)) {
+									// Second call to get remaining issues
+									EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(since, aLimit, aTotalCount - aLimit, false);
+								}
+							}
 
 							for (Object o : issues) {
 								if(!(o instanceof JsonObject)) continue;
@@ -450,10 +513,9 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 												@Override
 												public void handle(Either<String, JsonObject> event) {
 													if(event.isRight()) {
-														log.info("pullAndSynchronize OK for issue n°"+issueId);
-
+														log.info("pullAndUpdate OK for issue n°"+issueId);
 														if(remaining.decrementAndGet() < 1) {
-															log.info("pullAndSynchronize OK for all issues !");
+															log.info("pullAndUpdate OK for all issues !");
 														}
 													}
 													else {

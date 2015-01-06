@@ -405,15 +405,6 @@ public class TicketController extends ControllerHelper {
 		};
 	}
 
-
-	// TODO : remove this temporary webservice, used to test vertx HttpClient
-	@Get("/tickets/redmine")
-	@ApiDoc("List tickets")
-	@SecuredAction(value = "support.manager", type= ActionType.AUTHENTICATED)
-	public void getRedmineTickets(final HttpServerRequest request) {
-		escalationService.pullAndSynchronizeTickets();
-	}
-
 	// TODO filter "LocalAdmin" : only local administrators can see the bugtracker issue
 	@Get("/ticket/:id/bugtrackerissue")
 	@ApiDoc("Get bug tracker issue saved in postgresql")
