@@ -12,10 +12,20 @@ model.ticketStatusEnum = {
 	}
 };
 
-// TODO : enum for escalationStatus
-
 if (Object.freeze) {
 	Object.freeze(model.ticketStatusEnum);	
+}
+
+// Constants for escalationStatus
+model.escalationStatuses = {
+	NOT_DONE: 1,
+	IN_PROGRESS: 2,
+	SUCCESSFUL: 3,
+	FAILED: 4
+};
+
+if (Object.freeze) {
+	Object.freeze(model.escalationStatuses);
 }
 
 
@@ -51,7 +61,7 @@ Ticket.prototype.updateTicket = function(data, callback) {
 Ticket.prototype.escalateTicket = function(callback, errorCallback) {
 	http().postJson('/support/ticket/' + this.id + '/escalate', null, {requestName: 'escalation-request' })
 	.done(function(result){
-			this.escalation_status = 3;
+			this.escalation_status = model.escalationStatuses.SUCCESSFUL;
 			this.issue = result.issue;
 			this.trigger('change');
 			if(typeof callback === 'function'){
@@ -60,7 +70,7 @@ Ticket.prototype.escalateTicket = function(callback, errorCallback) {
 		}.bind(this)
 	)
 	.e500(function(){
-			this.escalation_status = 4;
+			this.escalation_status = model.escalationStatuses.FAILED;
 			this.trigger('change');
 			if(typeof errorCallback === 'function'){
 				errorCallback();

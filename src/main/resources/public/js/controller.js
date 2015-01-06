@@ -48,6 +48,8 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			}
 		}
 		$scope.statuses = statusEnum.properties;
+		
+		$scope.escalationStatuses = model.escalationStatuses;
 	};
 
 	// Sort
@@ -108,6 +110,10 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	
 	$scope.viewTicket = function(ticketId) {
 		window.location.hash = '/ticket/' + ticketId;
+	};
+	
+	$scope.openViewTicketTemplate = function() {
+		template.open('main', 'view-ticket');
 	};
 	
 	// Create ticket
@@ -233,14 +239,21 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		template.open('main', 'view-ticket');
 	};
 	
-	$scope.isCreatingOrEditing = function() {
+	$scope.isCreatingOrEditingOrViewingEscalatedTicket = function() {
 		return (template.contains('main', 'create-ticket') || 
-				template.contains('main', 'edit-ticket'));
+				template.contains('main', 'edit-ticket') ||
+				template.contains('main', 'view-bugtracker-issue'));
 	};
 	
 	// Functions to escalate tickets or view escalated tickets
 	$scope.escalateTicket = function() {
-		$scope.ticket.escalation_status = 2;
+		$scope.ticket.escalation_status = model.escalationStatuses.IN_PROGRESS;
+		if($scope.ticket.status !== model.ticketStatusEnum.NEW && $scope.ticket.status !== model.ticketStatusEnum.OPENED) {
+			notify.error('support.ticket.escalation.not.allowed.for.given.status');
+			$scope.ticket.escalation_status = model.escalationStatuses.NOT_DONE;
+			return;	
+		}
+		
 		var successCallback = function() {
 			notify.info('support.ticket.escalation.successful');
 		};
