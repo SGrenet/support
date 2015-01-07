@@ -159,6 +159,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		
 		$scope.createProtectedCopies($scope.ticket, true, function() {
 			template.open('main', 'list-tickets');
+			$scope.ticket.processing = false;
 			$scope.ticket.createTicket($scope.ticket, function() {
 				$scope.ticket.newAttachments = [];
 				notify.info('support.ticket.has.been.created');
@@ -317,6 +318,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 					$scope.ticket.getComments();
 				}
 				$scope.ticket.newComment = '';
+				$scope.ticket.processing = false;
 				
 				template.open('main', 'view-ticket');
 			});
