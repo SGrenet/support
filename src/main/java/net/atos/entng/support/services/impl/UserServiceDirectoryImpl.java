@@ -1,4 +1,6 @@
-package net.atos.entng.support.services;
+package net.atos.entng.support.services.impl;
+
+import net.atos.entng.support.services.UserService;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.EventBus;

@@ -1,4 +1,4 @@
-package net.atos.entng.support.services;
+package net.atos.entng.support.services.impl;
 
 import static org.entcore.common.sql.Sql.parseId;
 import static org.entcore.common.sql.SqlResult.validUniqueResultHandler;
@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import net.atos.entng.support.EscalationStatus;
 import net.atos.entng.support.TicketStatus;
+import net.atos.entng.support.services.TicketService;
 
 import org.entcore.common.service.impl.SqlCrudService;
 import org.entcore.common.sql.SqlStatementsBuilder;

@@ -1,4 +1,4 @@
-package net.atos.entng.support.services;
+package net.atos.entng.support.services.impl;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -6,6 +6,9 @@ import java.util.Date;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import net.atos.entng.support.services.EscalationService;
+import net.atos.entng.support.services.TicketService;
 
 import org.entcore.common.bus.WorkspaceHelper;
 import org.entcore.common.bus.WorkspaceHelper.Document;

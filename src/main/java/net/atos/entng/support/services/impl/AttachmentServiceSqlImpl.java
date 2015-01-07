@@ -1,6 +1,7 @@
-package net.atos.entng.support.services;
+package net.atos.entng.support.services.impl;
 
 import static org.entcore.common.sql.SqlResult.validResultHandler;
+import net.atos.entng.support.services.AttachmentService;
 
 import org.entcore.common.service.impl.SqlCrudService;
 import org.entcore.common.sql.Sql;

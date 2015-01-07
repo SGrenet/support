@@ -3,7 +3,7 @@ package net.atos.entng.support.controllers;
 import static org.entcore.common.http.response.DefaultResponseHandler.arrayResponseHandler;
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.AttachmentService;
-import net.atos.entng.support.services.AttachmentServiceSqlImpl;
+import net.atos.entng.support.services.impl.AttachmentServiceSqlImpl;
 
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;

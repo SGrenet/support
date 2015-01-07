@@ -5,9 +5,9 @@ import net.atos.entng.support.controllers.CommentController;
 import net.atos.entng.support.controllers.DisplayController;
 import net.atos.entng.support.controllers.TicketController;
 import net.atos.entng.support.services.EscalationService;
-import net.atos.entng.support.services.EscalationServiceRedmineImpl;
 import net.atos.entng.support.services.TicketService;
-import net.atos.entng.support.services.TicketServiceSqlImpl;
+import net.atos.entng.support.services.impl.EscalationServiceRedmineImpl;
+import net.atos.entng.support.services.impl.TicketServiceSqlImpl;
 
 import org.entcore.common.http.BaseServer;
 import org.entcore.common.sql.SqlConf;

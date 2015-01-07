@@ -1,6 +1,7 @@
-package net.atos.entng.support.services;
+package net.atos.entng.support.services.impl;
 
 import static org.entcore.common.sql.SqlResult.*;
+import net.atos.entng.support.services.CommentService;
 
 import org.entcore.common.service.impl.SqlCrudService;
 import org.entcore.common.sql.Sql;

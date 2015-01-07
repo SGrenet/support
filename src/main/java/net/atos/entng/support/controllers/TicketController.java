@@ -16,7 +16,7 @@ import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
 import net.atos.entng.support.services.UserService;
-import net.atos.entng.support.services.UserServiceDirectoryImpl;
+import net.atos.entng.support.services.impl.UserServiceDirectoryImpl;
 
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;

@@ -4,7 +4,7 @@ import static org.entcore.common.http.response.DefaultResponseHandler.notEmptyRe
 import static org.entcore.common.http.response.DefaultResponseHandler.arrayResponseHandler;
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.CommentService;
-import net.atos.entng.support.services.CommentServiceSqlImpl;
+import net.atos.entng.support.services.impl.CommentServiceSqlImpl;
 
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;
