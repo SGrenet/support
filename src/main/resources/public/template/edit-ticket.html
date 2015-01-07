@@ -78,8 +78,11 @@
 			<attachments apps="['workspace']" ng-model="editedTicket.newAttachments"></attachments>
 		</div>
 		<div class="row">
-			<button class="right-magnet" ng-click="updateTicket()" translate content="support.ticket.save"></button>
-			<button class="right-magnet cancel" ng-click="cancelEditTicket()" translate content="support.ticket.cancel"></button>
+			<div ng-if="!editedTicket.processing">
+				<button class="right-magnet" ng-click="updateTicket()" translate content="support.ticket.save"></button>
+				<button class="right-magnet cancel" ng-click="cancelEditTicket()" translate content="support.ticket.cancel"></button>
+			</div>
+			<button ng-if="editedTicket.processing === true" class="right-magnet disabled" disabled><i18n>support.ticket.processing</i18n></button>
 		</div>
 		<div class="clear"></div>
 	</form>

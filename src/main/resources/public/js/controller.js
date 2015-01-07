@@ -132,36 +132,113 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 	
 	$scope.createTicket = function() {
+		$scope.ticket.processing = true;
+		
 		if (!$scope.ticket.subject || $scope.ticket.subject.trim().length === 0){
 			notify.error('support.ticket.validation.error.subject.is.empty');
+			$scope.ticket.processing = false;
 			return;
 		}
 		if( $scope.ticket.subject.length > 255) {
 			notify.error('support.ticket.validation.error.subject.too.long');
+			$scope.ticket.processing = false;
 			return;
 		}
 		
 		if (!$scope.ticket.description || $scope.ticket.description.trim().length === 0){
 			notify.error('support.ticket.validation.error.description.is.empty');
+			$scope.ticket.processing = false;
 			return;
 		}
 		
 		if(this.hasDuplicateInNewAttachments() === true) {
 			notify.error('support.ticket.validation.error.duplicate.in.new.attachments');
+			$scope.ticket.processing = false;
 			return;
 		}
 		
-		// TODO : pour chaque PJ non protected, faire une copie protected à l'aide de Behaviours.applicationsBehaviours.workspace.protectedDuplicate
-		
-		template.open('main', 'list-tickets');
-		$scope.ticket.createTicket($scope.ticket, function() {
-			$scope.ticket.newAttachments = [];
-			notify.info('support.ticket.has.been.created');
+		$scope.createProtectedCopies($scope.ticket, true, function() {
+			template.open('main', 'list-tickets');
+			$scope.ticket.createTicket($scope.ticket, function() {
+				$scope.ticket.newAttachments = [];
+				notify.info('support.ticket.has.been.created');
+			});
 		});
 	}.bind(this);
 	
 	$scope.cancelCreateTicket = function() {
 		template.open('main', 'list-tickets');
+	};
+	
+	/*
+	 * Create a "protected" copy for each "non protected" attachment.
+	 * ("Non protected" attachments cannot be seen by everybody, whereas "protected" attachments can)
+	 */
+	$scope.createProtectedCopies = function(pTicket, pIsCreateTicket, pCallback) {
+		
+		if(!pTicket.newAttachments || pTicket.newAttachments.length === 0) {
+			if(typeof pCallback === 'function'){
+				pCallback();
+			}
+		}
+		else {
+			var nonProtectedAttachments = _.filter(pTicket.newAttachments, 
+					function(attachment) { return attachment.protected !== true; });
+			var remainingAttachments = nonProtectedAttachments.length;
+			
+			// Function factory, to ensure anAttachment has the proper value
+			var makeCallbackFunction = function (pAttachment) {
+				var anAttachment = pAttachment;
+				return function(result) {
+					// Exemple of result : {_id: "db1f060a-5c0e-45fa-8318-2d8b33873747", status: "ok"}
+					
+					if(result && result.status === "ok") {
+						console.log("createProtectedCopy OK for attachment "+anAttachment._id + ". Id of protected copy is:"+result._id)
+						remainingAttachments = remainingAttachments - 1;
+						
+						// replace id of "non protected" attachment by the id of its "protected copy"
+						pTicket.newAttachments = _.map(pTicket.newAttachments, 
+							function(attachment) {
+								if(anAttachment._id === attachment._id) {
+									attachment._id = result._id;
+								}
+								return attachment;
+							}
+						);
+						if(remainingAttachments === 0) {
+							console.log("createProtectedCopy OK for all attachments");
+							if(typeof pCallback === 'function'){
+								pCallback();
+							}
+						}
+					}
+					else {
+						if(pIsCreateTicket === true) {
+							notify.error('support.attachment.processing.failed.ticket.cannot.be.created');
+							pTicket.processing = false;
+						}
+						else {
+							notify.error('support.attachment.processing.failed.ticket.cannot.be.updated');
+							pTicket.processing = false;
+						}
+						return;
+					}
+					
+				};
+			};
+			
+			if(nonProtectedAttachments && nonProtectedAttachments.length > 0) {
+				for (var i=0; i < nonProtectedAttachments.length; i++) {
+					Behaviours.applicationsBehaviours.workspace.protectedDuplicate(nonProtectedAttachments[i], 
+							makeCallbackFunction(nonProtectedAttachments[i]));
+				}
+			}
+			else {
+				if(typeof pCallback === 'function'){
+					pCallback();
+				}
+			}
+		}
 	};
 	
 	// Update ticket
@@ -173,22 +250,28 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 	
 	$scope.updateTicket = function() {
+		$scope.editedTicket.processing = true;
+		
 		if (!$scope.editedTicket.subject || $scope.editedTicket.subject.trim().length === 0){
 			notify.error('support.ticket.validation.error.subject.is.empty');
+			$scope.editedTicket.processing = false;
 			return;
 		}
 		if( $scope.editedTicket.subject.length > 255) {
 			notify.error('support.ticket.validation.error.subject.too.long');
+			$scope.editedTicket.processing = false;
 			return;
 		}
 		
 		if (!$scope.editedTicket.description || $scope.editedTicket.description.trim().length === 0){
 			notify.error('support.ticket.validation.error.description.is.empty');
+			$scope.editedTicket.processing = false;
 			return;
 		}
 		
 		if(this.hasDuplicateInNewAttachments() === true) {
 			notify.error('support.ticket.validation.error.duplicate.in.new.attachments');
+			$scope.editedTicket.processing = false;
 			return;
 		}
 		
@@ -216,26 +299,29 @@ function SupportController($scope, template, model, route, $location, orderByFil
 					notify.error(lang.translate('support.ticket.validation.error.attachments.already.linked.to.ticket') + 
 							_.pluck(newAttachmentsInDuplicate,'name').join(", "));
 				}
+				$scope.editedTicket.processing = false;
 				return;
 			}
 		}
 		
-		// TODO : pour chaque PJ non protected, faire une copie protected à l'aide de Behaviours.applicationsBehaviours.workspace.protectedDuplicate
-
-		$scope.ticket = $scope.editedTicket;
-		$scope.ticket.updateTicket($scope.ticket, function() {
-			if($scope.ticket.newAttachments && $scope.ticket.newAttachments.length > 0) {
-				$scope.ticket.getAttachments();
-			}
-			$scope.ticket.newAttachments = [];
+		$scope.createProtectedCopies($scope.editedTicket, false, function() {
+			$scope.ticket = $scope.editedTicket;
 			
-			if($scope.ticket.newComment && $scope.ticket.newComment.length > 0) {
-				$scope.ticket.getComments();
-			}
-			$scope.ticket.newComment = '';
-			
-			template.open('main', 'view-ticket');
+			$scope.ticket.updateTicket($scope.ticket, function() {
+				if($scope.ticket.newAttachments && $scope.ticket.newAttachments.length > 0) {
+					$scope.ticket.getAttachments();
+				}
+				$scope.ticket.newAttachments = [];
+				
+				if($scope.ticket.newComment && $scope.ticket.newComment.length > 0) {
+					$scope.ticket.getComments();
+				}
+				$scope.ticket.newComment = '';
+				
+				template.open('main', 'view-ticket');
+			});
 		});
+
 	}.bind(this);
 	
 	$scope.cancelEditTicket = function() {

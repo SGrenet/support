@@ -78,6 +78,8 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			httpClient.setHost(redmineHost)
 				.setPort(redminePort);
 		}
+		log.info("[Support] proxyHost: "+proxyHost);
+		log.info("[Support] proxyPort: "+proxyPort);
 
 		redmineApiKey = config.getString("bug-tracker-api-key", null);
 		if (redmineApiKey == null || redmineApiKey.trim().isEmpty()) {
