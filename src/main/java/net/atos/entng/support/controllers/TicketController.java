@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import net.atos.entng.support.filters.LocalAdmin;
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
@@ -297,11 +298,10 @@ public class TicketController extends ControllerHelper {
 
 	}
 
-	// TODO filter "LocalAdmin" : only local administrators can escalate
 	@Post("/ticket/:id/escalate")
 	@ApiDoc("Escalate ticket : the ticket is forwarded to an external bug tracker, a copy of the ticket is saved and will be regularly synchronized")
 	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
-	@ResourceFilter(OwnerOrLocalAdmin.class)
+	@ResourceFilter(LocalAdmin.class)
 	public void escalateTicket(final HttpServerRequest request) {
 		final String ticketId = request.params().get("id");
 
@@ -405,10 +405,10 @@ public class TicketController extends ControllerHelper {
 		};
 	}
 
-	// TODO filter "LocalAdmin" : only local administrators can see the bugtracker issue
 	@Get("/ticket/:id/bugtrackerissue")
 	@ApiDoc("Get bug tracker issue saved in postgresql")
-	@SecuredAction(value = "support.manager", type= ActionType.AUTHENTICATED)
+	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
+	@ResourceFilter(LocalAdmin.class)
 	public void getBugTrackerIssue(final HttpServerRequest request) {
 		final String ticketId = request.params().get("id");
 		ticketService.getIssue(ticketId, arrayResponseHandler(request));
