@@ -26,6 +26,7 @@ import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
 
 import fr.wseduc.webutils.Either;
+import fr.wseduc.webutils.FileUtils;
 
 public class EscalationServiceRedmineImpl implements EscalationService {
 
@@ -39,6 +40,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 	private final WorkspaceHelper wksHelper;
 	private final TicketService ticketService;
+	private EventBus eb;
 
 	/*
 	 * According to http://www.redmine.org/projects/redmine/wiki/Rest_api#Authentication :
@@ -58,6 +60,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		httpClient = vertx.createHttpClient();
 		wksHelper = new WorkspaceHelper(config.getString("gridfs-address", "wse.gridfs.persistor"), eb);
 		ticketService = ts;
+		this.eb = eb;
 
 		String proxyHost = System.getProperty("http.proxyHost", null);
 		int proxyPort = 80;
@@ -117,12 +120,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 					String date = jo.getString("last_update", null);
 					log.info("[Support] Last pull from Redmine : "+date);
-					if(date != null && date.length() >= 10) {
-						lastUpdate = date.substring(0, 10); // keep only "yyyy-MM-dd"
-					}
-					else {
-						lastUpdate = null;
-					}
+					lastUpdate = date;
 				}
 				else {
 					lastUpdate = null;
@@ -136,7 +134,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 					public void handle(Long timerId) {
 						Date currentDate = new Date();
 						log.debug("Current date : " + currentDate.toString());
-						DateFormat df = new SimpleDateFormat("yyyy-MM-dd"); // TODO : use yyyy-MM-dd'T'HH:mm:ss'Z' when switching to redmine 2.5
+						DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
 						EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(lastUpdateTime);
 						lastUpdateTime = df.format(currentDate);
@@ -259,7 +257,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 								}
 
 								// Add all comments to the redmine issue
-								Integer issueId = EscalationServiceRedmineImpl.this.extractIdFromIssue(response);
+								Number issueId = EscalationServiceRedmineImpl.this.extractIdFromIssue(response);
 								EscalationServiceRedmineImpl.this.updateIssue(issueId, aggregateComments(comments),
 										getUpdateIssueHandler(response, handler));
 
@@ -373,7 +371,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				.write(buffer).end();
 	}
 
-	private void updateIssue(final int issueId, final JsonObject comment, final Handler<HttpClientResponse> handler) {
+	private void updateIssue(final Number issueId, final JsonObject comment, final Handler<HttpClientResponse> handler) {
 		String path = "/issues/" + issueId + ".json";
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + path) : path;
 
@@ -398,10 +396,11 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 		StringBuilder query = new StringBuilder("?status_id=*"); // return open and closed issues
 		if(since != null) {
-			// TODO : use feature http://www.redmine.org/issues/8842 to fetch created/updated issues after a specific timestamp. Needs redmine 2.5.0
+			// TODO : remove following line when switching to redmine 2.5.0 (feature http://www.redmine.org/issues/8842 enables to fetch created/updated issues after a specific timestamp.)
+			String date = since.substring(0, 10); // keep only "yyyy-MM-dd"
 
 			// updated_on : fetch issues updated after a certain date
-			query.append("&updated_on=%3E%3D").append(since);
+			query.append("&updated_on=%3E%3D").append(date);
 			/* "%3E%3D" is ">=" with hex-encoding.
 			 * According to http://www.redmine.org/projects/redmine/wiki/Rest_Issues : operators containing ">", "<" or "=" should be hex-encoded
 			 */
@@ -450,20 +449,20 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		this.pullDataAndUpdateIssues(since, -1, -1, true);
 	}
 
-	private void pullDataAndUpdateIssues(final String since, final int offset, final int limit, final boolean allowRecursiveCall) {
+	private void pullDataAndUpdateIssues(final String lastUpdateTime, final int offset, final int limit, final boolean allowRecursiveCall) {
 		/*
 		 * Steps :
 		 * 1) list Redmine issues that have been created/updated since last time
 		 *
 		 * 2) for each issue,
 		 * i/ get the "whole" issue (i.e. with its attachments' metadata and with its comments).
-		 * ii/ If there are "new" attachments, download them, store them in gridfs
-		 * iii/ update the issue in Postgresql, so that local administrators can see the last changes
+		 * ii/ update the issue in Postgresql, so that local administrators can see the last changes
+		 * iii/ If there are "new" attachments, download them, store them in gridfs and store their metadata in postgresql
 		 *
 		 */
-		log.debug("Value of since : "+since);
+		log.debug("Value of since : "+lastUpdateTime);
 
-		this.listIssues(since, offset, limit, new Handler<Either<String, JsonObject>>() {
+		this.listIssues(lastUpdateTime, offset, limit, new Handler<Either<String, JsonObject>>() {
 			@Override
 			public void handle(Either<String, JsonObject> event) {
 				if(event.isRight()) {
@@ -478,40 +477,20 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 								int aLimit = event.right().getValue().getInteger("limit", -1);
 								if(aTotalCount!=-1 && aOffset!=-1 && aLimit!=-1 && (aTotalCount > aLimit)) {
 									// Second call to get remaining issues
-									EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(since, aLimit, aTotalCount - aLimit, false);
+									EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(lastUpdateTime, aLimit, aTotalCount - aLimit, false);
 								}
 							}
 
 							for (Object o : issues) {
 								if(!(o instanceof JsonObject)) continue;
 								JsonObject jo = (JsonObject) o;
-								final Integer issueId = (Integer) jo.getNumber("id");
+								final Number issueId = jo.getNumber("id");
 
-								// TODO : get and update ticket only if it has been changed since last update
 								EscalationServiceRedmineImpl.this.getIssue(issueId, new Handler<Either<String, JsonObject>>() {
 									@Override
 									public void handle(Either<String, JsonObject> event) {
 										if(event.isRight()) {
 											JsonObject issue = event.right().getValue();
-
-//											// If there are "new" attachments, download them
-//											// TODO WIP
-//											JsonArray attachments = issue.getArray("attachments");
-//											if(attachments != null && attachments.size() > 0) {
-//												ticketService.getIssueAttachments(issueId, new Handler<Either<String, JsonArray>>() {
-//													@Override
-//													public void handle(Either<String, JsonArray> event) {
-//														if(event.isRight() && event.right().getValue() != null) {
-//															// temporary code
-////															EscalationServiceRedmineImpl.this.downloadAttachment("http://support.web-education.net/attachments/download/784/test_pj.png", handler);
-//
-//														}
-//														else {
-//
-//														}
-//													}
-//												});
-//											}
 
 											// update issue in postgresql
 											ticketService.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
@@ -528,6 +507,53 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 													}
 												}
 											});
+
+
+											// If "new" attachments have been added in Redmine, download them
+											final JsonArray redmineAttachments = issue.getObject("issue").getArray("attachments", null);
+											if(redmineAttachments != null && redmineAttachments.size() > 0) {
+												// get ids of attachments already stored in ENT
+												ticketService.getIssueAttachmentsIds(issueId, new Handler<Either<String, JsonArray>>() {
+													@Override
+													public void handle(Either<String, JsonArray> event) {
+														if(event.isRight()) {
+															JsonArray response = event.right().getValue();
+															JsonObject jo = response.get(0);
+															String ids = jo.getString("ids", null);
+															JsonArray existingAttachmentsIds = (ids!=null) ? new JsonArray(ids) : null;
+
+															if(existingAttachmentsIds != null && existingAttachmentsIds.size() > 0) {
+																log.info("existingAttachmentsIds: "+existingAttachmentsIds.toString());
+																for (Object o : redmineAttachments) {
+																	if(!(o instanceof JsonObject)) continue;
+																	final JsonObject attachment = (JsonObject) o;
+																	final Number attachmentIdInRedmine = attachment.getNumber("id");
+
+																	if(!existingAttachmentsIds.contains(attachmentIdInRedmine)) {
+																		final String attachmentUrl = attachment.getString("content_url");
+																		EscalationServiceRedmineImpl.this.doDownloadAttachment(attachmentUrl, attachment, issueId);
+																	}
+																}
+															}
+															else {
+																for (Object o : redmineAttachments) {
+																	if(!(o instanceof JsonObject)) continue;
+																	final JsonObject attachment = (JsonObject) o;
+																	final String attachmentUrl = attachment.getString("content_url");
+
+																	EscalationServiceRedmineImpl.this.doDownloadAttachment(attachmentUrl, attachment, issueId);
+																}
+															}
+
+														}
+														else {
+															log.error("Error when calling service getIssueAttachmentsIds. New attachments have not been downloaded for issue n°"+issueId);
+														}
+													}
+												});
+											}
+
+
 
 										}
 										else {
@@ -550,8 +576,43 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		});
 	}
 
+	private void doDownloadAttachment(final String attachmentUrl, final JsonObject attachment, final Number issueId) {
+		final Number attachmentIdInRedmine = attachment.getNumber("id");
+
+		EscalationServiceRedmineImpl.this.downloadAttachment(attachmentUrl, new Handler<Buffer>() {
+			@Override
+			public void handle(Buffer data) {
+				// store attachment in gridfs
+				FileUtils.gridfsWriteBuffer(data, attachment.getString("content_type", ""), attachment.getString("filename"), eb, new Handler<JsonObject>() {
+					@Override
+					public void handle(JsonObject attachmentMetaData) {
+						/* Response example from gridfsWriteBuffer :
+						 * {"_id":"f62f5dac-b32b-4cb8-b70a-1016885f37ec","status":"ok","metadata":{"content-type":"image/png","filename":"test_pj.png","size":118639}}
+						 */
+						log.info("Metadata of attachment written in gridfs: "+attachmentMetaData.encodePrettily());
+						attachmentMetaData.putNumber("id_in_bugtracker", attachmentIdInRedmine);
+
+						// store attachment's metadata in postgresql
+						ticketService.insertIssueAttachment(issueId, attachmentMetaData, new Handler<Either<String, JsonArray>>() {
+							@Override
+							public void handle(Either<String, JsonArray> event) {
+								if(event.isRight()) {
+									log.info("download attachment "+ attachmentIdInRedmine + " OK for issue n°"+issueId);
+								}
+								else {
+									log.error("download attachment "+ attachmentIdInRedmine + " FAILED for"+issueId+". Error when trying to insert metadata in postgresql");
+								}
+							}
+						});
+					}
+				});
+			}
+		});
+	}
+
+
 	@Override
-	public void getIssue(final int issueId, final Handler<Either<String, JsonObject>> handler) {
+	public void getIssue(final Number issueId, final Handler<Either<String, JsonObject>> handler) {
 		String path = "/issues/" + issueId + ".json?include=journals,attachments";
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + path) : path;
 
@@ -586,7 +647,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	/**
 	 * @param attachmentUrl : attachment URL given by Redmine, e.g. "http://support.web-education.net/attachments/download/784/test_pj.png"
 	 */
-	private void downloadAttachment(final String attachmentUrl, final Handler<JsonObject> handler) {
+	private void downloadAttachment(final String attachmentUrl, final Handler<Buffer> handler) {
 		String url = proxyIsDefined ? attachmentUrl : attachmentUrl.substring(attachmentUrl.indexOf(redmineHost) + redmineHost.length());
 
 		httpClient.get(url, new Handler<HttpClientResponse>() {
@@ -595,8 +656,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				resp.bodyHandler(new Handler<Buffer>() {
 					@Override
 					public void handle(Buffer data) {
-						// TODO : store attachment in gridfs, and store attachment's id in postgresql
-						handler.handle(new JsonObject());
+						handler.handle(data);
 					}
 				});
 			}
@@ -608,8 +668,9 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 	@Override
-	public Integer extractIdFromIssue(JsonObject issue) {
-		return (Integer) issue.getObject("issue").getNumber("id");
+	public Number extractIdFromIssue(JsonObject issue) {
+		return issue.getObject("issue").getNumber("id");
 	}
+
 
 }

@@ -359,7 +359,7 @@ public class TicketController extends ControllerHelper {
 			public void handle(final Either<String, JsonObject> escalationResponse) {
 				if(escalationResponse.isRight()) {
 					final JsonObject issue = escalationResponse.right().getValue();
-					final Integer issueId = escalationService.extractIdFromIssue(issue);
+					final Number issueId = escalationService.extractIdFromIssue(issue);
 
 					// get the whole issue (i.e. with attachments' metadata and comments) to save it in database
 					escalationService.getIssue(issueId, new Handler<Either<String, JsonObject>>() {

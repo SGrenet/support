@@ -26,16 +26,18 @@ public interface TicketService extends CrudService {
 	/**
 	 * @param attachmentMap : key = attachmentId in bug tracker, value = attachmentId in gridfs
 	 */
-	public void endSuccessfulEscalation(String ticketId, JsonObject issue, Integer issueId,
+	public void endSuccessfulEscalation(String ticketId, JsonObject issue, Number issueId,
 			ConcurrentMap<Integer, String> attachmentMap, UserInfos user, Handler<Either<String, JsonObject>> handler);
 
 	public void endFailedEscalation(String ticketId, UserInfos user, Handler<Either<String, JsonObject>> handler);
 
-	public void updateIssue(int issueId, String content, Handler<Either<String, JsonObject>> handler);
+	public void updateIssue(Number issueId, String content, Handler<Either<String, JsonObject>> handler);
 
 	public void getLastIssuesUpdate(Handler<Either<String, JsonArray>> handler);
 
-	public void getIssueAttachments(int issueId, Handler<Either<String, JsonArray>> handler);
+	public void getIssueAttachmentsIds(Number issueId, Handler<Either<String, JsonArray>> handler);
 
 	public void getIssue(String ticketId, Handler<Either<String, JsonArray>> handler);
+
+	public void insertIssueAttachment(Number issueId, JsonObject attachment, Handler<Either<String, JsonArray>> handler);
 }

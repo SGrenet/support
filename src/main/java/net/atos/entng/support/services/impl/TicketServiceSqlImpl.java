@@ -217,7 +217,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 
 	private void updateTicketAfterEscalation(String ticketId, EscalationStatus targetStatus,
-			JsonObject issue, Integer issueId, ConcurrentMap<Integer, String> attachmentMap,
+			JsonObject issue, Number issueId, ConcurrentMap<Integer, String> attachmentMap,
 			UserInfos user, Handler<Either<String, JsonObject>> handler) {
 
 		// 1. Update escalation status
@@ -247,8 +247,8 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 			statements.prepared(insertQuery, insertValues);
 
-			// 3. Insert attachment metadata
-			JsonArray attachments = issue.getObject("issue").getArray("attachments", null);
+			// 3. Insert attachment (document from workspace) metadata
+			JsonArray attachments = issue.getObject("issue").getArray("attachments", null); // TODO : à revoir. Code spécifique redmine
 			if(attachments != null && attachments.size() > 0
 					&& attachmentMap != null && !attachmentMap.isEmpty()) {
 				/*
@@ -266,7 +266,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 					]
 				 */
 				StringBuilder attachmentsQuery = new StringBuilder();
-				attachmentsQuery.append("INSERT INTO support.bug_tracker_attachments(id, issue_id, gridfs_id, name, size)")
+				attachmentsQuery.append("INSERT INTO support.bug_tracker_attachments(id, issue_id, document_id, name, size)")
 					.append(" VALUES");
 
 				JsonArray attachmentsValues = new JsonArray();
@@ -298,7 +298,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 	 * 	@inheritDoc
 	 */
 	@Override
-	public void endSuccessfulEscalation(String ticketId, JsonObject issue, Integer issueId,
+	public void endSuccessfulEscalation(String ticketId, JsonObject issue, Number issueId,
 			ConcurrentMap<Integer, String> attachmentMap,
 			UserInfos user, Handler<Either<String, JsonObject>> handler) {
 
@@ -311,7 +311,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 	}
 
 	@Override
-	public void updateIssue(int issueId, String content, Handler<Either<String, JsonObject>> handler) {
+	public void updateIssue(Number issueId, String content, Handler<Either<String, JsonObject>> handler) {
 		String query = "UPDATE support.bug_tracker_issues"
 				+ " SET content = ?, modified = now() "
 				+ " WHERE id = ?";
@@ -332,8 +332,9 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 	}
 
 	@Override
-	public void getIssueAttachments(int issueId, Handler<Either<String, JsonArray>> handler) {
-		String query = "SELECT id FROM support.bug_tracker_attachments"
+	public void getIssueAttachmentsIds(Number issueId, Handler<Either<String, JsonArray>> handler) {
+		// Return for instance [{"ids":"[886, 887, 888]"}]
+		String query = "SELECT json_agg(id) AS ids FROM support.bug_tracker_attachments"
 				+ " WHERE issue_id = ?";
 		JsonArray values = new JsonArray().addNumber(issueId);
 
@@ -349,5 +350,24 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		sql.prepared(query, values, validResultHandler(handler));
 	};
+
+	@Override
+	public void insertIssueAttachment(Number issueId, JsonObject attachment, Handler<Either<String, JsonArray>> handler) {
+		/* NB : Attachments downloaded from bug tracker are saved in gridfs, but not in application "workspace".
+		 * => we save a gridfs_id, not a document_id
+		 */
+		String query = "INSERT INTO support.bug_tracker_attachments(id, issue_id, gridfs_id, name, size) VALUES(?, ?, ?, ?, ?)";
+
+		JsonArray values = new JsonArray();
+		JsonObject metadata = attachment.getObject("metadata");
+
+		values.addNumber(attachment.getNumber("id_in_bugtracker"))
+			.addNumber(issueId)
+			.addString(attachment.getString("_id"))
+			.addString(metadata.getString("filename"))
+			.addNumber(metadata.getNumber("size"));
+
+		sql.prepared(query.toString(), values, validResultHandler(handler));
+	}
 
 }

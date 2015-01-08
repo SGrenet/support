@@ -22,8 +22,8 @@ public interface EscalationService {
 	public void escalateTicket(HttpServerRequest request, JsonObject ticket, JsonArray comments, JsonArray attachments,
 			ConcurrentMap<Integer, String> attachmentMap, Handler<Either<String, JsonObject>> handler);
 
-	public void getIssue(int issueId, Handler<Either<String, JsonObject>> handler);
+	public void getIssue(Number issueId, Handler<Either<String, JsonObject>> handler);
 
-	public Integer extractIdFromIssue(JsonObject issue);
+	public Number extractIdFromIssue(JsonObject issue);
 
 }

@@ -105,7 +105,9 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		template.open('main', 'view-ticket');
 		$scope.ticket.getAttachments();
 		$scope.ticket.getComments();
-		$scope.ticket.getBugTrackerIssue();
+		if($scope.userIsLocalAdmin() === true) {
+			$scope.ticket.getBugTrackerIssue();
+		}
 	};
 	
 	$scope.viewTicket = function(ticketId) {
