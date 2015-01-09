@@ -40,6 +40,7 @@ import fr.wseduc.rs.Put;
 import fr.wseduc.security.ActionType;
 import fr.wseduc.security.SecuredAction;
 import fr.wseduc.webutils.Either;
+import fr.wseduc.webutils.I18n;
 import fr.wseduc.webutils.request.RequestUtils;
 
 
@@ -316,7 +317,6 @@ public class TicketController extends ControllerHelper {
 				}
 			}
 		});
-
 	}
 
 	private Handler<Either<String,JsonObject>> getTicketForEscalationHandler(final HttpServerRequest request,
@@ -412,6 +412,79 @@ public class TicketController extends ControllerHelper {
 	public void getBugTrackerIssue(final HttpServerRequest request) {
 		final String ticketId = request.params().get("id");
 		ticketService.getIssue(ticketId, arrayResponseHandler(request));
+	}
+
+	@Post("/issue/:id/comment")
+	@ApiDoc("Add comment to bug tracker issue")
+	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
+	@ResourceFilter(LocalAdmin.class)
+	public void commentIssue(final HttpServerRequest request) {
+		final String id = request.params().get("id");
+		final Integer issueId = Integer.parseInt(id);
+
+		UserUtils.getUserInfos(eb, request, new Handler<UserInfos>() {
+			@Override
+			public void handle(final UserInfos user) {
+				if (user != null) {
+					RequestUtils.bodyToJson(request, pathPrefix + "commentIssue", new Handler<JsonObject>(){
+						@Override
+						public void handle(JsonObject comment) {
+
+							// add author name to comment
+							StringBuilder content = new StringBuilder();
+							content.append(I18n.getInstance().translate("support.author", I18n.acceptLanguage(request)))
+								.append(" : ")
+								.append(user.getUsername())
+								.append("\n")
+								.append(comment.getString("content"));
+							comment.putString("content", content.toString());
+
+							escalationService.commentIssue(issueId, comment, new Handler<Either<String,JsonObject>>() {
+								@Override
+								public void handle(Either<String,JsonObject> event) {
+									if(event.isRight()) {
+										// get the whole issue (i.e. with attachments' metadata and comments) and save it in postgresql
+										escalationService.getIssue(issueId, new Handler<Either<String, JsonObject>>() {
+											@Override
+											public void handle(Either<String, JsonObject> response) {
+												if(response.isRight()) {
+													final JsonObject issue = response.right().getValue();
+													ticketService.updateIssue(issueId, issue.toString(), new Handler<Either<String,JsonObject>>() {
+
+														@Override
+														public void handle(Either<String, JsonObject> updateIssueResponse) {
+															if(updateIssueResponse.isRight()) {
+																renderJson(request, issue);
+															}
+															else {
+																renderError(request, new JsonObject().putString("error",
+																		"support.error.comment.added.to.escalated.ticket.but.synchronization.failed"));
+																log.error("Error when trying to update bug tracker issue: "+updateIssueResponse.toString());
+															}
+														}
+
+													});
+												}
+												else {
+													renderError(request, new JsonObject().putString("error", response.left().getValue()));
+												}
+											}
+										});
+									}
+									else {
+										renderError(request, new JsonObject().putString("error", event.left().getValue()));
+									}
+								}
+							});
+						}
+					});
+				} else {
+					log.debug("User not found in session.");
+					unauthorized(request);
+				}
+			}
+		});
+
 	}
 
 }

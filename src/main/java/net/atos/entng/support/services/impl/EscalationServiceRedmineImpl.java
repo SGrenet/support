@@ -27,6 +27,7 @@ import org.vertx.java.platform.Container;
 
 import fr.wseduc.webutils.Either;
 import fr.wseduc.webutils.FileUtils;
+import fr.wseduc.webutils.I18n;
 
 public class EscalationServiceRedmineImpl implements EscalationService {
 
@@ -205,8 +206,8 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 												// Create redmine issue only if all attachments have been uploaded successfully
 												if (successfulUploads.incrementAndGet() == attachmentsIds.size()) {
-													EscalationServiceRedmineImpl.this.createIssue(ticket,
-															getCreateIssueHandler(comments, handler), attachments);
+													EscalationServiceRedmineImpl.this.createIssue(request, ticket,
+															getCreateIssueHandler(request, comments, handler), attachments);
 												}
 											}
 											else {
@@ -234,13 +235,13 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			}
 		}
 		else {
-			this.createIssue(ticket, getCreateIssueHandler(comments, handler), attachments);
+			this.createIssue(request, ticket, getCreateIssueHandler(request, comments, handler), attachments);
 		}
 
 	}
 
-	private Handler<HttpClientResponse> getCreateIssueHandler(final JsonArray comments,
-			final Handler<Either<String, JsonObject>> handler) {
+	private Handler<HttpClientResponse> getCreateIssueHandler(final HttpServerRequest request,
+			final JsonArray comments, final Handler<Either<String, JsonObject>> handler) {
 
 		return new Handler<HttpClientResponse>() {
 			@Override
@@ -258,7 +259,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 								// Add all comments to the redmine issue
 								Number issueId = EscalationServiceRedmineImpl.this.extractIdFromIssue(response);
-								EscalationServiceRedmineImpl.this.updateIssue(issueId, aggregateComments(comments),
+								EscalationServiceRedmineImpl.this.updateIssue(issueId, aggregateComments(request, comments),
 										getUpdateIssueHandler(response, handler));
 
 							} catch (Exception e) {
@@ -312,17 +313,20 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	/*
 	 * Return a JsonObject containing all comments
 	 */
-	private JsonObject aggregateComments(JsonArray comments) {
+	private JsonObject aggregateComments(final HttpServerRequest request, JsonArray comments) {
 		JsonObject result = new JsonObject();
 		if(comments != null && comments.size() > 0) {
 			StringBuilder sb = new StringBuilder();
 			for (Object o : comments) {
 				if(!(o instanceof JsonObject)) continue;
 				JsonObject c = (JsonObject) o;
-				sb.append("Le ").append(c.getString("created"))
-					.append("\n")
-					.append(c.getString("content"))
-					.append("\n\n");
+
+				sb.append(c.getString("owner_name")).append(", ");
+
+				String onDate = I18n.getInstance().translate("support.on", I18n.acceptLanguage(request));
+				sb.append(onDate).append(" ").append(c.getString("created"));
+
+				sb.append("\n\n").append(c.getString("content")).append("\n\n");
 			}
 
 			result.putString("content", sb.toString());
@@ -344,15 +348,29 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 
-	private void createIssue(final JsonObject ticket, final Handler<HttpClientResponse> handler, JsonArray attachments) {
+	private void createIssue(final HttpServerRequest request, final JsonObject ticket, final Handler<HttpClientResponse> handler, JsonArray attachments) {
 
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
 
 		JsonObject data = new JsonObject()
 			.putNumber("project_id", redmineProjectId)
-			.putString("subject", ticket.getString("subject"))
-			.putString("description", ticket.getString("description"));
-		// TODO : add application name and school name to description
+			.putString("subject", ticket.getString("subject"));
+
+		// add ticket id, application name, school id to description
+		String applicationLabel = I18n.getInstance().translate("support.application", I18n.acceptLanguage(request));
+		String ticketOwnerLabel = I18n.getInstance().translate("support.ticket.owner", I18n.acceptLanguage(request));
+		String ticketIdLabel = I18n.getInstance().translate("support.ticket.id", I18n.acceptLanguage(request));
+		String schoolIdLabel = I18n.getInstance().translate("support.school.id", I18n.acceptLanguage(request));
+
+		StringBuilder description = new StringBuilder();
+		this.appendDataToDescription(description, applicationLabel, ticket.getString("category").substring(1));
+		this.appendDataToDescription(description, ticketOwnerLabel, ticket.getString("owner_name"));
+		this.appendDataToDescription(description, ticketIdLabel, ticket.getNumber("id").toString());
+		this.appendDataToDescription(description, schoolIdLabel, ticket.getString("school_id"));
+		description.append("\n").append(ticket.getString("description"));
+
+		data.putString("description", description.toString());
+
 
 		if(attachments != null && attachments.size() > 0) {
 			data.putArray("uploads", attachments);
@@ -370,6 +388,12 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				.putHeader(HEADER_REDMINE_API_KEY, redmineApiKey)
 				.write(buffer).end();
 	}
+
+	private void appendDataToDescription(final StringBuilder description, final String label, final String value) {
+		description.append(label).append(": ")
+			.append(value).append("\n");
+	}
+
 
 	private void updateIssue(final Number issueId, final JsonObject comment, final Handler<HttpClientResponse> handler) {
 		String path = "/issues/" + issueId + ".json";
@@ -429,10 +453,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 						else {
 							log.error("Error when listing redmine tickets. Response status is "
 									+ resp.statusCode() + " instead of 200.");
-							log.error(response.toString());
-
-							// TODO : i18n for error message
-							handler.handle(new Either.Left<String, JsonObject>("Error when listing redmine tickets"));
+							handler.handle(new Either.Left<String, JsonObject>(response.toString()));
 						}
 					}
 				});
@@ -523,7 +544,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 															JsonArray existingAttachmentsIds = (ids!=null) ? new JsonArray(ids) : null;
 
 															if(existingAttachmentsIds != null && existingAttachmentsIds.size() > 0) {
-																log.info("existingAttachmentsIds: "+existingAttachmentsIds.toString());
+																log.debug("Attachments already stored in ENT : "+existingAttachmentsIds.toString());
 																for (Object o : redmineAttachments) {
 																	if(!(o instanceof JsonObject)) continue;
 																	final JsonObject attachment = (JsonObject) o;
@@ -630,9 +651,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 							log.error("Error when getting a redmine ticket. Response status is "
 									+ resp.statusCode() + " instead of 200.");
 							log.error(response.toString());
-
-							// TODO : i18n for error message
-							handler.handle(new Either.Left<String, JsonObject>("Error when getting a redmine ticket"));
+							handler.handle(new Either.Left<String, JsonObject>("support.error.comment.added.to.escalated.ticket.but.synchronization.failed"));
 						}
 					}
 				});
@@ -665,6 +684,31 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		.putHeader(HEADER_REDMINE_API_KEY, redmineApiKey)
 		.putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 		.end();
+	}
+
+	@Override
+	public void commentIssue(Number issueId, JsonObject comment, final Handler<Either<String,JsonObject>> handler) {
+
+		this.updateIssue(issueId, comment, new Handler<HttpClientResponse>() {
+			@Override
+			public void handle(final HttpClientResponse event) {
+				event.bodyHandler(new Handler<Buffer>() {
+					@Override
+					public void handle(Buffer buffer) {
+						if(event.statusCode() == 200) {
+							handler.handle(new Either.Right<String, JsonObject>(new JsonObject()));
+						}
+						else {
+							log.error("Error : could not update redmine issue to add comment. Response status is "
+									+ event.statusCode() + " instead of 200.");
+							log.error(buffer.toString());
+							handler.handle(new Either.Left<String, JsonObject>("support.error.comment.has.not.been.added.to.escalated.ticket"));
+						}
+					}
+				});
+			}
+		});
+
 	}
 
 	@Override

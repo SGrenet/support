@@ -142,6 +142,24 @@ Ticket.prototype.getBugTrackerIssue = function(callback) {
 	}.bind(this));
 };
 
+Ticket.prototype.commentIssue = function(callback, errorCallback) {
+	http().postJson('/support/issue/' + this.issue.id + '/comment', {content: this.issue.newComment})
+	.done(function(result){
+			this.issue = result.issue;
+			this.trigger('change');
+			if(typeof callback === 'function'){
+				callback();
+			}
+		}.bind(this)
+	)
+	.e500(function(result){
+			if(typeof errorCallback === 'function'){
+				errorCallback(result.error);
+			}
+		}.bind(this)
+	);
+};
+
 model.build = function() {
 	model.me.workflow.load(['support']);
 	this.makeModels([ Ticket, Comment, Attachment ]);

@@ -36,10 +36,22 @@
 	</div>
 	<div class="row">
 		<label class="two cell"><i18n>support.issue.description</i18n></label>
-		<span class="ten cell">[[ticket.issue.description]]</span>
+		<span class="ten cell with-newlines">[[ticket.issue.description]]</span>
 	</div>
 	<!-- TODO : pièces jointes (nom, date, lien pour télécharger la pj) -->
-	
+
+	<div ng-if="ticket.issue.showEditForm === true" class="row">
+		<label class="two cell"><i18n>support.issue.new.comment</i18n></label>
+		<div class="ten cell">
+			<textarea ng-model="ticket.issue.newComment"></textarea>
+		</div>
+		<div ng-if="!ticket.issue.processing">
+			<button class="right-magnet" ng-click="updateIssue()" translate content="support.issue.save"></button>
+			<button class="right-magnet cancel" ng-click="cancelEditIssue()" translate content="support.issue.cancel"></button>
+		</div>
+		<button ng-if="ticket.issue.processing === true" class="right-magnet disabled" disabled><i18n>support.issue.processing</i18n></button>
+	</div>
+				
 	<div ng-if="ticket.issue.journals && ticket.issue.journals.length > 0" class="row">
 		<div ng-repeat="journal in ticket.issue.journals">
 			<article class="comment reduce-block-eight">

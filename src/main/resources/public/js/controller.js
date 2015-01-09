@@ -196,7 +196,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 					// Exemple of result : {_id: "db1f060a-5c0e-45fa-8318-2d8b33873747", status: "ok"}
 					
 					if(result && result.status === "ok") {
-						console.log("createProtectedCopy OK for attachment "+anAttachment._id + ". Id of protected copy is:"+result._id)
+						console.log("createProtectedCopy OK for attachment "+anAttachment._id + ". Id of protected copy is:"+result._id);
 						remainingAttachments = remainingAttachments - 1;
 						
 						// replace id of "non protected" attachment by the id of its "protected copy"
@@ -336,10 +336,14 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	$scope.isCreatingOrEditingOrViewingEscalatedTicket = function() {
 		return (template.contains('main', 'create-ticket') || 
 				template.contains('main', 'edit-ticket') ||
-				template.contains('main', 'view-bugtracker-issue'));
+				$scope.isViewingEscalatedTicket());
 	};
 	
-	// Functions to escalate tickets or view escalated tickets
+	$scope.isViewingEscalatedTicket = function() {
+		return template.contains('main', 'view-bugtracker-issue');
+	};
+	
+	// Functions to escalate tickets or process escalated tickets
 	$scope.escalateTicket = function() {
 		$scope.ticket.escalation_status = model.escalationStatuses.IN_PROGRESS;
 		if($scope.ticket.status !== model.ticketStatusEnum.NEW && $scope.ticket.status !== model.ticketStatusEnum.OPENED) {
@@ -362,6 +366,37 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		template.open('main', 'view-bugtracker-issue');
 	};
 	
+	$scope.editIssue = function() {
+		$scope.ticket.issue.showEditForm = true;
+	};
+	
+	$scope.cancelEditIssue = function() {
+		$scope.ticket.issue.showEditForm = false;
+		$scope.ticket.issue.newComment = '';
+	};
+	
+	$scope.updateIssue = function() {
+		$scope.ticket.issue.processing = true;
+		
+		if (!$scope.ticket.issue.newComment || $scope.ticket.issue.newComment.trim().length === 0){
+			notify.error('support.issue.validation.error.comment.is.empty');
+			$scope.ticket.issue.processing = false;
+			return;
+		}
+		
+		var successCallback = function() {
+			$scope.ticket.issue.showEditForm = false;
+			$scope.ticket.issue.processing = false;
+			notify.info('support.comment.issue.successful');
+		};
+		
+		var errorCallback = function(error) {
+			notify.error(error);
+			$scope.ticket.issue.processing = false;
+		};
+		
+		$scope.ticket.commentIssue(successCallback, errorCallback);
+	};
 	
 	// Date functions
 	$scope.formatDate = function(date) {

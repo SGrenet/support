@@ -51,6 +51,13 @@
 	"support.issue.creation.date" : "Date de création",
 	"support.issue.modification.date" : "Dernière modification",
 	"support.issue.description" : "Description",
+	"support.issue.new.comment" : "Nouveau commentaire",
+	"support.issue.comment" : "Commenter",
+	"support.issue.save" : "Enregistrer",
+	"support.issue.cancel" : "Annuler",
+	"support.issue.processing" : "Enregistrement en cours...",
+	"support.comment.issue.successful" : "Votre commentaire a été ajouté à la demande escaladée",
+	"support.issue.validation.error.comment.is.empty" : "Le champ 'commentaire' doit être renseigné",
 
 	"support.ticket.notfound.or.unauthorized" : "La demande de support n'existe pas, a été supprimée, ou vous n'avez pas les droits pour y accéder.",
 	"support.ticket.validation.error.subject.is.empty" : "Le champ 'Sujet' doit être renseigné",
@@ -63,6 +70,15 @@
 	"support.ticket.escalation.not.allowed.for.given.status" : "La demande doit être au statut 'nouveau' ou 'ouvert' pour être escaladée",
 	
 	"support.attachment.processing.failed.ticket.cannot.be.created" : "Erreur lors du traitement des pièces jointes. La demande n'a pas pu être créée",
-	"support.attachment.processing.failed.ticket.cannot.be.updated" : "Erreur lors du traitement des pièces jointes. La demande n'a pas pu être mise à jour"
+	"support.attachment.processing.failed.ticket.cannot.be.updated" : "Erreur lors du traitement des pièces jointes. La demande n'a pas pu être mise à jour",
+	
+	"support.error.comment.has.not.been.added.to.escalated.ticket" : "Erreur : le commentaire n'a pas pu être ajoutée à la demande escaladée",
+	"support.error.comment.added.to.escalated.ticket.but.synchronization.failed" : "Erreur : le commentaire a été ajouté à la demande escaladée, mais l'ENT n'a pas pu être synchronisé",
+	
+	"support.author" : "Auteur",
+	"support.application" : "Application",
+	"support.school.id" : "Identifiant de l'établissement",
+	"support.ticket.id" : "Identifiant de la demande dans l'ENT",
+	"support.ticket.owner" : "Demandeur"
 	
 }

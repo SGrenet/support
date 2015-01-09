@@ -26,4 +26,6 @@ public interface EscalationService {
 
 	public Number extractIdFromIssue(JsonObject issue);
 
+	public void commentIssue(Number issueId, JsonObject comment, Handler<Either<String,JsonObject>> handler);
+
 }

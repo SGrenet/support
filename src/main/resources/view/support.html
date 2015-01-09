@@ -19,13 +19,20 @@
 							<a ng-click="displayTicketList()"><i18n>support.title</i18n></a>
 						</h1>
 					</div>
-					<div class="contextual-buttons six cell" ng-if="!isCreatingOrEditingOrViewingEscalatedTicket()">
-						<button ng-click="newTicket()" workflow="support.createTicket" class="cell right-magnet">
-							<i18n>support.ticket.create</i18n>
-						</button>
-						<button ng-click="editTicket()" ng-if="ticket && ticket.id" class="cell right-magnet">
-							<i18n>support.ticket.edit</i18n>
-						</button>
+					<div class="contextual-buttons six cell">
+						<div ng-if="!isCreatingOrEditingOrViewingEscalatedTicket()">
+							<button ng-click="newTicket()" workflow="support.createTicket" class="cell right-magnet">
+								<i18n>support.ticket.create</i18n>
+							</button>
+							<button ng-click="editTicket()" ng-if="ticket && ticket.id" class="cell right-magnet">
+								<i18n>support.ticket.edit</i18n>
+							</button>
+						</div>
+						<div ng-if="isViewingEscalatedTicket()">
+							<button ng-click="editIssue()" ng-if="ticket && ticket.issue && !ticket.issue.showEditForm" class="cell right-magnet">
+								<i18n>support.issue.comment</i18n>
+							</button>
+						</div>
 					</div>
 				</div>
 				<section >

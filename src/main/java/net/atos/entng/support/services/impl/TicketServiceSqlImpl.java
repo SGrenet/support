@@ -198,19 +198,22 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			.add(TicketStatus.CLOSED.status());
 
 		// 2) query to select ticket, attachments' ids and comments
-		query.append("SELECT t.subject, t.description, t.category, t.school_id,")
+		query.append("SELECT t.id, t.subject, t.description, t.category, t.school_id, u.username AS owner_name,")
 			/*  When no rows are selected, json_agg returns a JSON array whose objects' fields have null values.
 			 * We use CASE to return an empty array instead. */
 			.append(" CASE WHEN COUNT(a.gridfs_id) = 0 THEN '[]' ELSE json_agg(DISTINCT a.gridfs_id) END AS attachments,")
 
 			.append(" CASE WHEN COUNT(c.id) = 0 THEN '[]' ")
-				.append(" ELSE json_agg(DISTINCT(c.created, c.id, c.content)::support.comment_tuple ORDER BY (c.created, c.id, c.content)::support.comment_tuple)")
+				.append(" ELSE json_agg(DISTINCT(date_trunc('second', c.created), c.id, c.content, v.username)::support.comment_tuple")
+				.append(" ORDER BY (date_trunc('second', c.created), c.id, c.content, v.username)::support.comment_tuple)")
 				.append(" END AS comments")
 
 			.append(" FROM updated_ticket AS t")
+			.append(" INNER JOIN support.users AS u ON t.owner = u.id")
 			.append(" LEFT JOIN support.attachments AS a ON t.id = a.ticket_id")
 			.append(" LEFT JOIN support.comments AS c ON t.id = c.ticket_id")
-			.append(" GROUP BY t.id, t.subject, t.description, t.category, t.school_id");
+			.append(" INNER JOIN support.users AS v ON c.owner = v.id")
+			.append(" GROUP BY t.id, t.subject, t.description, t.category, t.school_id, u.username");
 
 		sql.prepared(query.toString(), values, validUniqueResultHandler(handler));
 	}

@@ -17,6 +17,7 @@ import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
 import fr.wseduc.webutils.http.Binding;
+import fr.wseduc.webutils.http.HttpMethod;
 
 public class LocalAdmin implements ResourcesProvider {
 
@@ -24,8 +25,8 @@ public class LocalAdmin implements ResourcesProvider {
 	public void authorize(final HttpServerRequest request, final Binding binding,
 			final UserInfos user, final Handler<Boolean> handler) {
 
-		String ticketId = request.params().get("id");
-		if (ticketId == null || ticketId.trim().isEmpty() || !(parseId(ticketId) instanceof Integer)) {
+		String id = request.params().get("id");
+		if (id == null || id.trim().isEmpty() || !(parseId(id) instanceof Integer)) {
 			handler.handle(false);
 			return;
 		}
@@ -45,10 +46,19 @@ public class LocalAdmin implements ResourcesProvider {
 
 		request.pause();
 
-		StringBuilder query = new StringBuilder("SELECT count(*) FROM support.tickets AS t ")
-			.append("WHERE t.id = ? ");
+		StringBuilder query = new StringBuilder("SELECT count(*) FROM support.tickets AS t ");
 		JsonArray values = new JsonArray();
-		values.add(Sql.parseId(ticketId));
+
+		if(isCommentIssue(binding)) {
+			// parameter id is an issueId
+			query.append("INNER JOIN support.bug_tracker_issues AS i ON t.id = i.ticket_id ")
+				.append("WHERE i.id = ? ");
+		}
+		else {
+			// parameter id is a ticketId
+			query.append("WHERE t.id = ? ");
+		}
+		values.add(Sql.parseId(id));
 
 		query.append("AND t.school_id IN (");
 		for (String scope : adminLocal.getScope()) {
@@ -66,8 +76,11 @@ public class LocalAdmin implements ResourcesProvider {
 				handler.handle(count != null && count > 0);
 			}
 		});
+	}
 
-
+	private boolean isCommentIssue(final Binding binding) {
+		return (HttpMethod.POST.equals(binding.getMethod())
+				&& "net.atos.entng.support.controllers.TicketController|commentIssue".equals(binding.getServiceMethod()));
 	}
 
 }
