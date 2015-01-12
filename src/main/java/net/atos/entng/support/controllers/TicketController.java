@@ -384,6 +384,16 @@ public class TicketController extends ControllerHelper {
 							}
 							else {
 								log.error("Error when trying to get bug tracker issue");
+
+								// Update escalation status to successful (escalation succeeded, but data could not be saved in postgresql)
+								ticketService.endSuccessfulEscalation(ticketId, new JsonObject(), issueId, attachmentMap, user, new Handler<Either<String,JsonObject>>() {
+									@Override
+									public void handle(Either<String, JsonObject> event) {
+										if(event.isLeft()) {
+											log.error("Error when trying to update escalation status to successful");
+										}
+									}
+								});
 								renderError(request, new JsonObject().putString("error", getWholeIssueResponse.left().getValue()));
 							}
 						}

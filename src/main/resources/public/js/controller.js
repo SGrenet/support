@@ -280,7 +280,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		
 		// check that the "new" attachments have not already been saved for the current ticket 
 		if($scope.ticket.newAttachments && $scope.ticket.newAttachments.length > 0) {
-			var attachmentsIds = $scope.ticket.attachments.pluck('gridfs_id');
+			var attachmentsIds = $scope.ticket.attachments.pluck('document_id');
 			var newAttachmentsInDuplicate = [];
 			
 			for (var i=0; i < $scope.ticket.newAttachments.length; i++) {

@@ -104,7 +104,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		if(attachments != null && attachments.size() > 0) {
 			StringBuilder query = new StringBuilder();
-			query.append("INSERT INTO support.attachments(gridfs_id, name, size, owner, ticket_id)")
+			query.append("INSERT INTO support.attachments(document_id, name, size, owner, ticket_id)")
 				.append(" VALUES");
 
 			JsonArray values = new JsonArray();
@@ -204,7 +204,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		query.append("SELECT t.id, t.subject, t.description, t.category, t.school_id, u.username AS owner_name,")
 			/*  When no rows are selected, json_agg returns a JSON array whose objects' fields have null values.
 			 * We use CASE to return an empty array instead. */
-			.append(" CASE WHEN COUNT(a.gridfs_id) = 0 THEN '[]' ELSE json_agg(DISTINCT a.gridfs_id) END AS attachments,")
+			.append(" CASE WHEN COUNT(a.document_id) = 0 THEN '[]' ELSE json_agg(DISTINCT a.document_id) END AS attachments,")
 
 			.append(" CASE WHEN COUNT(c.id) = 0 THEN '[]' ")
 				.append(" ELSE json_agg(DISTINCT(date_trunc('second', c.created), c.id, c.content, v.username)::support.comment_tuple")
@@ -254,45 +254,47 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			statements.prepared(insertQuery, insertValues);
 
 			// 3. Insert attachment (document from workspace) metadata
-			JsonArray attachments = issue.getObject("issue").getArray("attachments", null); // TODO : à revoir. Code spécifique redmine
-			if(attachments != null && attachments.size() > 0
-					&& attachmentMap != null && !attachmentMap.isEmpty()) {
-				/*
-				 * Example of "attachments" array with one attachment :
-				 *
-					"attachments":[
-						{
-						    "id": 784,
-						    "filename": "test_pj.png",
-						    "filesize": 118639,
-						    "content_type": "image/png",
-						    "description": "descriptionpj",
-						    "content_url": "http: //support.web-education.net/attachments/download/784/test_pj.png"
-						}
-					]
-				 */
-				StringBuilder attachmentsQuery = new StringBuilder();
-				attachmentsQuery.append("INSERT INTO support.bug_tracker_attachments(id, issue_id, document_id, name, size)")
-					.append(" VALUES");
+			if(issue.size() > 0) {
+				JsonArray attachments = issue.getObject("issue").getArray("attachments", null); // TODO : à revoir. Code spécifique redmine
+				if(attachments != null && attachments.size() > 0
+						&& attachmentMap != null && !attachmentMap.isEmpty()) {
+					/*
+					 * Example of "attachments" array with one attachment :
+					 *
+						"attachments":[
+							{
+							    "id": 784,
+							    "filename": "test_pj.png",
+							    "filesize": 118639,
+							    "content_type": "image/png",
+							    "description": "descriptionpj",
+							    "content_url": "http: //support.web-education.net/attachments/download/784/test_pj.png"
+							}
+						]
+					 */
+					StringBuilder attachmentsQuery = new StringBuilder();
+					attachmentsQuery.append("INSERT INTO support.bug_tracker_attachments(id, issue_id, document_id, name, size)")
+						.append(" VALUES");
 
-				JsonArray attachmentsValues = new JsonArray();
+					JsonArray attachmentsValues = new JsonArray();
 
-				for (Object o : attachments) {
-					if(!(o instanceof JsonObject)) continue;
-					JsonObject attachment = (JsonObject) o;
-					attachmentsQuery.append("(?, ?, ?, ?, ?),");
+					for (Object o : attachments) {
+						if(!(o instanceof JsonObject)) continue;
+						JsonObject attachment = (JsonObject) o;
+						attachmentsQuery.append("(?, ?, ?, ?, ?),");
 
-					Number attachmentIdInBugTracker = attachment.getNumber("id");
-					attachmentsValues.addNumber(attachmentIdInBugTracker)
-						.addNumber(issueId)
-						.addString(attachmentMap.get(attachmentIdInBugTracker))
-						.addString(attachment.getString("filename"))
-						.addNumber(attachment.getNumber("filesize"));
+						Number attachmentIdInBugTracker = attachment.getNumber("id");
+						attachmentsValues.addNumber(attachmentIdInBugTracker)
+							.addNumber(issueId)
+							.addString(attachmentMap.get(attachmentIdInBugTracker))
+							.addString(attachment.getString("filename"))
+							.addNumber(attachment.getNumber("filesize"));
+					}
+					// remove trailing comma
+					attachmentsQuery.deleteCharAt(attachmentsQuery.length() - 1);
+
+					statements.prepared(attachmentsQuery.toString(), attachmentsValues);
 				}
-				// remove trailing comma
-				attachmentsQuery.deleteCharAt(attachmentsQuery.length() - 1);
-
-				statements.prepared(attachmentsQuery.toString(), attachmentsValues);
 			}
 
 			sql.transaction(statements.build(), validUniqueResultHandler(1, handler));
