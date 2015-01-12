@@ -137,8 +137,11 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 	@Override
 	public void listTickets(UserInfos user, Handler<Either<String, JsonArray>> handler) {
 		StringBuilder query = new StringBuilder();
-		query.append("SELECT t.*, u.username AS owner_name FROM support.tickets AS t")
-			.append(" INNER JOIN support.users AS u ON t.owner = u.id");
+		query.append("SELECT t.*, u.username AS owner_name,")
+			.append(" i.content->'issue'->>'updated_on' as last_issue_update") // TODO : à revoir. Code spécifique redmine
+			.append(" FROM support.tickets AS t")
+			.append(" INNER JOIN support.users AS u ON t.owner = u.id")
+			.append(" LEFT JOIN support.bug_tracker_issues AS i ON t.id=i.ticket_id");
 
 		JsonArray values = new JsonArray();
 		Function adminLocal = user.getFunctions().get(DefaultFunctions.ADMIN_LOCAL);
@@ -212,7 +215,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			.append(" INNER JOIN support.users AS u ON t.owner = u.id")
 			.append(" LEFT JOIN support.attachments AS a ON t.id = a.ticket_id")
 			.append(" LEFT JOIN support.comments AS c ON t.id = c.ticket_id")
-			.append(" INNER JOIN support.users AS v ON c.owner = v.id")
+			.append(" LEFT JOIN support.users AS v ON c.owner = v.id")
 			.append(" GROUP BY t.id, t.subject, t.description, t.category, t.school_id, u.username");
 
 		sql.prepared(query.toString(), values, validUniqueResultHandler(handler));

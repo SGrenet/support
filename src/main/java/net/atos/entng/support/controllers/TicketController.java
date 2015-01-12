@@ -432,7 +432,7 @@ public class TicketController extends ControllerHelper {
 
 							// add author name to comment
 							StringBuilder content = new StringBuilder();
-							content.append(I18n.getInstance().translate("support.author", I18n.acceptLanguage(request)))
+							content.append(I18n.getInstance().translate("support.escalated.ticket.author", I18n.acceptLanguage(request)))
 								.append(" : ")
 								.append(user.getUsername())
 								.append("\n")

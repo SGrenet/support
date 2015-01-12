@@ -105,7 +105,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		template.open('main', 'view-ticket');
 		$scope.ticket.getAttachments();
 		$scope.ticket.getComments();
-		if($scope.userIsLocalAdmin() === true) {
+		if($scope.userIsLocalAdmin($scope.ticket) === true) {
 			$scope.ticket.getBugTrackerIssue();
 		}
 	};
@@ -432,12 +432,17 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		return schoolName;
 	};
 	
-	// Check that current user is local administrator for the ticket's school
-	$scope.userIsLocalAdmin = function(){
-		return (model.me.functions && 
+	
+	$scope.userIsLocalAdmin = function(ticket){
+		var isLocalAdmin = (model.me.functions && 
 				model.me.functions.ADMIN_LOCAL && 
-				model.me.functions.ADMIN_LOCAL.scope &&
-				_.contains(model.me.functions.ADMIN_LOCAL.scope, $scope.ticket.school_id));
+				model.me.functions.ADMIN_LOCAL.scope);
+		
+		if(ticket && ticket.school_id) {
+			// if parameter "ticket" is supplied, check that current user is local administrator for the ticket's school
+			return 	isLocalAdmin && _.contains(model.me.functions.ADMIN_LOCAL.scope, ticket.school_id);
+		}
+		return isLocalAdmin;
 	};
 	
 	

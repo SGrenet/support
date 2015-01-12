@@ -36,7 +36,7 @@
 			<span class="nine cell">[[getCategoryLabel(ticket.category)]]</span>
 		</div>
 		<div class="six cell">
-			<div ng-if="userIsLocalAdmin() === true">
+			<div ng-if="userIsLocalAdmin(ticket) === true">
 				<div loading-panel="escalation-request">
 					<a ng-if="ticket.escalation_status === escalationStatuses.NOT_DONE" ng-click="escalateTicket()">
 						<i18n>support.escalate.ticket</i18n>

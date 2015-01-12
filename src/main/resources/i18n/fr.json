@@ -22,6 +22,7 @@
 	"support.ticket.table.category" : "Catégorie",
 	"support.ticket.table.id" : "Id",
 	"support.ticket.table.last.modified" : "Dernière modification",	
+	"support.ticket.table.last.update.of.escalated.ticket" : "Demande escaladée mise à jour le",
 	"support.ticket.table.status" : "Statut",
 	"support.ticket.table.subject" : "Sujet",
 	"support.ticket.empty" : "Aucune demande",
@@ -75,10 +76,10 @@
 	"support.error.comment.has.not.been.added.to.escalated.ticket" : "Erreur : le commentaire n'a pas pu être ajoutée à la demande escaladée",
 	"support.error.comment.added.to.escalated.ticket.but.synchronization.failed" : "Erreur : le commentaire a été ajouté à la demande escaladée, mais l'ENT n'a pas pu être synchronisé",
 	
-	"support.author" : "Auteur",
-	"support.application" : "Application",
-	"support.school.id" : "Identifiant de l'établissement",
-	"support.ticket.id" : "Identifiant de la demande dans l'ENT",
-	"support.ticket.owner" : "Demandeur"
+	"support.escalated.ticket.author" : "Auteur",
+	"support.escalated.ticket.application" : "Application",
+	"support.escalated.ticket.school.id" : "Identifiant de l'établissement",
+	"support.escalated.ticket.ticket.id" : "Identifiant de la demande dans l'ENT",
+	"support.escalated.ticket.ticket.owner" : "Demandeur"
 	
 }
