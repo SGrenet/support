@@ -38,7 +38,16 @@
 		<label class="two cell"><i18n>support.issue.description</i18n></label>
 		<span class="ten cell with-newlines">[[ticket.issue.description]]</span>
 	</div>
-	<!-- TODO : pièces jointes (nom, date, lien pour télécharger la pj) -->
+	
+	<div class="ten cell right-magnet" ng-if="ticket.issue.attachments && ticket.issue.attachments.length>0">
+		<ul>
+			<li class="row" ng-repeat="attachment in ticket.issue.attachments">
+				<a ng-if="attachment.document_id !== null" href="/workspace/document/[[attachment.document_id]]">[[attachment.filename]]</a>
+				<a ng-if="attachment.gridfs_id !== null" href="/support/gridfs/[[attachment.gridfs_id]]">[[attachment.filename]]</a>
+				&nbsp;<em>[[attachment.author.name]] <i18n>support.on</i18n> [[formatDate(attachment.created_on)]]</em>
+			</li>
+		</ul>
+	</div>
 
 	<div ng-if="ticket.issue.showEditForm === true" class="row">
 		<label class="two cell"><i18n>support.issue.new.comment</i18n></label>

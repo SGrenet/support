@@ -351,12 +351,29 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 	@Override
 	public void getIssue(String ticketId, Handler<Either<String, JsonArray>> handler) {
-		// TODO : also SELECT issue's attachments
-		String query = "SELECT * FROM support.bug_tracker_issues"
-				+ " WHERE ticket_id = ?";
+		/* Field "attachments" will contain for instance :
+		 *  [{"id":931,"document_id":null,"gridfs_id":"13237cd7-9567-4810-a85e-39414093e3b5"},
+			 {"id":932,"document_id":null,"gridfs_id":"17223f70-d9a8-4983-92b1-d867fc881d44"},
+			 {"id":933,"document_id":"c7b27108-8715-40e1-a32f-e90828857c35","gridfs_id":null}]
+		 */
+		StringBuilder query = new StringBuilder("SELECT i.id, i.content,")
+			.append(" CASE WHEN COUNT(a.id) = 0 THEN '[]'")
+			.append(" ELSE json_agg((a.id, a.document_id, a.gridfs_id)::support.bug_tracker_attachment_tuple)")
+			.append(" END AS attachments")
+			.append(" FROM support.bug_tracker_issues AS i")
+			.append(" LEFT JOIN support.bug_tracker_attachments AS a ON i.id = a.issue_id")
+			.append(" WHERE i.ticket_id = ?")
+			.append(" GROUP BY i.id");
 		JsonArray values = new JsonArray().add(ticketId);
 
-		sql.prepared(query, values, validResultHandler(handler));
+		sql.prepared(query.toString(), values, validResultHandler(handler));
+	};
+
+	@Override
+	public void getIssueAttachmentName(String gridfsId, Handler<Either<String, JsonObject>> handler) {
+		String query = "SELECT name FROM support.bug_tracker_attachments WHERE gridfs_id = ?";
+		JsonArray values = new JsonArray().add(gridfsId);
+		sql.prepared(query, values, validUniqueResultHandler(handler));
 	};
 
 	@Override

@@ -39,5 +39,7 @@ public interface TicketService extends CrudService {
 
 	public void getIssue(String ticketId, Handler<Either<String, JsonArray>> handler);
 
+	public void getIssueAttachmentName(String gridfsId, Handler<Either<String, JsonObject>> handler);
+
 	public void insertIssueAttachment(Number issueId, JsonObject attachment, Handler<Either<String, JsonArray>> handler);
 }

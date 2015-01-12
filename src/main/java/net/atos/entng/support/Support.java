@@ -29,7 +29,8 @@ public class Support extends BaseServer {
 		TicketService ticketService = new TicketServiceSqlImpl();
 
 		EscalationService escalationService = new EscalationServiceRedmineImpl(vertx, container, log, eb, ticketService);
-		TicketController ticketController = new TicketController(eb, escalationService, ticketService);
+		TicketController ticketController = new TicketController(eb, escalationService, ticketService,
+				container.config().getString("gridfs-address", "wse.gridfs.persistor"));
 		addController(ticketController);
 
 		SqlConf commentSqlConf = SqlConfs.createConf(CommentController.class.getName());

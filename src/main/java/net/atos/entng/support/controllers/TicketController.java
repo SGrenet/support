@@ -26,6 +26,7 @@ import org.entcore.common.user.UserInfos;
 import org.entcore.common.user.UserUtils;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
+import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.RouteMatcher;
@@ -40,6 +41,7 @@ import fr.wseduc.rs.Put;
 import fr.wseduc.security.ActionType;
 import fr.wseduc.security.SecuredAction;
 import fr.wseduc.webutils.Either;
+import fr.wseduc.webutils.FileUtils;
 import fr.wseduc.webutils.I18n;
 import fr.wseduc.webutils.request.RequestUtils;
 
@@ -50,14 +52,16 @@ public class TicketController extends ControllerHelper {
 	private static final String TICKET_UPDATED_EVENT_TYPE = SUPPORT_NAME + "_TICKET_UPDATED";
 	private static final int SUBJECT_LENGTH_IN_NOTIFICATION = 50;
 
-	private TicketService ticketService;
-	private UserService userService;
-	private EscalationService escalationService;
+	private final TicketService ticketService;
+	private final UserService userService;
+	private final EscalationService escalationService;
+	private final String gridfsAddress;
 
-	public TicketController(EventBus eb, EscalationService es, TicketService ts) {
+	public TicketController(EventBus eb, EscalationService es, TicketService ts, String gridfsAddress) {
 		ticketService = ts;
 		userService = new UserServiceDirectoryImpl(eb);
 		escalationService = es;
+		this.gridfsAddress = gridfsAddress;
 	}
 
 	@Override
@@ -422,6 +426,40 @@ public class TicketController extends ControllerHelper {
 	public void getBugTrackerIssue(final HttpServerRequest request) {
 		final String ticketId = request.params().get("id");
 		ticketService.getIssue(ticketId, arrayResponseHandler(request));
+	}
+
+	@Get("/gridfs/:id")
+	@ApiDoc("Get bug tracker attachment saved in gridfs")
+//	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
+//	@ResourceFilter(LocalAdmin.class) // TODO : ajouter le cas "getBugTrackerAttachment" au filtre LocalAdmin
+	public void getBugTrackerAttachment(final HttpServerRequest request) {
+		final String attachmentId = request.params().get("id");
+
+
+		ticketService.getIssueAttachmentName(attachmentId, new Handler<Either<String, JsonObject>>() {
+			@Override
+			public void handle(Either<String, JsonObject> event) {
+				if(event.isRight() && event.right().getValue() != null) {
+					String name = event.right().getValue().getString("name", null);
+					final String filename = (name!=null && name.trim().length()>0) ? name : "filename";
+
+					FileUtils.gridfsReadFile(attachmentId, eb, gridfsAddress, new Handler<Buffer>() {
+						@Override
+						public void handle(Buffer data) {
+							request.response()
+								.putHeader("Content-Disposition",
+										"attachment; filename="+filename)
+								.setChunked(true)
+								.write(data).end();
+						}
+					});
+				}
+				else {
+					// TODO i18n error message
+					renderError(request);
+				}
+			}
+		});
 	}
 
 	@Post("/issue/:id/comment")
