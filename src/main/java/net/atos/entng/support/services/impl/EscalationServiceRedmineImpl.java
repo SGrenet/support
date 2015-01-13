@@ -217,8 +217,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 												// Return error message as soon as one upload failed
 												if(failedUploads.incrementAndGet() == 1) {
-													// TODO : i18n for error message
-													handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not upload attachment(s) to Redmine"));
+													handler.handle(new Either.Left<String, JsonObject>("support.escalation.error.upload.attachment.failed"));
 												}
 											}
 										}
@@ -264,17 +263,13 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 							} catch (Exception e) {
 								log.error("Redmine issue was created. Error when trying to update it, i.e. when adding comment", e);
-
-								// TODO : i18n for error message
-								handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not create redmine issue"));
+								handler.handle(new Either.Left<String, JsonObject>("support.escalation.error"));
 							}
 						}
 						else {
 							log.error("Error during escalation. Could not create redmine issue. Response status is " + resp.statusCode() + " instead of 201.");
 							log.error(data.toString());
-
-							// TODO : i18n for error message
-							handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not create redmine issue"));
+							handler.handle(new Either.Left<String, JsonObject>("support.escalation.error"));
 						}
 					}
 				});
@@ -299,9 +294,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 							log.error("Error during escalation. Could not update redmine issue to add comment. Response status is "
 									+ event.statusCode() + " instead of 200.");
 							log.error(buffer.toString());
-
-							// TODO : i18n for error message
-							handler.handle(new Either.Left<String, JsonObject>("Error during escalation. Could not update redmine issue"));
+							handler.handle(new Either.Left<String, JsonObject>("support.error.escalation.incomplete"));
 						}
 					}
 				});

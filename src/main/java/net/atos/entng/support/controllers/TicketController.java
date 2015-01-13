@@ -332,9 +332,8 @@ public class TicketController extends ControllerHelper {
 				if(getTicketResponse.isRight()) {
 					JsonObject ticket = getTicketResponse.right().getValue();
 					if(ticket == null || ticket.size() == 0) {
-						log.error("Ticket cannot be escalated : its status should be new or opened, and its escalation status should be not_done or in_progress");
-						// TODO add i18n error message
-						badRequest(request, "Ticket cannot be escalated : its status should be new or opened, and its escalation status should be not_done or in_progress");
+						log.error("Ticket " + ticketId + " cannot be escalated : its status should be new or opened, and its escalation status should be not_done or in_progress");
+						badRequest(request, "support.error.escalation.conflict");
 						return;
 					}
 
@@ -348,8 +347,8 @@ public class TicketController extends ControllerHelper {
 				}
 				else {
 					log.error("Error when calling service getTicketForEscalation. " + getTicketResponse.left().getValue());
-					// TODO specify error message
-					renderError(request);
+					renderError(request, new JsonObject().putString("error",
+							"support.escalation.error.data.cannot.be.retrieved.from.database"));
 				}
 			}
 		};
@@ -454,8 +453,8 @@ public class TicketController extends ControllerHelper {
 					});
 				}
 				else {
-					// TODO i18n error message
-					renderError(request);
+					renderError(request, new JsonObject().putString("error",
+							"support.get.attachment.metadata.error.data.cannot.be.retrieved.from.database"));
 				}
 			}
 		});

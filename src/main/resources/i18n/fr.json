@@ -75,6 +75,12 @@
 	
 	"support.error.comment.has.not.been.added.to.escalated.ticket" : "Erreur : le commentaire n'a pas pu être ajoutée à la demande escaladée",
 	"support.error.comment.added.to.escalated.ticket.but.synchronization.failed" : "Erreur : le commentaire a été ajouté à la demande escaladée, mais l'ENT n'a pas pu être synchronisé",
+	"support.error.escalation.conflict" : "Erreur : escalade impossible. Rafraîchissez la page et relancez l'escalade",
+	"support.error.escalation.incomplete" : "Erreur : l'escalade a été réalisée partiellement. Les commentaires n'ont pas pu être escaladés",
+	"support.escalation.error" : "Erreur : la demande n'a pas pu être escaladée",
+	"support.escalation.error.upload.attachment.failed" : "Erreur : Une ou plusieurs pièces jointes n'ont pas pu être escaladées",
+	"support.escalation.error.data.cannot.be.retrieved.from.database" : "Erreur : la base de données n'a pas pu renvoyer la demande. L'escalade n'a pas pu être lancée",
+	"support.get.attachment.metadata.error.data.cannot.be.retrieved.from.database" : "Erreur : téléchargement de la pièce jointe impossible. La base de données n'a pas pu renvoyer les métadonnées de la pièce jointe",
 	
 	"support.escalated.ticket.author" : "Auteur",
 	"support.escalated.ticket.application" : "Application",

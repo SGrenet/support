@@ -156,6 +156,10 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 				}
 				query.deleteCharAt(query.length() - 1);
 				query.append(")");
+
+				// Include tickets created by current user, and linked to a school where he is not local administrator
+				query.append(" OR t.owner = ?");
+				values.addString(user.getUserId());
 			}
 		}
 

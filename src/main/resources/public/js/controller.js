@@ -355,11 +355,19 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		var successCallback = function() {
 			notify.info('support.ticket.escalation.successful');
 		};
-		var errorCallback = function() {
+		var e500Callback = function() {
 			notify.error('support.ticket.escalation.failed');
 		};
+		var e400Callback = function(result) {
+			if(result && result.error) {
+				notify.error(result.error);
+			}
+			else {
+				notify.error('support.error.escalation.conflict');
+			}
+		};
 		
-		$scope.ticket.escalateTicket(successCallback, errorCallback);
+		$scope.ticket.escalateTicket(successCallback, e500Callback, e400Callback);
 	};
 	
 	$scope.openBugTrackerIssue = function() {

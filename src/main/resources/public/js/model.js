@@ -58,7 +58,7 @@ Ticket.prototype.updateTicket = function(data, callback) {
 	}.bind(this));
 };
 
-Ticket.prototype.escalateTicket = function(callback, errorCallback) {
+Ticket.prototype.escalateTicket = function(callback, errorCallback, badRequestCallback) {
 	http().postJson('/support/ticket/' + this.id + '/escalate', null, {requestName: 'escalation-request' })
 	.done(function(result){
 			this.escalation_status = model.escalationStatuses.SUCCESSFUL;
@@ -76,7 +76,14 @@ Ticket.prototype.escalateTicket = function(callback, errorCallback) {
 				errorCallback();
 			}
 		}.bind(this)
-	);
+	)
+	.e400(function(){
+		this.escalation_status = model.escalationStatuses.NOT_DONE;
+		this.trigger('change');
+		if(typeof badRequestCallback === 'function'){
+			badRequestCallback();
+		}
+	}.bind(this));
 };
 
 Ticket.prototype.toJSON = function() {
@@ -141,7 +148,7 @@ Ticket.prototype.getBugTrackerIssue = function(callback) {
 					// add fields "document_id" and "gridfs_id" to each attachment in variable "content.issue"
 					this.issue.attachments = _.map(this.issue.attachments, function(pAttachment) {
 						var anAttachment = _.find(attachments, function(att) {
-							 return att.id === pAttachment.id
+							 return att.id === pAttachment.id;
 						});
 						pAttachment.document_id = anAttachment.document_id;
 						pAttachment.gridfs_id = anAttachment.gridfs_id;
