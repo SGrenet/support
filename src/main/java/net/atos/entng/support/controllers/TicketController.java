@@ -430,11 +430,10 @@ public class TicketController extends ControllerHelper {
 
 	@Get("/gridfs/:id")
 	@ApiDoc("Get bug tracker attachment saved in gridfs")
-//	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
-//	@ResourceFilter(LocalAdmin.class) // TODO : ajouter le cas "getBugTrackerAttachment" au filtre LocalAdmin
+	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
+	@ResourceFilter(LocalAdmin.class)
 	public void getBugTrackerAttachment(final HttpServerRequest request) {
 		final String attachmentId = request.params().get("id");
-
 
 		ticketService.getIssueAttachmentName(attachmentId, new Handler<Either<String, JsonObject>>() {
 			@Override

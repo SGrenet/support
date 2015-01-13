@@ -26,7 +26,8 @@ public class LocalAdmin implements ResourcesProvider {
 			final UserInfos user, final Handler<Boolean> handler) {
 
 		String id = request.params().get("id");
-		if (id == null || id.trim().isEmpty() || !(parseId(id) instanceof Integer)) {
+		if (id == null || id.trim().isEmpty() ||
+				(!(parseId(id) instanceof Integer) && !isGetBugTrackerAttachment(binding))) {
 			handler.handle(false);
 			return;
 		}
@@ -50,12 +51,18 @@ public class LocalAdmin implements ResourcesProvider {
 		JsonArray values = new JsonArray();
 
 		if(isCommentIssue(binding)) {
-			// parameter id is an issueId
+			// parameter "id" is an issueId
 			query.append("INNER JOIN support.bug_tracker_issues AS i ON t.id = i.ticket_id ")
 				.append("WHERE i.id = ? ");
 		}
+		else if(isGetBugTrackerAttachment(binding)) {
+			// parameter "id" is a gridfsId
+			query.append("INNER JOIN support.bug_tracker_issues AS i ON t.id = i.ticket_id ")
+				.append("INNER JOIN support.bug_tracker_attachments AS a ON i.id = a.issue_id ")
+				.append("WHERE a.gridfs_id = ? ");
+		}
 		else {
-			// parameter id is a ticketId
+			// parameter "id" is a ticketId
 			query.append("WHERE t.id = ? ");
 		}
 		values.add(Sql.parseId(id));
@@ -81,6 +88,11 @@ public class LocalAdmin implements ResourcesProvider {
 	private boolean isCommentIssue(final Binding binding) {
 		return (HttpMethod.POST.equals(binding.getMethod())
 				&& "net.atos.entng.support.controllers.TicketController|commentIssue".equals(binding.getServiceMethod()));
+	}
+
+	private boolean isGetBugTrackerAttachment(final Binding binding) {
+		return (HttpMethod.GET.equals(binding.getMethod())
+				&& "net.atos.entng.support.controllers.TicketController|getBugTrackerAttachment".equals(binding.getServiceMethod()));
 	}
 
 }
