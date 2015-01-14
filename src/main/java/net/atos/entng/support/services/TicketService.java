@@ -23,6 +23,8 @@ public interface TicketService extends CrudService {
 
 	public void getTicketForEscalation(String ticketId, Handler<Either<String, JsonObject>> handler);
 
+	public void getTicketIdAndSchoolId(Number issueId, Handler<Either<String, JsonObject>> handler);
+
 	/**
 	 * @param attachmentMap : key = attachmentId in bug tracker, value = attachmentId in gridfs
 	 */

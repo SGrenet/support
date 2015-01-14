@@ -1,17 +1,25 @@
 package net.atos.entng.support.services.impl;
 
+import static net.atos.entng.support.Support.SUPPORT_NAME;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
+import net.atos.entng.support.services.UserService;
 
 import org.entcore.common.bus.WorkspaceHelper;
 import org.entcore.common.bus.WorkspaceHelper.Document;
+import org.entcore.common.notification.TimelineHelper;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
@@ -38,10 +46,18 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private final int redminePort;
 	private boolean proxyIsDefined;
 	private final int redmineProjectId;
+	private final Number redmineResolvedStatusId;
+	private final Number redmineClosedStatusId;
 
+	private final EventBus eb;
+	private final Container container;
 	private final WorkspaceHelper wksHelper;
+	private final TimelineHelper notification;
 	private final TicketService ticketService;
-	private EventBus eb;
+	private final UserService userService;
+
+	private static final String ISSUE_RESOLVED_EVENT_TYPE = SUPPORT_NAME + "_BUGTRACKER_ISSUE_RESOLVED";
+	private static final String ISSUE_CLOSED_EVENT_TYPE = SUPPORT_NAME + "_BUGTRACKER_ISSUE_CLOSED";
 
 	/*
 	 * According to http://www.redmine.org/projects/redmine/wiki/Rest_api#Authentication :
@@ -55,27 +71,41 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private static final String REDMINE_UPLOAD_ATTACHMENT_PATH = "/uploads.json";
 
 
-	public EscalationServiceRedmineImpl(final Vertx vertx, Container container, Logger logger, EventBus eb, TicketService ts) {
+	public EscalationServiceRedmineImpl(final Vertx vertx, final Container container, final Logger logger,
+			final EventBus eb, final TicketService ts, final UserService us) {
+
 		JsonObject config = container.config();
 		log = logger;
 		httpClient = vertx.createHttpClient();
-		wksHelper = new WorkspaceHelper(config.getString("gridfs-address", "wse.gridfs.persistor"), eb);
-		ticketService = ts;
 		this.eb = eb;
+		this.container = container;
+		wksHelper = new WorkspaceHelper(config.getString("gridfs-address", "wse.gridfs.persistor"), eb);
+		notification = new TimelineHelper(vertx, eb, container);
+		ticketService = ts;
+		userService = us;
 
 		String proxyHost = System.getProperty("http.proxyHost", null);
 		int proxyPort = 80;
 		try {
 			proxyPort = Integer.valueOf(System.getProperty("http.proxyPort", "80"));
 		} catch (NumberFormatException e) {
-			log.error("JVM property 'http.proxyPort' must be an integer", e);
+			log.error("[Support] Error : JVM property 'http.proxyPort' must be an integer", e);
 		}
 
 		redmineHost = config.getString("bug-tracker-host", null);
 		if (redmineHost == null || redmineHost.trim().isEmpty()) {
-			log.error("Module property 'bug-tracker-host' must be defined");
+			log.error("[Support] Error : Module property 'bug-tracker-host' must be defined");
 		}
 		redminePort = config.getInteger("bug-tracker-port", 80);
+
+		redmineResolvedStatusId = config.getNumber("bug-tracker-resolved-statusid", -1);
+		redmineClosedStatusId = config.getNumber("bug-tracker-closed-statusid", -1);
+		if(redmineResolvedStatusId.intValue() == -1) {
+			log.error("[Support] Error : Module property 'bug-tracker-resolved-statusid' must be defined");
+		}
+		if(redmineClosedStatusId.intValue() == -1) {
+			log.error("[Support] Error : Module property 'bug-tracker-closed-statusid' must be defined");
+		}
 
 		if (proxyHost != null && !proxyHost.trim().isEmpty()) {
 			proxyIsDefined = true;
@@ -90,12 +120,12 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 		redmineApiKey = config.getString("bug-tracker-api-key", null);
 		if (redmineApiKey == null || redmineApiKey.trim().isEmpty()) {
-			log.error("Module property 'bug-tracker-api-key' must be defined");
+			log.error("[Support] Error : Module property 'bug-tracker-api-key' must be defined");
 		}
 
 		redmineProjectId = config.getInteger("bug-tracker-projectid", -1);
 		if(redmineProjectId == -1) {
-			log.error("Module property 'bug-tracker-projectid' must be defined");
+			log.error("[Support] Error : Module property 'bug-tracker-projectid' must be defined");
 		}
 
 		httpClient.setMaxPoolSize(config.getInteger("escalation-httpclient-maxpoolsize",  16))
@@ -104,7 +134,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			.exceptionHandler(new Handler<Throwable>() {
 				@Override
 				public void handle(Throwable t) {
-					log.error("Error in redmine escalation httpClient", t);
+					log.error("[Support] Error : exception raised by redmine escalation httpClient", t);
 				}
 			});
 
@@ -134,12 +164,12 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 					@Override
 					public void handle(Long timerId) {
 						Date currentDate = new Date();
-						log.debug("Current date : " + currentDate.toString());
+						log.debug("[Support] Current date : " + currentDate.toString());
 						DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
 						EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(lastUpdateTime);
 						lastUpdateTime = df.format(currentDate);
-						log.debug("New value of lastUpdateTime : "+lastUpdateTime);
+						log.debug("[Support] New value of lastUpdateTime : "+lastUpdateTime);
 					}
 				});
 			}
@@ -478,17 +508,17 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 		this.listIssues(lastUpdateTime, offset, limit, new Handler<Either<String, JsonObject>>() {
 			@Override
-			public void handle(Either<String, JsonObject> event) {
-				if(event.isRight()) {
+			public void handle(final Either<String, JsonObject> listIssuesEvent) {
+				if(listIssuesEvent.isRight()) {
 					try {
-						JsonArray issues = event.right().getValue().getArray("issues", null);
+						JsonArray issues = listIssuesEvent.right().getValue().getArray("issues", null);
 						if (issues != null && issues.size() > 0) {
 							final AtomicInteger remaining = new AtomicInteger(issues.size());
 
 							if(allowRecursiveCall) {
-								int aTotalCount = event.right().getValue().getInteger("total_count", -1);
-								int aOffset = event.right().getValue().getInteger("offset", -1);
-								int aLimit = event.right().getValue().getInteger("limit", -1);
+								int aTotalCount = listIssuesEvent.right().getValue().getInteger("total_count", -1);
+								int aOffset = listIssuesEvent.right().getValue().getInteger("offset", -1);
+								int aLimit = listIssuesEvent.right().getValue().getInteger("limit", -1);
 								if(aTotalCount!=-1 && aOffset!=-1 && aLimit!=-1 && (aTotalCount > aLimit)) {
 									// Second call to get remaining issues
 									EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(lastUpdateTime, aLimit, aTotalCount - aLimit, false);
@@ -502,19 +532,21 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 								EscalationServiceRedmineImpl.this.getIssue(issueId, new Handler<Either<String, JsonObject>>() {
 									@Override
-									public void handle(Either<String, JsonObject> event) {
-										if(event.isRight()) {
-											JsonObject issue = event.right().getValue();
+									public void handle(final Either<String, JsonObject> getIssueEvent) {
+										if(getIssueEvent.isRight()) {
+											final JsonObject issue = getIssueEvent.right().getValue();
 
 											// update issue in postgresql
 											ticketService.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
 												@Override
-												public void handle(Either<String, JsonObject> event) {
-													if(event.isRight()) {
+												public void handle(final Either<String, JsonObject> updateIssueEvent) {
+													if(updateIssueEvent.isRight()) {
 														log.info("pullAndUpdate OK for issue n°"+issueId);
 														if(remaining.decrementAndGet() < 1) {
 															log.info("pullAndUpdate OK for all issues !");
 														}
+
+														EscalationServiceRedmineImpl.this.notifyIssueStatusChanged(issueId, updateIssueEvent.right().getValue(), issue);
 													}
 													else {
 														log.error("pullAndSynchronize FAILED. Error when updating issue n°"+issueId);
@@ -529,9 +561,9 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 												// get ids of attachments already stored in ENT
 												ticketService.getIssueAttachmentsIds(issueId, new Handler<Either<String, JsonArray>>() {
 													@Override
-													public void handle(Either<String, JsonArray> event) {
-														if(event.isRight()) {
-															JsonArray response = event.right().getValue();
+													public void handle(final Either<String, JsonArray> getIdsEvent) {
+														if(getIdsEvent.isRight()) {
+															JsonArray response = getIdsEvent.right().getValue();
 															JsonObject jo = response.get(0);
 															String ids = jo.getString("ids", null);
 															JsonArray existingAttachmentsIds = (ids!=null) ? new JsonArray(ids) : null;
@@ -558,7 +590,6 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 																	EscalationServiceRedmineImpl.this.doDownloadAttachment(attachmentUrl, attachment, issueId);
 																}
 															}
-
 														}
 														else {
 															log.error("Error when calling service getIssueAttachmentsIds. New attachments have not been downloaded for issue n°"+issueId);
@@ -567,11 +598,9 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 												});
 											}
 
-
-
 										}
 										else {
-											log.error(event.left().getValue());
+											log.error(getIssueEvent.left().getValue());
 										}
 									}
 								});
@@ -583,7 +612,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 					}
 				}
 				else {
-					log.error("Error when listing issues. " + event.left().getValue());
+					log.error("Error when listing issues. " + listIssuesEvent.left().getValue());
 				}
 			}
 
@@ -622,6 +651,91 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				});
 			}
 		});
+	}
+
+	/*
+	 * Notify local administrators (of the ticket's school_id) that the Redmine issue's status has been changed to "resolved" or "closed"
+	 */
+	private void notifyIssueStatusChanged(final Number issueId, final JsonObject updateIssueResponse, final JsonObject issue) {
+		try {
+			String oldStatus = updateIssueResponse.getString("status_id", "-1");
+			int oldStatusId = Integer.parseInt(oldStatus);
+			final Number newStatusId = issue.getObject("issue").getObject("status").getNumber("id");
+			log.info("Old status_id: " + oldStatusId);
+			log.info("New status_id:" + newStatusId);
+
+			if(newStatusId.intValue() != oldStatusId &&
+					(newStatusId.intValue() == redmineResolvedStatusId.intValue() ||
+					newStatusId.intValue() == redmineClosedStatusId.intValue())) {
+
+				// get school_id and ticket_id
+				ticketService.getTicketIdAndSchoolId(issueId, new Handler<Either<String,JsonObject>>() {
+					@Override
+					public void handle(Either<String, JsonObject> event) {
+						if(event.isLeft()) {
+							log.error("[Support] Error when calling service getTicketIdAndSchoolId : "
+									+ event.left().getValue() + ". Unable to send timeline notification.");
+						}
+						else {
+							JsonObject ticket = event.right().getValue();
+							if(ticket == null || ticket.size() == 0) {
+								log.error("[Support] Error : ticket is null or empty. Unable to send timeline notification.");
+								return;
+							}
+
+							final Number ticketId = ticket.getNumber("id", -1);
+							String schooldId = ticket.getString("school_id", null);
+							if(ticketId.longValue() == -1 || schooldId == null) {
+								log.error("[Support] Error : cannot get ticketId or schoolId. Unable to send timeline notification.");
+								return;
+							}
+
+							// get local administrators
+							userService.getLocalAdministrators(schooldId, new Handler<JsonArray>() {
+								@Override
+								public void handle(JsonArray event) {
+									if (event != null && event.size() > 0) {
+										Set<String> recipientSet = new HashSet<>();
+										for (Object o : event) {
+											if (!(o instanceof JsonObject)) continue;
+											JsonObject j = (JsonObject) o;
+											String id = j.getString("id");
+											recipientSet.add(id);
+										}
+
+										List<String> recipients = new ArrayList<>(recipientSet);
+										if(!recipients.isEmpty()) {
+											String eventType, template;
+
+											if(newStatusId.intValue() == redmineResolvedStatusId.intValue()) {
+												eventType = ISSUE_RESOLVED_EVENT_TYPE;
+												template = "notify-bugtracker-issue-resolved.html";
+											}
+											else {
+												eventType = ISSUE_CLOSED_EVENT_TYPE;
+												template = "notify-bugtracker-issue-closed.html";
+											}
+
+											JsonObject params = new JsonObject();
+											params.putNumber("issueId", issueId)
+												.putNumber("ticketId", ticketId);
+											params.putString("ticketUri", container.config().getString("host")
+													+ "/support#/ticket/" + ticketId);
+
+											EscalationServiceRedmineImpl.this.notification.notifyTimeline(null, null, SUPPORT_NAME, eventType,
+													recipients, null, template, params);
+										}
+									}
+								}
+							});
+						}
+					}
+				});
+
+			}
+		} catch (Exception e) {
+			log.error("[Support] Error : unable to send timeline notification.", e);
+		}
 	}
 
 

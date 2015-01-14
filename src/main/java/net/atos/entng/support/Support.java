@@ -6,8 +6,10 @@ import net.atos.entng.support.controllers.DisplayController;
 import net.atos.entng.support.controllers.TicketController;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
+import net.atos.entng.support.services.UserService;
 import net.atos.entng.support.services.impl.EscalationServiceRedmineImpl;
 import net.atos.entng.support.services.impl.TicketServiceSqlImpl;
+import net.atos.entng.support.services.impl.UserServiceDirectoryImpl;
 
 import org.entcore.common.http.BaseServer;
 import org.entcore.common.sql.SqlConf;
@@ -27,9 +29,10 @@ public class Support extends BaseServer {
 		addController(new DisplayController());
 
 		TicketService ticketService = new TicketServiceSqlImpl();
+		UserService userService = new UserServiceDirectoryImpl(eb);
 
-		EscalationService escalationService = new EscalationServiceRedmineImpl(vertx, container, log, eb, ticketService);
-		TicketController ticketController = new TicketController(eb, escalationService, ticketService,
+		EscalationService escalationService = new EscalationServiceRedmineImpl(vertx, container, log, eb, ticketService, userService);
+		TicketController ticketController = new TicketController(ticketService, escalationService, userService,
 				container.config().getString("gridfs-address", "wse.gridfs.persistor"));
 		addController(ticketController);
 

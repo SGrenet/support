@@ -17,7 +17,6 @@ import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
 import net.atos.entng.support.services.UserService;
-import net.atos.entng.support.services.impl.UserServiceDirectoryImpl;
 
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;
@@ -27,7 +26,6 @@ import org.entcore.common.user.UserUtils;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
-import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.RouteMatcher;
 import org.vertx.java.core.json.JsonArray;
@@ -57,9 +55,9 @@ public class TicketController extends ControllerHelper {
 	private final EscalationService escalationService;
 	private final String gridfsAddress;
 
-	public TicketController(EventBus eb, EscalationService es, TicketService ts, String gridfsAddress) {
+	public TicketController(TicketService ts, EscalationService es, UserService us, String gridfsAddress) {
 		ticketService = ts;
-		userService = new UserServiceDirectoryImpl(eb);
+		userService = us;
 		escalationService = es;
 		this.gridfsAddress = gridfsAddress;
 	}

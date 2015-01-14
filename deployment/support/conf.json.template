@@ -19,6 +19,8 @@
         "bug-tracker-port" : 80,
         "bug-tracker-api-key" : "f8ffdbfb0ee9bae2448713d70172b7df0142d270",
         "bug-tracker-projectid" : 39,
+        "bug-tracker-resolved-statusid" : 3,
+        "bug-tracker-closed-statusid" : 5,
         "escalation-httpclient-maxpoolsize" : 16,
         "escalation-httpclient-keepalive" : false,
         "escalation-httpclient-tryusecompression" : true,

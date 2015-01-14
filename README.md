@@ -31,6 +31,8 @@ Contenu du fichier deployment/support/conf.json.template :
         "bug-tracker-port" : 80,
         "bug-tracker-api-key" : "keyExample1234",
         "bug-tracker-projectid" : 39,
+        "bug-tracker-resolved-statusid" : 3,
+        "bug-tracker-closed-statusid" : 5,
         "escalation-httpclient-maxpoolsize" : 16,
         "escalation-httpclient-keepalive" : false,
         "escalation-httpclient-tryusecompression" : true,
@@ -44,6 +46,8 @@ Les paramètres spécifiques à l'application support sont les suivants :
         "bug-tracker-port" : port du serveur hébergeant Redmine
         "bug-tracker-api-key" : clé associée au compte Redmine utilisé pour l'escalade. Elle permet de faire des appels REST. Cf http://www.redmine.org/projects/redmine/wiki/Rest_api#Authentication
         "bug-tracker-projectid" : identifiant du projet Redmine
+        "bug-tracker-resolved-statusid" : entier correspondant au statut "Résolu" dans Redmine
+        "bug-tracker-closed-statusid" : entier correspondant au statut "Fermé" dans Redmine
         "refresh-period" : période de rafraîchissement en minutes. L'ENT récupère les données de Redmine et les sauvegarde toutes les "refresh-period" minutes
 
         "escalation-httpclient-maxpoolsize" : paramètre "maxpoolsize" du client HTTP vert.x utilisé par le module Support pour communiquer avec Redmine en REST

@@ -3,7 +3,6 @@ package net.atos.entng.support.services.impl;
 import static org.entcore.common.sql.Sql.parseId;
 import static org.entcore.common.sql.SqlResult.validUniqueResultHandler;
 import static org.entcore.common.sql.SqlResult.validResultHandler;
-import static org.entcore.common.sql.SqlResult.validRowsResultHandler;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
@@ -176,6 +175,16 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		sql.prepared(query.toString(), values, validResultHandler(handler));
 	}
 
+	@Override
+	public void getTicketIdAndSchoolId(final Number issueId, final Handler<Either<String, JsonObject>> handler) {
+		String query = "SELECT t.id, t.school_id FROM support.tickets AS t"
+				+ " INNER JOIN support.bug_tracker_issues AS i ON t.id = i.ticket_id"
+				+ " WHERE i.id = ?";
+		JsonArray values = new JsonArray().addNumber(issueId);
+
+		sql.prepared(query.toString(), values, validUniqueResultHandler(handler));
+	};
+
 	/**
 	 * If escalation status is "not_done" or "failed", and ticket status is new or opened,
 	 * update escalation status to "in_progress" and return the ticket with its attachments' ids and its comments.
@@ -324,15 +333,25 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 	@Override
 	public void updateIssue(Number issueId, String content, Handler<Either<String, JsonObject>> handler) {
-		String query = "UPDATE support.bug_tracker_issues"
-				+ " SET content = ?, modified = now() "
-				+ " WHERE id = ?";
+		StringBuilder query = new StringBuilder();
+		JsonArray values = new JsonArray();
 
-		JsonArray values = new JsonArray()
-			.addString(content)
+		// WITH clause to RETURN previous status_id
+		query.append("WITH old_issue AS (")
+			.append(" SELECT content#>'{issue,status,id}' AS status_id") // TODO : à revoir. Code spécifique redmine
+			.append(" FROM support.bug_tracker_issues")
+			.append(" WHERE id = ?)");
+		values.addNumber(issueId);
+
+		query.append(" UPDATE support.bug_tracker_issues")
+			.append(" SET content = ?, modified = now()")
+			.append(" WHERE id = ?")
+			.append(" RETURNING (SELECT status_id FROM old_issue)");
+
+		values.addString(content)
 			.addNumber(issueId);
 
-		sql.prepared(query, values, validRowsResultHandler(handler));
+		sql.prepared(query.toString(), values, validUniqueResultHandler(handler));
 	}
 
 	@Override
