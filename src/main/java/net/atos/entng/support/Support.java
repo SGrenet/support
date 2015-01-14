@@ -28,7 +28,7 @@ public class Support extends BaseServer {
 
 		addController(new DisplayController());
 
-		final BugTracker bugTrackerType = BugTracker.REDMINE;
+		final BugTracker bugTrackerType = BugTracker.REDMINE; // TODO : read bugTracker from module configuration
 		TicketService ticketService = new TicketServiceSqlImpl(bugTrackerType);
 		UserService userService = new UserServiceDirectoryImpl(eb);
 

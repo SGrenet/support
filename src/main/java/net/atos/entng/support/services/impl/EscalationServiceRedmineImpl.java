@@ -182,8 +182,6 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			}
 		});
 
-
-
 	}
 
 
@@ -668,8 +666,8 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			String oldStatus = updateIssueResponse.getString("status_id", "-1");
 			int oldStatusId = Integer.parseInt(oldStatus);
 			final Number newStatusId = issue.getObject("issue").getObject("status").getNumber("id");
-			log.info("Old status_id: " + oldStatusId);
-			log.info("New status_id:" + newStatusId);
+			log.debug("Old status_id: " + oldStatusId);
+			log.debug("New status_id:" + newStatusId);
 
 			if(newStatusId.intValue() != oldStatusId &&
 					(newStatusId.intValue() == redmineResolvedStatusId.intValue() ||

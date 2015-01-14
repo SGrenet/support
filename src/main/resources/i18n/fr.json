@@ -18,6 +18,7 @@
 	"support.ticket.cancel" : "Annuler",
 	"support.on" : "le",
 	
+	"support.filter.tickets.by.status" : "Filtrer par statut",
 	"support.ticket.table.author" : "Demandeur",
 	"support.ticket.table.category" : "Catégorie",
 	"support.ticket.table.id" : "Id",

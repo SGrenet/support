@@ -27,12 +27,19 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.me = model.me;
 		
 		$scope.tickets = model.tickets;
-		$scope.apps = orderByFilter(model.me.apps, 'name');
+		var apps = _.filter(model.me.apps, function(app) { 
+			return app.address && app.name && app.address.length > 0 && app.name.length > 0;
+		});
+		$scope.apps = orderByFilter(apps, 'name');
 		$scope.notFound = false;
 		
 		$scope.sort = {
 			expression : 'modified',
 			reverse : true
+		};
+		
+		$scope.filter = {
+			status : undefined
 		};
 		
 		$scope.schools = [];
@@ -52,6 +59,13 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.escalationStatuses = model.escalationStatuses;
 	};
 
+	$scope.filterByStatus = function(item) {
+		if(!$scope.filter.status) {
+			return true;
+		}
+		return ($scope.filter.status === item.status);
+	};
+	
 	// Sort
 	$scope.sortCategoryFunction = function(ticket) {
 		return $scope.getCategoryLabel(ticket.category);
