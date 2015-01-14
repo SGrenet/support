@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.atos.entng.support.BugTracker;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
 import net.atos.entng.support.services.UserService;
@@ -69,6 +70,12 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 	private static final String REDMINE_ISSUES_PATH = "/issues.json";
 	private static final String REDMINE_UPLOAD_ATTACHMENT_PATH = "/uploads.json";
+
+
+	@Override
+	public BugTracker getBugTrackerType() {
+		return BugTracker.REDMINE;
+	}
 
 
 	public EscalationServiceRedmineImpl(final Vertx vertx, final Container container, final Logger logger,
@@ -287,7 +294,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 								}
 
 								// Add all comments to the redmine issue
-								Number issueId = EscalationServiceRedmineImpl.this.extractIdFromIssue(response);
+								Number issueId = EscalationServiceRedmineImpl.this.getBugTrackerType().extractIdFromIssue(response);
 								EscalationServiceRedmineImpl.this.updateIssue(issueId, aggregateComments(request, comments),
 										getUpdateIssueHandler(response, handler));
 
@@ -817,11 +824,5 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		});
 
 	}
-
-	@Override
-	public Number extractIdFromIssue(JsonObject issue) {
-		return issue.getObject("issue").getNumber("id");
-	}
-
 
 }

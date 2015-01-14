@@ -7,6 +7,7 @@ import static org.entcore.common.sql.SqlResult.validResultHandler;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
+import net.atos.entng.support.BugTracker;
 import net.atos.entng.support.EscalationStatus;
 import net.atos.entng.support.TicketStatus;
 import net.atos.entng.support.services.TicketService;
@@ -24,8 +25,11 @@ import fr.wseduc.webutils.Either;
 
 public class TicketServiceSqlImpl extends SqlCrudService implements TicketService {
 
-	public TicketServiceSqlImpl() {
+	private final BugTracker bugTrackerType;
+
+	public TicketServiceSqlImpl(BugTracker bugTracker) {
 		super("support", "tickets");
+		bugTrackerType = bugTracker;
 	}
 
 	@Override
@@ -137,7 +141,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 	public void listTickets(UserInfos user, Handler<Either<String, JsonArray>> handler) {
 		StringBuilder query = new StringBuilder();
 		query.append("SELECT t.*, u.username AS owner_name,")
-			.append(" i.content->'issue'->>'updated_on' as last_issue_update") // TODO : à revoir. Code spécifique redmine
+			.append("i.content").append(bugTrackerType.getLastIssueUpdateFromPostgresqlJson()).append(" AS last_issue_update")
 			.append(" FROM support.tickets AS t")
 			.append(" INNER JOIN support.users AS u ON t.owner = u.id")
 			.append(" LEFT JOIN support.bug_tracker_issues AS i ON t.id=i.ticket_id");
@@ -268,7 +272,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 			// 3. Insert attachment (document from workspace) metadata
 			if(issue.size() > 0) {
-				JsonArray attachments = issue.getObject("issue").getArray("attachments", null); // TODO : à revoir. Code spécifique redmine
+				JsonArray attachments = bugTrackerType.extractAttachmentsFromIssue(issue);
 				if(attachments != null && attachments.size() > 0
 						&& attachmentMap != null && !attachmentMap.isEmpty()) {
 					/*
@@ -338,7 +342,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		// WITH clause to RETURN previous status_id
 		query.append("WITH old_issue AS (")
-			.append(" SELECT content#>'{issue,status,id}' AS status_id") // TODO : à revoir. Code spécifique redmine
+			.append(" SELECT content").append(bugTrackerType.getStatusIdFromPostgresqlJson()).append(" AS status_id")
 			.append(" FROM support.bug_tracker_issues")
 			.append(" WHERE id = ?)");
 		values.addNumber(issueId);
@@ -356,9 +360,10 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 	@Override
 	public void getLastIssuesUpdate(Handler<Either<String, JsonArray>> handler) {
-		// TODO : faire une passe pour enlever le code spécifique redmine dans les classes autres que EscalationServiceRedmineImpl.
-		// La clause select ci-dessous est par exemple specifique à redmine
-		String query = "select max(content->'issue'->>'updated_on') as last_update from support.bug_tracker_issues";
+		String query = "SELECT max(content"
+				+ bugTrackerType.getLastIssueUpdateFromPostgresqlJson()
+				+ ") AS last_update FROM support.bug_tracker_issues";
+
 		sql.raw(query, validResultHandler(handler));
 	}
 

@@ -7,7 +7,6 @@ import net.atos.entng.support.controllers.TicketController;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
 import net.atos.entng.support.services.UserService;
-import net.atos.entng.support.services.impl.EscalationServiceRedmineImpl;
 import net.atos.entng.support.services.impl.TicketServiceSqlImpl;
 import net.atos.entng.support.services.impl.UserServiceDirectoryImpl;
 
@@ -28,10 +27,12 @@ public class Support extends BaseServer {
 
 		addController(new DisplayController());
 
-		TicketService ticketService = new TicketServiceSqlImpl();
+		final BugTracker bugTrackerType = BugTracker.REDMINE;
+		TicketService ticketService = new TicketServiceSqlImpl(bugTrackerType);
 		UserService userService = new UserServiceDirectoryImpl(eb);
 
-		EscalationService escalationService = new EscalationServiceRedmineImpl(vertx, container, log, eb, ticketService, userService);
+		EscalationService escalationService =
+				EscalationServiceFactory.makeEscalationService(bugTrackerType, vertx, container, log, eb, ticketService, userService);
 		TicketController ticketController = new TicketController(ticketService, escalationService, userService,
 				container.config().getString("gridfs-address", "wse.gridfs.persistor"));
 		addController(ticketController);

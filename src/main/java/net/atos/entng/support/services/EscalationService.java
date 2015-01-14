@@ -2,6 +2,8 @@ package net.atos.entng.support.services;
 
 import java.util.concurrent.ConcurrentMap;
 
+import net.atos.entng.support.BugTracker;
+
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.json.JsonArray;
@@ -14,6 +16,8 @@ import fr.wseduc.webutils.Either;
  */
 public interface EscalationService {
 
+	public BugTracker getBugTrackerType();
+
 	/**
 	 * Parameters "ticket", "comments" and "attachments" are used to create a ticket in bug tracker
 	 *
@@ -23,8 +27,6 @@ public interface EscalationService {
 			ConcurrentMap<Integer, String> attachmentMap, Handler<Either<String, JsonObject>> handler);
 
 	public void getIssue(Number issueId, Handler<Either<String, JsonObject>> handler);
-
-	public Number extractIdFromIssue(JsonObject issue);
 
 	public void commentIssue(Number issueId, JsonObject comment, Handler<Either<String,JsonObject>> handler);
 
