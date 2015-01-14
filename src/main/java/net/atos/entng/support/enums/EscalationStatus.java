@@ -1,4 +1,4 @@
-package net.atos.entng.support;
+package net.atos.entng.support.enums;
 
 public enum EscalationStatus {
 	NOT_DONE(1), IN_PROGRESS(2), SUCCESSFUL(3), FAILED(4);

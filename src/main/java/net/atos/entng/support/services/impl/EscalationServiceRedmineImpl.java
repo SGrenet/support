@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import net.atos.entng.support.BugTracker;
+import net.atos.entng.support.enums.BugTracker;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
 import net.atos.entng.support.services.UserService;

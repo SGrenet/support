@@ -1,4 +1,4 @@
-package net.atos.entng.support;
+package net.atos.entng.support.enums;
 
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;

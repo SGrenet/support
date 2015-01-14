@@ -7,9 +7,9 @@ import static org.entcore.common.sql.SqlResult.validResultHandler;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
-import net.atos.entng.support.BugTracker;
-import net.atos.entng.support.EscalationStatus;
-import net.atos.entng.support.TicketStatus;
+import net.atos.entng.support.enums.BugTracker;
+import net.atos.entng.support.enums.EscalationStatus;
+import net.atos.entng.support.enums.TicketStatus;
 import net.atos.entng.support.services.TicketService;
 
 import org.entcore.common.service.impl.SqlCrudService;

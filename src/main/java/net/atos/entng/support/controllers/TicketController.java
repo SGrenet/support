@@ -1,7 +1,7 @@
 package net.atos.entng.support.controllers;
 
 import static net.atos.entng.support.Support.SUPPORT_NAME;
-import static net.atos.entng.support.TicketStatus.*;
+import static net.atos.entng.support.enums.TicketStatus.*;
 import static org.entcore.common.http.response.DefaultResponseHandler.arrayResponseHandler;
 
 import java.util.ArrayList;

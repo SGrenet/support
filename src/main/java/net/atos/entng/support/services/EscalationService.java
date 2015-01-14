@@ -2,7 +2,7 @@ package net.atos.entng.support.services;
 
 import java.util.concurrent.ConcurrentMap;
 
-import net.atos.entng.support.BugTracker;
+import net.atos.entng.support.enums.BugTracker;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.http.HttpServerRequest;
