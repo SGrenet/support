@@ -21,6 +21,7 @@ import net.atos.entng.support.services.UserService;
 import org.entcore.common.bus.WorkspaceHelper;
 import org.entcore.common.bus.WorkspaceHelper.Document;
 import org.entcore.common.notification.TimelineHelper;
+import org.entcore.common.storage.StorageFactory;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
@@ -86,7 +87,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		httpClient = vertx.createHttpClient();
 		this.eb = eb;
 		this.container = container;
-		wksHelper = new WorkspaceHelper(config.getString("gridfs-address", "wse.gridfs.persistor"), eb);
+		wksHelper = new WorkspaceHelper(eb, new StorageFactory(vertx, config).getStorage());
 		notification = new TimelineHelper(vertx, eb, container);
 		ticketService = ts;
 		userService = us;
