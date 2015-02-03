@@ -125,7 +125,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 				}
 				else {
 					query.append("?),");
-					values.add(ticketId);
+					values.add(parseId(ticketId));
 				}
 			}
 			// remove trailing comma
@@ -207,7 +207,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			.append(" SET escalation_status = ?, escalation_date = NOW()")
 			.append(" WHERE id = ?");
 		values.add(EscalationStatus.IN_PROGRESS.status())
-			.add(ticketId);
+			.add(parseId(ticketId));
 
 		query.append(" AND escalation_status NOT IN (?, ?)")
 			.append(" AND status NOT IN (?, ?)")
@@ -250,7 +250,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		JsonArray values = new JsonArray()
 			.add(targetStatus.status())
-			.add(ticketId);
+			.add(parseId(ticketId));
 
 		if(!EscalationStatus.SUCCESSFUL.equals(targetStatus)) {
 			sql.prepared(query, values, validUniqueResultHandler(handler));
@@ -264,7 +264,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 					+ " VALUES(?, ?, ?, ?)";
 
 			JsonArray insertValues = new JsonArray().add(issueId)
-					.add(ticketId)
+					.add(parseId(ticketId))
 					.add(issue.toString())
 					.add(user.getUserId());
 
@@ -392,10 +392,10 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			.append(" LEFT JOIN support.bug_tracker_attachments AS a ON i.id = a.issue_id")
 			.append(" WHERE i.ticket_id = ?")
 			.append(" GROUP BY i.id");
-		JsonArray values = new JsonArray().add(ticketId);
+		JsonArray values = new JsonArray().add(parseId(ticketId));
 
 		sql.prepared(query.toString(), values, validResultHandler(handler));
-	};
+	}
 
 	@Override
 	public void getIssueAttachmentName(String gridfsId, Handler<Either<String, JsonObject>> handler) {
