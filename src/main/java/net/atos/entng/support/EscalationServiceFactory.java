@@ -1,7 +1,6 @@
 package net.atos.entng.support;
+import org.entcore.common.storage.Storage;
 import org.vertx.java.core.Vertx;
-import org.vertx.java.core.eventbus.EventBus;
-import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
 
 import net.atos.entng.support.enums.BugTracker;
@@ -13,12 +12,13 @@ import net.atos.entng.support.services.impl.EscalationServiceRedmineImpl;
 
 public class EscalationServiceFactory {
 
-	public static EscalationService makeEscalationService(final BugTracker bugTracker, final Vertx vertx, final Container container,
-			final Logger logger, final EventBus eb, final TicketService ts, final UserService us) {
+	public static EscalationService makeEscalationService(final BugTracker bugTracker,
+			final Vertx vertx, final Container container, final TicketService ts, final UserService us,
+			Storage storage) {
 
 		switch (bugTracker) {
 			case REDMINE:
-				return new EscalationServiceRedmineImpl(vertx, container, logger, eb, ts, us);
+				return new EscalationServiceRedmineImpl(vertx, container, ts, us, storage);
 
 			default:
 				throw new IllegalArgumentException("Invalid parameter bugTracker");

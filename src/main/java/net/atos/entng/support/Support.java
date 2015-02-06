@@ -14,6 +14,8 @@ import net.atos.entng.support.services.impl.UserServiceDirectoryImpl;
 import org.entcore.common.http.BaseServer;
 import org.entcore.common.sql.SqlConf;
 import org.entcore.common.sql.SqlConfs;
+import org.entcore.common.storage.Storage;
+import org.entcore.common.storage.StorageFactory;
 import org.vertx.java.core.eventbus.EventBus;
 
 
@@ -29,13 +31,16 @@ public class Support extends BaseServer {
 		addController(new DisplayController());
 
 		final BugTracker bugTrackerType = BugTracker.REDMINE; // TODO : read bugTracker from module configuration
+		final Storage storage = new StorageFactory(vertx, config).getStorage();
+
 		TicketService ticketService = new TicketServiceSqlImpl(bugTrackerType);
 		UserService userService = new UserServiceDirectoryImpl(eb);
 
-		EscalationService escalationService =
-				EscalationServiceFactory.makeEscalationService(bugTrackerType, vertx, container, log, eb, ticketService, userService);
-		TicketController ticketController = new TicketController(ticketService, escalationService, userService,
-				container.config().getString("gridfs-address", "wse.gridfs.persistor"));
+		EscalationService escalationService = EscalationServiceFactory.makeEscalationService(
+						bugTrackerType, vertx, container, ticketService, userService, storage);
+		TicketController ticketController = new TicketController(
+				ticketService, escalationService, userService, storage
+				);
 		addController(ticketController);
 
 		SqlConf commentSqlConf = SqlConfs.createConf(CommentController.class.getName());

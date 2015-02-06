@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import fr.wseduc.webutils.Server;
 import net.atos.entng.support.enums.BugTracker;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
@@ -21,7 +22,7 @@ import net.atos.entng.support.services.UserService;
 import org.entcore.common.bus.WorkspaceHelper;
 import org.entcore.common.bus.WorkspaceHelper.Document;
 import org.entcore.common.notification.TimelineHelper;
-import org.entcore.common.storage.StorageFactory;
+import org.entcore.common.storage.Storage;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
@@ -36,7 +37,6 @@ import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
 
 import fr.wseduc.webutils.Either;
-import fr.wseduc.webutils.FileUtils;
 import fr.wseduc.webutils.I18n;
 
 public class EscalationServiceRedmineImpl implements EscalationService {
@@ -51,12 +51,12 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private final Number redmineResolvedStatusId;
 	private final Number redmineClosedStatusId;
 
-	private final EventBus eb;
 	private final Container container;
 	private final WorkspaceHelper wksHelper;
 	private final TimelineHelper notification;
 	private final TicketService ticketService;
 	private final UserService userService;
+	private final Storage storage;
 
 	private static final String ISSUE_RESOLVED_EVENT_TYPE = SUPPORT_NAME + "_BUGTRACKER_ISSUE_RESOLVED";
 	private static final String ISSUE_CLOSED_EVENT_TYPE = SUPPORT_NAME + "_BUGTRACKER_ISSUE_CLOSED";
@@ -79,18 +79,19 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 
-	public EscalationServiceRedmineImpl(final Vertx vertx, final Container container, final Logger logger,
-			final EventBus eb, final TicketService ts, final UserService us) {
+	public EscalationServiceRedmineImpl(final Vertx vertx, final Container container,
+			final TicketService ts, final UserService us, Storage storage) {
 
 		JsonObject config = container.config();
-		log = logger;
+		log = container.logger();
+		EventBus eb = Server.getEventBus(vertx);
 		httpClient = vertx.createHttpClient();
-		this.eb = eb;
 		this.container = container;
-		wksHelper = new WorkspaceHelper(eb, new StorageFactory(vertx, config).getStorage());
+		wksHelper = new WorkspaceHelper(eb, storage);
 		notification = new TimelineHelper(vertx, eb, container);
 		ticketService = ts;
 		userService = us;
+		this.storage = storage;
 
 		String proxyHost = System.getProperty("http.proxyHost", null);
 		int proxyPort = 80;
@@ -631,30 +632,30 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		EscalationServiceRedmineImpl.this.downloadAttachment(attachmentUrl, new Handler<Buffer>() {
 			@Override
 			public void handle(Buffer data) {
-				// store attachment in gridfs
-				FileUtils.gridfsWriteBuffer(data, attachment.getString("content_type", ""), attachment.getString("filename"), eb, new Handler<JsonObject>() {
-					@Override
-					public void handle(JsonObject attachmentMetaData) {
+				// store attachment
+				storage.writeBuffer(data, attachment.getString("content_type", ""),
+						attachment.getString("filename"), new Handler<JsonObject>() {
+							@Override
+							public void handle(JsonObject attachmentMetaData) {
 						/* Response example from gridfsWriteBuffer :
 						 * {"_id":"f62f5dac-b32b-4cb8-b70a-1016885f37ec","status":"ok","metadata":{"content-type":"image/png","filename":"test_pj.png","size":118639}}
 						 */
-						log.info("Metadata of attachment written in gridfs: "+attachmentMetaData.encodePrettily());
-						attachmentMetaData.putNumber("id_in_bugtracker", attachmentIdInRedmine);
+								log.info("Metadata of attachment written in gridfs: " + attachmentMetaData.encodePrettily());
+								attachmentMetaData.putNumber("id_in_bugtracker", attachmentIdInRedmine);
 
-						// store attachment's metadata in postgresql
-						ticketService.insertIssueAttachment(issueId, attachmentMetaData, new Handler<Either<String, JsonArray>>() {
-							@Override
-							public void handle(Either<String, JsonArray> event) {
-								if(event.isRight()) {
-									log.info("download attachment "+ attachmentIdInRedmine + " OK for issue n°"+issueId);
-								}
-								else {
-									log.error("download attachment "+ attachmentIdInRedmine + " FAILED for"+issueId+". Error when trying to insert metadata in postgresql");
-								}
+								// store attachment's metadata in postgresql
+								ticketService.insertIssueAttachment(issueId, attachmentMetaData, new Handler<Either<String, JsonArray>>() {
+									@Override
+									public void handle(Either<String, JsonArray> event) {
+										if (event.isRight()) {
+											log.info("download attachment " + attachmentIdInRedmine + " OK for issue n°" + issueId);
+										} else {
+											log.error("download attachment " + attachmentIdInRedmine + " FAILED for" + issueId + ". Error when trying to insert metadata in postgresql");
+										}
+									}
+								});
 							}
 						});
-					}
-				});
 			}
 		});
 	}

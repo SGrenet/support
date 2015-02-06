@@ -20,6 +20,7 @@ import net.atos.entng.support.services.UserService;
 
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;
+import org.entcore.common.storage.Storage;
 import org.entcore.common.user.DefaultFunctions;
 import org.entcore.common.user.UserInfos;
 import org.entcore.common.user.UserUtils;
@@ -39,7 +40,6 @@ import fr.wseduc.rs.Put;
 import fr.wseduc.security.ActionType;
 import fr.wseduc.security.SecuredAction;
 import fr.wseduc.webutils.Either;
-import fr.wseduc.webutils.FileUtils;
 import fr.wseduc.webutils.I18n;
 import fr.wseduc.webutils.request.RequestUtils;
 
@@ -53,13 +53,13 @@ public class TicketController extends ControllerHelper {
 	private final TicketService ticketService;
 	private final UserService userService;
 	private final EscalationService escalationService;
-	private final String gridfsAddress;
+	private final Storage storage;
 
-	public TicketController(TicketService ts, EscalationService es, UserService us, String gridfsAddress) {
+	public TicketController(TicketService ts, EscalationService es, UserService us, Storage storage) {
 		ticketService = ts;
 		userService = us;
 		escalationService = es;
-		this.gridfsAddress = gridfsAddress;
+		this.storage = storage;
 	}
 
 	@Override
@@ -439,7 +439,7 @@ public class TicketController extends ControllerHelper {
 					String name = event.right().getValue().getString("name", null);
 					final String filename = (name!=null && name.trim().length()>0) ? name : "filename";
 
-					FileUtils.gridfsReadFile(attachmentId, eb, gridfsAddress, new Handler<Buffer>() {
+					storage.readFile(attachmentId, new Handler<Buffer>() {
 						@Override
 						public void handle(Buffer data) {
 							request.response()
