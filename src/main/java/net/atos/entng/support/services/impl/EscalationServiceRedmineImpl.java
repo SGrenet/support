@@ -444,6 +444,147 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			.end();
 	}
 
+	private void pullDataAndUpdateIssues(final String since) {
+		this.pullDataAndUpdateIssues(since, -1, -1, true);
+	}
+
+	private void pullDataAndUpdateIssues(final String lastUpdateTime, final int offset, final int limit, final boolean allowRecursiveCall) {
+		/*
+		 * Steps :
+		 * 1) list Redmine issues that have been created/updated since last time
+		 *
+		 * 2) get issue ids that exist in current ENT and their attachments' ids
+		 *
+		 * 3) for each issue existing in current ENT,
+		 * a/ get the "whole" issue (i.e. with its attachments' metadata and with its comments) from Redmine
+		 * b/ update the issue in Postgresql, so that local administrators can see the last changes
+		 * c/ If there are "new" attachments in Redmine, download them, store them in gridfs and store their metadata in postgresql
+		 *
+		 */
+		log.debug("Value of since : "+lastUpdateTime);
+
+		// Step 1)
+		this.listIssues(lastUpdateTime, offset, limit, new Handler<Either<String, JsonObject>>() {
+			@Override
+			public void handle(final Either<String, JsonObject> listIssuesEvent) {
+
+				if(listIssuesEvent.isLeft()) {
+					log.error("Error when listing issues. " + listIssuesEvent.left().getValue());
+				}
+				else {
+					try {
+						final JsonArray issues = listIssuesEvent.right().getValue().getArray("issues", null);
+						if(issues == null || issues.size() == 0) {
+							log.debug("Result of listIssues is null or empty");
+							return;
+						}
+
+						if(allowRecursiveCall) {
+							int aTotalCount = listIssuesEvent.right().getValue().getInteger("total_count", -1);
+							int aOffset = listIssuesEvent.right().getValue().getInteger("offset", -1);
+							int aLimit = listIssuesEvent.right().getValue().getInteger("limit", -1);
+							if(aTotalCount!=-1 && aOffset!=-1 && aLimit!=-1 && (aTotalCount > aLimit)) {
+								// Second call to get remaining issues
+								EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(lastUpdateTime, aLimit, aTotalCount - aLimit, false);
+							}
+						}
+
+						final Number[] issueIds = new Number[issues.size()];
+						for (int i = 0; i < issues.size(); i++) {
+							JsonObject issue = issues.get(i);
+							issueIds[i] = issue.getNumber("id");
+						}
+
+						// Step 2) : given a list of issue ids in Redmine, get issue ids that exist in current ENT and their attachments' ids
+						ticketService.listExistingIssues(issueIds, new Handler<Either<String,JsonArray>>() {
+							@Override
+							public void handle(Either<String, JsonArray> event) {
+								if(event.isLeft()) {
+									log.error("Error when calling service listExistingIssueIds : " + event.left());
+								}
+								else {
+									JsonArray existingIssues = event.right().getValue();
+									if(existingIssues == null || existingIssues.size() == 0) {
+										log.info("No issue ids found in database");
+										return;
+									}
+									log.debug("Result of service listExistingIssues : "+existingIssues.toString());
+
+									final AtomicInteger remaining = new AtomicInteger(existingIssues.size());
+
+									for (Object o : existingIssues) {
+										if(!(o instanceof JsonObject)) continue;
+										JsonObject jo = (JsonObject) o;
+
+										final Number issueId = jo.getNumber("id");
+
+										String ids = jo.getString("attachment_ids", null);
+										final JsonArray existingAttachmentsIds = (ids!=null) ? new JsonArray(ids) : null;
+
+										// Step 3a)
+										EscalationServiceRedmineImpl.this.getIssue(issueId, new Handler<Either<String, JsonObject>>() {
+											@Override
+											public void handle(final Either<String, JsonObject> getIssueEvent) {
+												if(getIssueEvent.isLeft()) {
+													log.error(getIssueEvent.left().getValue());
+												}
+												else {
+													final JsonObject issue = getIssueEvent.right().getValue();
+
+													// Step 3b) : update issue in postgresql
+													ticketService.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
+														@Override
+														public void handle(final Either<String, JsonObject> updateIssueEvent) {
+															if(updateIssueEvent.isRight()) {
+																log.debug("pullDataAndUpdateIssue OK for issue n°"+issueId);
+																if(remaining.decrementAndGet() < 1) {
+																	log.info("pullDataAndUpdateIssue OK for all issues");
+																}
+
+																EscalationServiceRedmineImpl.this.notifyIssueStatusChanged(issueId, updateIssueEvent.right().getValue(), issue);
+															}
+															else {
+																log.error("pullDataAndUpdateIssue FAILED. Error when updating issue n°"+issueId);
+															}
+														}
+													});
+
+
+													// Step 3c) : If "new" attachments have been added in Redmine, download them
+													final JsonArray redmineAttachments = issue.getObject("issue").getArray("attachments", null);
+													if(redmineAttachments != null && redmineAttachments.size() > 0) {
+														boolean existingAttachmentIdsEmpty = existingAttachmentsIds == null || existingAttachmentsIds.size() == 0;
+
+														for (Object o : redmineAttachments) {
+															if(!(o instanceof JsonObject)) continue;
+															final JsonObject attachment = (JsonObject) o;
+															final Number redmineAttachmentId = attachment.getNumber("id");
+
+															if(existingAttachmentIdsEmpty || !existingAttachmentsIds.contains(redmineAttachmentId)) {
+																final String attachmentUrl = attachment.getString("content_url");
+																EscalationServiceRedmineImpl.this.doDownloadAttachment(attachmentUrl, attachment, issueId);
+															}
+														}
+													}
+
+												}
+											}
+										});
+									}
+								}
+							}
+						});
+
+					} catch (Exception e) {
+						log.error("Service pullDataAndUpdateIssues : error after listing issues", e);
+					}
+				}
+
+			}
+
+		});
+	}
+
 
 	private void listIssues(final String since, final int offset, final int limit, final Handler<Either<String, JsonObject>> handler) {
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
@@ -495,137 +636,6 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		.end();
 	}
 
-
-	private void pullDataAndUpdateIssues(final String since) {
-		this.pullDataAndUpdateIssues(since, -1, -1, true);
-	}
-
-	private void pullDataAndUpdateIssues(final String lastUpdateTime, final int offset, final int limit, final boolean allowRecursiveCall) {
-		/*
-		 * Steps :
-		 * 1) list Redmine issues that have been created/updated since last time
-		 *
-		 * 2) for each issue,
-		 * i/ get the "whole" issue (i.e. with its attachments' metadata and with its comments).
-		 * ii/ update the issue in Postgresql, so that local administrators can see the last changes
-		 * iii/ If there are "new" attachments, download them, store them in gridfs and store their metadata in postgresql
-		 *
-		 */
-		log.debug("Value of since : "+lastUpdateTime);
-
-		this.listIssues(lastUpdateTime, offset, limit, new Handler<Either<String, JsonObject>>() {
-			@Override
-			public void handle(final Either<String, JsonObject> listIssuesEvent) {
-				if(listIssuesEvent.isRight()) {
-					try {
-						JsonArray issues = listIssuesEvent.right().getValue().getArray("issues", null);
-						if (issues != null && issues.size() > 0) {
-							final AtomicInteger remaining = new AtomicInteger(issues.size());
-
-							if(allowRecursiveCall) {
-								int aTotalCount = listIssuesEvent.right().getValue().getInteger("total_count", -1);
-								int aOffset = listIssuesEvent.right().getValue().getInteger("offset", -1);
-								int aLimit = listIssuesEvent.right().getValue().getInteger("limit", -1);
-								if(aTotalCount!=-1 && aOffset!=-1 && aLimit!=-1 && (aTotalCount > aLimit)) {
-									// Second call to get remaining issues
-									EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(lastUpdateTime, aLimit, aTotalCount - aLimit, false);
-								}
-							}
-
-							for (Object o : issues) {
-								if(!(o instanceof JsonObject)) continue;
-								JsonObject jo = (JsonObject) o;
-								final Number issueId = jo.getNumber("id");
-
-								EscalationServiceRedmineImpl.this.getIssue(issueId, new Handler<Either<String, JsonObject>>() {
-									@Override
-									public void handle(final Either<String, JsonObject> getIssueEvent) {
-										if(getIssueEvent.isRight()) {
-											final JsonObject issue = getIssueEvent.right().getValue();
-
-											// update issue in postgresql
-											ticketService.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
-												@Override
-												public void handle(final Either<String, JsonObject> updateIssueEvent) {
-													if(updateIssueEvent.isRight()) {
-														log.info("pullAndUpdate OK for issue n°"+issueId);
-														if(remaining.decrementAndGet() < 1) {
-															log.info("pullAndUpdate OK for all issues !");
-														}
-
-														EscalationServiceRedmineImpl.this.notifyIssueStatusChanged(issueId, updateIssueEvent.right().getValue(), issue);
-													}
-													else {
-														log.error("pullAndSynchronize FAILED. Error when updating issue n°"+issueId);
-													}
-												}
-											});
-
-
-											// If "new" attachments have been added in Redmine, download them
-											final JsonArray redmineAttachments = issue.getObject("issue").getArray("attachments", null);
-											if(redmineAttachments != null && redmineAttachments.size() > 0) {
-												// get ids of attachments already stored in ENT
-												ticketService.getIssueAttachmentsIds(issueId, new Handler<Either<String, JsonArray>>() {
-													@Override
-													public void handle(final Either<String, JsonArray> getIdsEvent) {
-														if(getIdsEvent.isRight()) {
-															JsonArray response = getIdsEvent.right().getValue();
-															JsonObject jo = response.get(0);
-															String ids = jo.getString("ids", null);
-															JsonArray existingAttachmentsIds = (ids!=null) ? new JsonArray(ids) : null;
-
-															if(existingAttachmentsIds != null && existingAttachmentsIds.size() > 0) {
-																log.debug("Attachments already stored in ENT : "+existingAttachmentsIds.toString());
-																for (Object o : redmineAttachments) {
-																	if(!(o instanceof JsonObject)) continue;
-																	final JsonObject attachment = (JsonObject) o;
-																	final Number attachmentIdInRedmine = attachment.getNumber("id");
-
-																	if(!existingAttachmentsIds.contains(attachmentIdInRedmine)) {
-																		final String attachmentUrl = attachment.getString("content_url");
-																		EscalationServiceRedmineImpl.this.doDownloadAttachment(attachmentUrl, attachment, issueId);
-																	}
-																}
-															}
-															else {
-																for (Object o : redmineAttachments) {
-																	if(!(o instanceof JsonObject)) continue;
-																	final JsonObject attachment = (JsonObject) o;
-																	final String attachmentUrl = attachment.getString("content_url");
-
-																	EscalationServiceRedmineImpl.this.doDownloadAttachment(attachmentUrl, attachment, issueId);
-																}
-															}
-														}
-														else {
-															log.error("Error when calling service getIssueAttachmentsIds. New attachments have not been downloaded for issue n°"+issueId);
-														}
-													}
-												});
-											}
-
-										}
-										else {
-											log.error(getIssueEvent.left().getValue());
-										}
-									}
-								});
-							}
-						}
-
-					} catch (Exception e) {
-						log.error("Service pullAndSynchronizeTickets : error after listing issues", e);
-					}
-				}
-				else {
-					log.error("Error when listing issues. " + listIssuesEvent.left().getValue());
-				}
-			}
-
-		});
-	}
-
 	private void doDownloadAttachment(final String attachmentUrl, final JsonObject attachment, final Number issueId) {
 		final Number attachmentIdInRedmine = attachment.getNumber("id");
 
@@ -650,7 +660,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 										if (event.isRight()) {
 											log.info("download attachment " + attachmentIdInRedmine + " OK for issue n°" + issueId);
 										} else {
-											log.error("download attachment " + attachmentIdInRedmine + " FAILED for" + issueId + ". Error when trying to insert metadata in postgresql");
+											log.error("download attachment " + attachmentIdInRedmine + " FAILED for issue n°" + issueId + ". Error when trying to insert metadata in postgresql");
 										}
 									}
 								});

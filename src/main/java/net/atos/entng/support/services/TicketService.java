@@ -37,7 +37,10 @@ public interface TicketService extends CrudService {
 
 	public void getLastIssuesUpdate(Handler<Either<String, JsonArray>> handler);
 
-	public void getIssueAttachmentsIds(Number issueId, Handler<Either<String, JsonArray>> handler);
+	/**
+	 * Given a list of issue ids (parameter "issueIds"), return the issue ids that exist in database and their attachments' ids
+	 */
+	public void listExistingIssues(Number[] issueIds, Handler<Either<String, JsonArray>> handler);
 
 	public void getIssue(String ticketId, Handler<Either<String, JsonArray>> handler);
 

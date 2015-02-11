@@ -35,7 +35,7 @@
 	
 	"support.ticket.processing" : "Enregistrement en cours",
 	"support.ticket.has.been.created" : "Votre demande de support a été créée",
-	"support.ticket.escalation.successful" : "La demande a été trasmise",
+	"support.ticket.escalation.successful" : "La demande a été transmise",
 	"support.ticket.escalation.failed" : "Erreur serveur : la demande n'a pas pu être transmise",
 	
 	"support.escalate.ticket" : "Transmettre la demande au support",

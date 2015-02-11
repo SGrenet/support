@@ -25,6 +25,8 @@ import fr.wseduc.webutils.Either;
 
 public class TicketServiceSqlImpl extends SqlCrudService implements TicketService {
 
+	private final static String UPSERT_USER_QUERY = "SELECT support.merge_users(?,?)";
+
 	private final BugTracker bugTrackerType;
 
 	public TicketServiceSqlImpl(BugTracker bugTracker) {
@@ -38,9 +40,11 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		SqlStatementsBuilder s = new SqlStatementsBuilder();
 
-		String upsertUserQuery = "SELECT support.merge_users(?,?)";
+		// 1. Upsert user
+		String upsertUserQuery = UPSERT_USER_QUERY;
 		s.prepared(upsertUserQuery, new JsonArray().add(user.getUserId()).add(user.getUsername()));
 
+		// 2. Create ticket
 		ticket.putString("owner", user.getUserId());
 		String returnedFields = "id, school_id, status, created, modified, escalation_status, escalation_date";
 		s.insert(resourceTable, ticket, returnedFields);
@@ -57,7 +61,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		SqlStatementsBuilder s = new SqlStatementsBuilder();
 
 		// 1. Upsert user
-		String upsertUserQuery = "SELECT support.merge_users(?,?)";
+		String upsertUserQuery = UPSERT_USER_QUERY;
 		s.prepared(upsertUserQuery, new JsonArray().add(user.getUserId()).add(user.getUsername()));
 
 		// 2. Update ticket
@@ -259,7 +263,11 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			SqlStatementsBuilder statements = new SqlStatementsBuilder();
 			statements.prepared(query, values);
 
-			// 2. Insert bug tracker issue in ENT, so that local administrators can see it
+			// 2. Upsert user
+			String upsertUserQuery = UPSERT_USER_QUERY;
+			statements.prepared(upsertUserQuery, new JsonArray().add(user.getUserId()).add(user.getUsername()));
+
+			// 3. Insert bug tracker issue in ENT, so that local administrators can see it
 			String insertQuery = "INSERT INTO support.bug_tracker_issues(id, ticket_id, content, owner)"
 					+ " VALUES(?, ?, ?, ?)";
 
@@ -270,7 +278,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 			statements.prepared(insertQuery, insertValues);
 
-			// 3. Insert attachment (document from workspace) metadata
+			// 4. Insert attachment (document from workspace) metadata
 			if(issue.size() > 0) {
 				JsonArray attachments = bugTrackerType.extractAttachmentsFromIssue(issue);
 				if(attachments != null && attachments.size() > 0
@@ -367,14 +375,39 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		sql.raw(query, validResultHandler(handler));
 	}
 
+	/**
+	 * 	@inheritDoc
+	 */
 	@Override
-	public void getIssueAttachmentsIds(Number issueId, Handler<Either<String, JsonArray>> handler) {
-		// Return for instance [{"ids":"[886, 887, 888]"}]
-		String query = "SELECT json_agg(id) AS ids FROM support.bug_tracker_attachments"
-				+ " WHERE issue_id = ?";
-		JsonArray values = new JsonArray().addNumber(issueId);
+	public void listExistingIssues(Number[] issueIds, Handler<Either<String, JsonArray>> handler) {
+		/* Return for instance :
+			[ { "attachment_ids": "[]", "id": 2836 },
+			  { "attachment_ids": "[931, 932, 933, 934, 935, 937, 936]", "id": 2876 } ]
+		 */
+		StringBuilder query = new StringBuilder("SELECT i.id,")
+			.append(" CASE WHEN COUNT(a.id) = 0 THEN '[]'")
+			.append(" ELSE json_agg(a.id)")
+			.append(" END AS attachment_ids");
 
-		sql.prepared(query, values, validResultHandler(handler));
+		query.append(" FROM support.bug_tracker_issues AS i")
+			.append(" LEFT JOIN support.bug_tracker_attachments AS a")
+			.append(" ON a.issue_id = i.id");
+
+		JsonArray values = new JsonArray();
+
+		if(issueIds != null && issueIds.length>0) {
+			query.append(" WHERE i.id IN (");
+			for (Number id : issueIds) {
+				query.append("?,");
+				values.addNumber(id);
+			}
+			query.deleteCharAt(query.length() - 1);
+			query.append(")");
+		}
+
+		query.append(" GROUP BY i.id");
+
+		sql.prepared(query.toString(), values, validResultHandler(handler));
 	}
 
 	@Override
@@ -422,5 +455,6 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		sql.prepared(query.toString(), values, validResultHandler(handler));
 	}
+
 
 }
