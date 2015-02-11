@@ -23,6 +23,7 @@ import org.entcore.common.bus.WorkspaceHelper;
 import org.entcore.common.bus.WorkspaceHelper.Document;
 import org.entcore.common.notification.TimelineHelper;
 import org.entcore.common.storage.Storage;
+import org.entcore.common.user.UserInfos;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
@@ -194,7 +195,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	@Override
 	public void escalateTicket(final HttpServerRequest request, final JsonObject ticket,
 			final JsonArray comments, final JsonArray attachmentsIds,
-			final ConcurrentMap<Integer, String> attachmentMap,
+			final ConcurrentMap<Integer, String> attachmentMap, final UserInfos user,
 			final Handler<Either<String, JsonObject>> handler) {
 
 		/*
@@ -213,7 +214,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				if(!(o instanceof String)) continue;
 				final String attachmentId = (String) o;
 
-				// read attachment from workspace, and upload it to redmine
+				// 1) read attachment from workspace, and upload it to redmine
 				wksHelper.readDocument(attachmentId, new Handler<WorkspaceHelper.Document>() {
 					@Override
 					public void handle(final Document file) {
@@ -229,7 +230,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 										@Override
 										public void handle(final Buffer event) {
 											if(resp.statusCode() == 201) {
-												// Response from redmine is for instance {"upload":{"token":"781.687411f12da55bbd5a3d991675ac2135"}}
+												// Example of token returned by Redmine : {"upload":{"token":"781.687411f12da55bbd5a3d991675ac2135"}}
 												JsonObject response = new JsonObject(event.toString());
 												String token = response.getObject("upload").getString("token");
 												String attachmentIdInRedmine = token.substring(0, token.indexOf('.'));
@@ -241,10 +242,10 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 														.putString("content_type", contentType);
 												attachments.addObject(attachment);
 
-												// Create redmine issue only if all attachments have been uploaded successfully
+												// 2) Create redmine issue only if all attachments have been uploaded successfully
 												if (successfulUploads.incrementAndGet() == attachmentsIds.size()) {
-													EscalationServiceRedmineImpl.this.createIssue(request, ticket,
-															getCreateIssueHandler(request, comments, handler), attachments);
+													EscalationServiceRedmineImpl.this.createIssue(request, ticket, attachments,
+															user, getCreateIssueHandler(request, comments, handler));
 												}
 											}
 											else {
@@ -271,7 +272,8 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			}
 		}
 		else {
-			this.createIssue(request, ticket, getCreateIssueHandler(request, comments, handler), attachments);
+			this.createIssue(request, ticket, attachments, user,
+					getCreateIssueHandler(request, comments, handler));
 		}
 
 	}
@@ -293,7 +295,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 									return;
 								}
 
-								// Add all comments to the redmine issue
+								// 3) Add all comments to the redmine issue
 								Number issueId = EscalationServiceRedmineImpl.this.getBugTrackerType().extractIdFromIssue(response);
 								EscalationServiceRedmineImpl.this.updateIssue(issueId, aggregateComments(request, comments),
 										getUpdateIssueHandler(response, handler));
@@ -378,7 +380,8 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 
-	private void createIssue(final HttpServerRequest request, final JsonObject ticket, final Handler<HttpClientResponse> handler, JsonArray attachments) {
+	private void createIssue(final HttpServerRequest request, final JsonObject ticket, final JsonArray attachments,
+			final UserInfos user, final Handler<HttpClientResponse> handler) {
 
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
 
@@ -386,17 +389,29 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			.putNumber("project_id", redmineProjectId)
 			.putString("subject", ticket.getString("subject"));
 
-		// add ticket id, application name, school id to description
+		// add fields (such as ticket id, application name ...) to description
 		String applicationLabel = I18n.getInstance().translate("support.escalated.ticket.application", I18n.acceptLanguage(request));
 		String ticketOwnerLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.owner", I18n.acceptLanguage(request));
 		String ticketIdLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.id", I18n.acceptLanguage(request));
-		String schoolIdLabel = I18n.getInstance().translate("support.escalated.ticket.school.id", I18n.acceptLanguage(request));
+		String schoolNameLabel = I18n.getInstance().translate("support.escalated.ticket.school.name", I18n.acceptLanguage(request));
 
 		StringBuilder description = new StringBuilder();
 		this.appendDataToDescription(description, applicationLabel, ticket.getString("category").substring(1));
 		this.appendDataToDescription(description, ticketOwnerLabel, ticket.getString("owner_name"));
 		this.appendDataToDescription(description, ticketIdLabel, ticket.getNumber("id").toString());
-		this.appendDataToDescription(description, schoolIdLabel, ticket.getString("school_id"));
+
+		// get school name and add it to description
+		String schoolId = ticket.getString("school_id");
+		String schoolName;
+		int index = user.getStructures().indexOf(schoolId);
+		if(index < 0 || index >= user.getStructureNames().size()) {
+			log.warn("School name not found for school id : "+schoolId);
+			schoolName = schoolId;
+		}
+		else {
+			schoolName = user.getStructureNames().get(index);
+		}
+		this.appendDataToDescription(description, schoolNameLabel, schoolName);
 		description.append("\n").append(ticket.getString("description"));
 
 		data.putString("description", description.toString());

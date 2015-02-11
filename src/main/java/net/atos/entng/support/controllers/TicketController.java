@@ -339,7 +339,7 @@ public class TicketController extends ControllerHelper {
 					JsonArray attachments = new JsonArray(ticket.getString("attachments"));
 					final ConcurrentMap<Integer, String> attachmentMap = new ConcurrentHashMap<Integer, String>();
 
-					escalationService.escalateTicket(request, ticket, comments, attachments, attachmentMap,
+					escalationService.escalateTicket(request, ticket, comments, attachments, attachmentMap, user,
 							getEscalateTicketHandler(request, ticketId, user, attachmentMap));
 
 				}

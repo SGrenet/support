@@ -85,7 +85,7 @@
 	
 	"support.escalated.ticket.author" : "Auteur",
 	"support.escalated.ticket.application" : "Application",
-	"support.escalated.ticket.school.id" : "Identifiant de l'établissement",
+	"support.escalated.ticket.school.name" : "Nom de l'établissement",
 	"support.escalated.ticket.ticket.id" : "Identifiant de la demande dans l'ENT",
 	"support.escalated.ticket.ticket.owner" : "Demandeur"
 	
