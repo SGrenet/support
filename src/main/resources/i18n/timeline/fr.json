@@ -1,11 +1,10 @@
 {
-	"timeline.support.has.created" : "a créé la ",
-	"timeline.support.has.updated" : "a mis à jour la ",
-	"timeline.support.ticket" : "demande de support",
-	"timeline.support.on" : "le",
-	
-	"timeline.support.escalated.ticket" : "La demande escaladée",
-	"timeline.support.linked.to" : "associée à la",
-	"timeline.support.has.been.resolved" : "a été résolue",
-	"timeline.support.has.been.closed" : "a été fermée"
+    "timeline.support.escalated.ticket": "La demande escaladée",
+    "timeline.support.has.been.closed": "a été fermée",
+    "timeline.support.has.been.resolved": "a été résolue",
+    "timeline.support.has.created": "a créé la ",
+    "timeline.support.has.updated": "a mis à jour la ",
+    "timeline.support.linked.to": "associée à la",
+    "timeline.support.on": "le",
+    "timeline.support.ticket": "demande de support"
 }
