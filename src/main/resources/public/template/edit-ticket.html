@@ -1,52 +1,45 @@
 <article class="twelve cell details">
 	<form class="row">
 		<div class="row">
-			<div class="six cell">
-				<label class="three cell"><i18n>support.ticket.id</i18n></label>
-				<span class="nine cell">[[editedTicket.id]]</span>
-			</div>
-			<div class="six cell">
-				<label class="five cell"><i18n>support.ticket.status</i18n></label>
-				<select class="six cell" ng-model="editedTicket.status"
+			<label class="two cell"><i18n>support.ticket.id</i18n></label>
+			<span class="four cell">[[editedTicket.id]]</span>
+			<label class="three cell"><i18n>support.ticket.status</i18n></label>
+			<span class="three cell">
+				<select ng-model="editedTicket.status"
 					ng-options="object.value as object.i18nValue for (key, object) in statuses">
 				</select>
-				<span class="one cell"></span>
-			</div>
+			</span>
 		</div>
 		<div class="row">
-			<div class="six cell">
-				<label class="three cell"><i18n>support.ticket.author</i18n></label>
-				<span class="nine cell">[[editedTicket.owner_name]]</span>
-			</div>
-			<div class="six cell">
-				<label class="five cell"><i18n>support.ticket.creation.date</i18n></label>
-				<span class="seven cell">[[formatDate(editedTicket.created)]]</span>
-			</div>
+			<label class="two cell"><i18n>support.ticket.author</i18n></label>
+			<span class="four cell">[[editedTicket.owner_name]]</span>
+			<label class="three cell"><i18n>support.ticket.creation.date</i18n></label>
+			<span class="three cell">[[formatDate(editedTicket.created)]]</span>
 		</div>
 		<div class="row">
-			<div class="six cell">
-				<div ng-if="schools.length === 1">
-					<label class="three cell"><i18n>support.ticket.school</i18n></label>
-					<span class="nine cell">[[getSchoolName(editedTicket.school_id)]]</span>
-				</div>
-				<div ng-if="schools.length > 1">
-					<label class="three cell"><i18n>support.ticket.school</i18n></label>
-					<select class="eight cell" ng-model="ticket.school_id" 
+			<div ng-if="schools.length === 1">
+				<label class="two cell"><i18n>support.ticket.school</i18n></label>
+				<span class="four cell">[[getSchoolName(editedTicket.school_id)]]</span>
+			</div>
+			<div ng-if="schools.length > 1">
+				<label class="two cell"><i18n>support.ticket.school</i18n></label>
+				<span class="four cell">
+					<select ng-model="ticket.school_id" 
 						ng-options="school.id as school.name for school in schools">
 					</select>
-					<span class="one cell"></span>
-				</div>
+				</span>
 			</div>
-			<div class="six cell">
-				<label class="five cell"><i18n>support.ticket.modification.date</i18n></label>
-				<span class="seven cell">[[formatDate(editedTicket.modified)]]</span>
-			</div>
+			
+			<label class="three cell"><i18n>support.ticket.modification.date</i18n></label>
+			<span class="three cell">[[formatDate(editedTicket.modified)]]</span>
 		</div>
 		<div class="row">
 			<label class="two cell"><i18n>support.ticket.category</i18n></label>
-			<select class="ten cell" ng-model="editedTicket.category" 
-				ng-options="app.address as app.name for app in apps">
-			</select>
+			<span class="ten cell">
+				<select ng-model="editedTicket.category" 
+					ng-options="app.address as app.name for app in apps">
+				</select>
+			</span>
 		</div>
 		<div class="row">
 			<label class="two cell"><i18n>support.ticket.subject</i18n></label>

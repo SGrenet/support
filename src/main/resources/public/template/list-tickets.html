@@ -6,10 +6,12 @@
 	<div ng-if="!tickets.isEmpty()">
 		<div class="row">
 			<label class="two cell"><i18n>support.filter.tickets.by.status</i18n></label>
-			<select class="ten cell" ng-model="filter.status" 
-				ng-options="object.value as object.i18nValue for (key, object) in statuses">
-				<option value=""></option>
-			</select>
+			<span class="ten cell">
+				<select ng-model="filter.status" 
+					ng-options="object.value as object.i18nValue for (key, object) in statuses">
+					<option value=""></option>
+				</select>
+			</span>
 		</div>
 
 		<table class="list-view twelve" >

@@ -1,60 +1,44 @@
 <article class="twelve cell details">
 	<div class="row">
-		<div class="six cell">
-			<label class="three cell"><i18n>support.ticket.id</i18n></label>
-			<span class="nine cell">[[ticket.id]]</span>
-		</div>
-		<div class="six cell">
-			<label class="five cell"><i18n>support.ticket.status</i18n></label>
-			<span class="seven cell">[[getStatusLabel(ticket.status)]]</span>
-		</div>
+		<label class="two cell"><i18n>support.ticket.id</i18n></label>
+		<span class="four cell">[[ticket.id]]</span>
+		<label class="three cell"><i18n>support.ticket.status</i18n></label>
+		<span class="three cell">[[getStatusLabel(ticket.status)]]</span>
 	</div>
 	<div class="row">
-		<div class="six cell">
-			<label class="three cell"><i18n>support.ticket.author</i18n></label>
-			<span class="nine cell">[[ticket.owner_name]]</span>
-		</div>
-		<div class="six cell">
-			<label class="five cell"><i18n>support.ticket.creation.date</i18n></label>
-			<span class="seven cell">[[formatDate(ticket.created)]]</span>
-		</div>
+		<label class="two cell"><i18n>support.ticket.author</i18n></label>
+		<span class="four cell">[[ticket.owner_name]]</span>
+		<label class="three cell"><i18n>support.ticket.creation.date</i18n></label>
+		<span class="three cell">[[formatDate(ticket.created)]]</span>
 	</div>
 	<div class="row">
-		<div class="six cell">
-			<label class="three cell"><i18n>support.ticket.school</i18n></label>
-			<span class="nine cell">[[getSchoolName(ticket.school_id)]]</span>
-		</div>
-		<div class="six cell">
-			<label class="five cell"><i18n>support.ticket.modification.date</i18n></label>
-			<span class="seven cell">[[formatDate(ticket.modified)]]</span>
-		</div>
+		<label class="two cell"><i18n>support.ticket.school</i18n></label>
+		<span class="four cell">[[getSchoolName(ticket.school_id)]]</span>
+		<label class="three cell"><i18n>support.ticket.modification.date</i18n></label>
+		<span class="three cell">[[formatDate(ticket.modified)]]</span>
 	</div>
 
 	<div class="row">
-		<div class="six cell">
-			<label class="three cell"><i18n>support.ticket.category</i18n></label>
-			<span class="nine cell">[[getCategoryLabel(ticket.category)]]</span>
-		</div>
-		<div class="six cell">
-			<div ng-if="userIsLocalAdmin(ticket) === true">
-				<div loading-panel="escalation-request">
-					<a ng-if="ticket.escalation_status === escalationStatuses.NOT_DONE" ng-click="escalateTicket()">
-						<i18n>support.escalate.ticket</i18n>
-					</a>
-				</div>
-				<span ng-if="ticket.escalation_status === escalationStatuses.IN_PROGRESS">
-					<i18n>support.escalation.in.progress</i18n>
-				</span>
-				<a ng-if="ticket.escalation_status === escalationStatuses.SUCCESSFUL" ng-click="openBugTrackerIssue()">
-					<i18n>support.open.escalated.ticket</i18n>
+		<label class="two cell"><i18n>support.ticket.category</i18n></label>
+		<span class="four cell">[[getCategoryLabel(ticket.category)]]</span>
+		<div class="six cell" ng-if="userIsLocalAdmin(ticket) === true">
+			<div loading-panel="escalation-request">
+				<a ng-if="ticket.escalation_status === escalationStatuses.NOT_DONE" ng-click="escalateTicket()">
+					<i18n>support.escalate.ticket</i18n>
 				</a>
-				<span ng-if="ticket.escalation_status === escalationStatuses.FAILED">
-					<div loading-panel="escalation-request">
-						<i18n>support.escalation.failed</i18n>&nbsp;
-						<a ng-click="escalateTicket()"><i18n>support.retry.escalation</i18n></a>
-					</div>
-				</span>
 			</div>
+			<span ng-if="ticket.escalation_status === escalationStatuses.IN_PROGRESS">
+				<i18n>support.escalation.in.progress</i18n>
+			</span>
+			<a ng-if="ticket.escalation_status === escalationStatuses.SUCCESSFUL" ng-click="openBugTrackerIssue()">
+				<i18n>support.open.escalated.ticket</i18n>
+			</a>
+			<span ng-if="ticket.escalation_status === escalationStatuses.FAILED">
+				<div loading-panel="escalation-request">
+					<i18n>support.escalation.failed</i18n>&nbsp;
+					<a ng-click="escalateTicket()"><i18n>support.retry.escalation</i18n></a>
+				</div>
+			</span>
 		</div>
 	</div>
 	
@@ -64,7 +48,7 @@
 	</div>
 	<div class="row">
 		<label class="two cell"><i18n>support.ticket.description</i18n></label>
-		<p class="with-newlines ten cell">[[ticket.description]]</p>
+		<div class="with-newlines ten cell">[[ticket.description]]</div>
 		
 		<div class="ten cell right-magnet" ng-if="ticket.attachments !== undefined && !ticket.attachments.isEmpty()">
 			<ul>

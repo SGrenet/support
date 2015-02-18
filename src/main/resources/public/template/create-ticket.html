@@ -2,17 +2,21 @@
 	<form class="row">
 		<div class="row">
 			<label class="two cell"><i18n>support.ticket.category</i18n></label>
-			<select class="ten cell" ng-model="ticket.category" 
-				ng-init="ticket.category = ticket.category || apps[0].address"
-				ng-options="app.address as app.name for app in apps">
-			</select>
+			<span class="ten cell">
+				<select ng-model="ticket.category" 
+					ng-init="ticket.category = ticket.category || apps[0].address"
+					ng-options="app.address as app.name for app in apps">
+				</select>
+			</span>
 		</div>
 		<div class="row" ng-hide="schools.length === 1">
 			<label class="two cell"><i18n>support.ticket.school</i18n></label>
-			<select class="ten cell" ng-model="ticket.school_id" 
-				ng-init="ticket.school_id = schools[0].id"
-				ng-options="school.id as school.name for school in schools">
-			</select>
+			<span class="ten cell">
+				<select ng-model="ticket.school_id" 
+					ng-init="ticket.school_id = schools[0].id"
+					ng-options="school.id as school.name for school in schools">
+				</select>
+			</span>
 		</div>
 		<div class="row">
 			<label class="two cell"><i18n>support.ticket.subject</i18n></label>
