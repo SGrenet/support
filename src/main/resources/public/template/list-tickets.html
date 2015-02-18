@@ -25,9 +25,10 @@
 								'order-by': (sort.expression === 'status' && sort.reverse === true)}">
 						<i18n>support.ticket.table.status</i18n>
 					</th>
-					<th ng-class="userIsLocalAdmin() ? three : five" ng-click="switchSortBy('subject')" 
+					<th ng-click="switchSortBy('subject')" 
 					ng-class="{'order-by-reversed': (sort.expression === 'subject' && sort.reverse === false),
-								'order-by': (sort.expression === 'subject' && sort.reverse === true)}">
+								'order-by': (sort.expression === 'subject' && sort.reverse === true),
+								'three': userIsLocalAdmin(), 'five': !userIsLocalAdmin()}">
 						<i18n>support.ticket.table.subject</i18n>
 					</th>
 					<th class="one" ng-click="switchSortBy(sortCategoryFunction)" 
