@@ -24,6 +24,16 @@
         "escalation-httpclient-maxpoolsize" : 16,
         "escalation-httpclient-keepalive" : false,
         "escalation-httpclient-tryusecompression" : true,
-        "refresh-period" : 15
+        "refresh-period" : 15,
+      <% if (swiftUri != null && !swiftUri.trim().isEmpty()) { %>
+          "swift" : {
+              "uri" : "${swiftUri}",
+              "container" : "${swiftContainer}",
+              "user" : "${swiftUser}",
+              "key" : "${swiftKey}"
+          }
+      <% } else { %>
+            "gridfs-address" : "wse.gridfs.persistor"
+      <% } %>
       }
     }
