@@ -22,6 +22,7 @@ import org.vertx.java.core.eventbus.EventBus;
 public class Support extends BaseServer {
 
 	public final static String SUPPORT_NAME = "SUPPORT";
+	private static boolean escalationActivated;
 
 	@Override
 	public void start() {
@@ -36,11 +37,15 @@ public class Support extends BaseServer {
 		TicketService ticketService = new TicketServiceSqlImpl(bugTrackerType);
 		UserService userService = new UserServiceDirectoryImpl(eb);
 
-		EscalationService escalationService = EscalationServiceFactory.makeEscalationService(
-						bugTrackerType, vertx, container, ticketService, userService, storage);
-		TicketController ticketController = new TicketController(
-				ticketService, escalationService, userService, storage
-				);
+		// Escalation to a remote bug tracker (e.g. Redmine) is desactivated by default
+		escalationActivated = config.getBoolean("activate-escalation", false);
+		if(!escalationActivated) {
+			log.info("[Support] Escalation is desactivated");
+		}
+		EscalationService escalationService = escalationActivated ?
+				EscalationServiceFactory.makeEscalationService(bugTrackerType, vertx, container, ticketService, userService, storage) : null;
+
+		TicketController ticketController = new TicketController(ticketService, escalationService, userService, storage);
 		addController(ticketController);
 
 		SqlConf commentSqlConf = SqlConfs.createConf(CommentController.class.getName());
@@ -51,6 +56,10 @@ public class Support extends BaseServer {
 
 		AttachmentController attachmentController = new AttachmentController();
 		addController(attachmentController);
+	}
+
+	public static boolean escalationIsActivated() {
+		return escalationActivated;
 	}
 
 }

@@ -28,7 +28,7 @@
 								<i18n>support.ticket.edit</i18n>
 							</button>
 						</div>
-						<div ng-if="isViewingEscalatedTicket()">
+						<div ng-if="isViewingEscalatedTicket() && isEscalationActivated === true">
 							<button ng-click="editIssue()" ng-if="ticket && ticket.issue && !ticket.issue.showEditForm" class="cell right-magnet">
 								<i18n>support.issue.comment</i18n>
 							</button>

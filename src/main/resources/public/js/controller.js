@@ -57,6 +57,12 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.statuses = statusEnum.properties;
 		
 		$scope.escalationStatuses = model.escalationStatuses;
+		
+		model.isEscalationActivated(function(result){
+			if(result && typeof result.isEscalationActivated === 'boolean') {
+				$scope.isEscalationActivated = result.isEscalationActivated;
+			}
+		});
 	};
 
 	$scope.filterByStatus = function(item) {
@@ -93,6 +99,12 @@ function SupportController($scope, template, model, route, $location, orderByFil
     		window.location.hash = '';
 			template.open('main', 'list-tickets');
     	});		
+	};
+	
+	$scope.atLeastOneTicketEscalated = function() {
+		return _.some(model.tickets.all, function(ticket){ 
+			return ticket.last_issue_update !== null && ticket.last_issue_update !== undefined;
+		});
 	};
 	
 	$scope.displayTicket = function(ticketId) {

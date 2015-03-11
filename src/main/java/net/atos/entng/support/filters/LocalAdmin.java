@@ -4,6 +4,8 @@ import static org.entcore.common.sql.Sql.parseId;
 
 import java.util.Map;
 
+import net.atos.entng.support.Support;
+
 import org.entcore.common.http.filter.ResourcesProvider;
 import org.entcore.common.sql.Sql;
 import org.entcore.common.sql.SqlResult;
@@ -24,6 +26,13 @@ public class LocalAdmin implements ResourcesProvider {
 	@Override
 	public void authorize(final HttpServerRequest request, final Binding binding,
 			final UserInfos user, final Handler<Boolean> handler) {
+
+		if((isCommentIssue(binding) || isEscalateTicket(binding))
+				&& !Support.escalationIsActivated()) {
+			// User cannot comment issue nor escalate ticket if escalation is desactivated
+			handler.handle(false);
+			return;
+		}
 
 		String id = request.params().get("id");
 		if (id == null || id.trim().isEmpty() ||
@@ -93,6 +102,11 @@ public class LocalAdmin implements ResourcesProvider {
 	private boolean isGetBugTrackerAttachment(final Binding binding) {
 		return (HttpMethod.GET.equals(binding.getMethod())
 				&& "net.atos.entng.support.controllers.TicketController|getBugTrackerAttachment".equals(binding.getServiceMethod()));
+	}
+
+	private boolean isEscalateTicket(final Binding binding) {
+		return (HttpMethod.POST.equals(binding.getMethod())
+				&& "net.atos.entng.support.controllers.TicketController|escalateTicket".equals(binding.getServiceMethod()));
 	}
 
 }

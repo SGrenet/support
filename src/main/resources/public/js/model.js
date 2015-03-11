@@ -38,6 +38,14 @@ function Ticket(){
 	this.collection(Attachment);
 }
 
+model.isEscalationActivated = function(callback){
+	http().get('/support/escalation').done(function(result){
+		if(typeof callback === 'function'){
+			callback(result);
+		}
+	}.bind(this));
+};
+
 Ticket.prototype.createTicket = function(data, callback) {
 	http().postJson('/support/ticket', data).done(function(result){
 		this.updateData(result);

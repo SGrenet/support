@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import net.atos.entng.support.Support;
 import net.atos.entng.support.filters.LocalAdmin;
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.EscalationService;
@@ -295,6 +296,14 @@ public class TicketController extends ControllerHelper {
 			}
 		});
 
+	}
+
+	@Get("/escalation")
+	@ApiDoc("Return true if escalation is activated. False otherwise")
+	@SecuredAction(value = "support.escalation.activation.status", type = ActionType.AUTHENTICATED)
+	public void isEscalationActivated(final HttpServerRequest request) {
+		JsonObject result = new JsonObject().putBoolean("isEscalationActivated", Support.escalationIsActivated());
+		renderJson(request, result);
 	}
 
 	@Post("/ticket/:id/escalate")

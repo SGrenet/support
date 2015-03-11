@@ -4,11 +4,12 @@
 * financeur : Région Picardie, Conseil général  91, Région Poitou Charente
 * description : Application de gestion de tickets internes à l'ENT avec escalade vers Redmine
 
+## Déployer dans ent-core
 <pre>
-		gradle copyMod
+		gradle clean install
 </pre>
 
-## Déployer dans ent-core
+## Configuration
 Contenu du fichier deployment/support/conf.json.template :
     {
       "name": "net.atos~support~0.3-SNAPSHOT",
@@ -27,6 +28,7 @@ Contenu du fichier deployment/support/conf.json.template :
         "userbook-host": "${host}",
         "integration-mode" : "HTTP",
         "mode" : "${mode}",
+        "activate-escalation" : true,
         "bug-tracker-host" : "support.web-education.net",
         "bug-tracker-port" : 80,
         "bug-tracker-api-key" : "keyExample1234",
@@ -42,6 +44,8 @@ Contenu du fichier deployment/support/conf.json.template :
 
 Les paramètres spécifiques à l'application support sont les suivants :
 
+        "activate-escalation" : booléen permettant d'activer / de désactiver l'escalade vers Redmine
+
         "bug-tracker-host" : hostname du serveur hébergeant Redmine
         "bug-tracker-port" : port du serveur hébergeant Redmine
         "bug-tracker-api-key" : clé associée au compte Redmine utilisé pour l'escalade. Elle permet de faire des appels REST. Cf http://www.redmine.org/projects/redmine/wiki/Rest_api#Authentication
@@ -55,7 +59,3 @@ Les paramètres spécifiques à l'application support sont les suivants :
         "escalation-httpclient-tryusecompression" : paramètre "tryusecompression" du client HTTP Vert.x utilisé par le module Support pour communiquer avec Redmine en REST
 
         Se reporter à la javadoc du client HTTP vert.x pour le détail des paramètres : http://vertx.io/api/java/org/vertx/java/core/http/HttpClient.html
-
-
-## Configuration
-TODO

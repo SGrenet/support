@@ -52,7 +52,6 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private final Number redmineResolvedStatusId;
 	private final Number redmineClosedStatusId;
 
-	private final Container container;
 	private final WorkspaceHelper wksHelper;
 	private final TimelineHelper notification;
 	private final TicketService ticketService;
@@ -87,7 +86,6 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		log = container.logger();
 		EventBus eb = Server.getEventBus(vertx);
 		httpClient = vertx.createHttpClient();
-		this.container = container;
 		wksHelper = new WorkspaceHelper(eb, storage);
 		notification = new TimelineHelper(vertx, eb, container);
 		ticketService = ts;
