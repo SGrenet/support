@@ -27,10 +27,19 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.me = model.me;
 		
 		$scope.tickets = model.tickets;
+		
+		// Categories
 		var apps = _.filter(model.me.apps, function(app) { 
 			return app.address && app.name && app.address.length > 0 && app.name.length > 0;
 		});
+		// Add category "Other"
+		var categoryOther = { address: 'support.category.other' };
+		categoryOther.name = lang.translate(categoryOther.address);
+		apps.push(categoryOther);
+		
 		$scope.apps = orderByFilter(apps, 'name');
+		
+		
 		$scope.notFound = false;
 		
 		$scope.sort = {
@@ -451,7 +460,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 	
 	$scope.getCategoryLabel = function(appAddress) {
-		var app = _.find(model.me.apps, function(app){
+		var app = _.find($scope.apps, function(app){
 			return app.address === appAddress;
 		});
 		var label = (app !== undefined) ? app.name : undefined;

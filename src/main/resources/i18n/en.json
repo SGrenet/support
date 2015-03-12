@@ -7,7 +7,7 @@
     "support.error.escalation.conflict": "Erreur : transmission impossible. Rafraîchissez la page et relancez la transmission",
     "support.error.escalation.incomplete": "Erreur : la transmission a été réalisée partiellement. Les commentaires n'ont pas pu être transmis",
     "support.escalate.ticket": "Transmettre la demande au support",
-    "support.escalated.ticket.application": "Application",
+    "support.escalated.ticket.category": "Category",
     "support.escalated.ticket.author": "Auteur",
     "support.escalated.ticket.school.name": "Nom de l'établissement",
     "support.escalated.ticket.ticket.id": "Identifiant de la demande dans l'ENT",

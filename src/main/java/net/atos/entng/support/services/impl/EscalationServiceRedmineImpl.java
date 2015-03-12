@@ -388,13 +388,19 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			.putString("subject", ticket.getString("subject"));
 
 		// add fields (such as ticket id, application name ...) to description
-		String applicationLabel = I18n.getInstance().translate("support.escalated.ticket.application", I18n.acceptLanguage(request));
+		String categoryLabel = I18n.getInstance().translate("support.escalated.ticket.category", I18n.acceptLanguage(request));
 		String ticketOwnerLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.owner", I18n.acceptLanguage(request));
 		String ticketIdLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.id", I18n.acceptLanguage(request));
 		String schoolNameLabel = I18n.getInstance().translate("support.escalated.ticket.school.name", I18n.acceptLanguage(request));
 
+		// Category "Other" is saved as i18n, whereas remaining categories are addresses (e.g. "/support")
+		String category = I18n.getInstance().translate(ticket.getString("category"), I18n.acceptLanguage(request));
+		if (category.equals(ticket.getString("category"))) {
+			category = category.substring(1);
+		}
+
 		StringBuilder description = new StringBuilder();
-		this.appendDataToDescription(description, applicationLabel, ticket.getString("category").substring(1));
+		this.appendDataToDescription(description, categoryLabel, category);
 		this.appendDataToDescription(description, ticketOwnerLabel, ticket.getString("owner_name"));
 		this.appendDataToDescription(description, ticketIdLabel, ticket.getNumber("id").toString());
 
