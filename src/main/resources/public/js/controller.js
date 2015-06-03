@@ -32,9 +32,13 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		var apps = _.filter(model.me.apps, function(app) { 
 			return app.address && app.name && app.address.length > 0 && app.name.length > 0;
 		});
+		apps = _.map(apps, function(app){
+			app.displayName = lang.translate(app.displayName);
+			return app;
+		});
 		// Add category "Other"
 		var categoryOther = { address: 'support.category.other' };
-		categoryOther.name = lang.translate(categoryOther.address);
+		categoryOther.displayName = lang.translate(categoryOther.address);
 		apps.push(categoryOther);
 		
 		$scope.apps = orderByFilter(apps, 'name');
@@ -463,7 +467,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		var app = _.find($scope.apps, function(app){
 			return app.address === appAddress;
 		});
-		var label = (app !== undefined) ? app.name : undefined;
+		var label = (app !== undefined) ? app.displayName : undefined;
 		return label;
 	};
 	

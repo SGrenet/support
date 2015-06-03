@@ -5,7 +5,7 @@
 			<span class="ten cell">
 				<select ng-model="ticket.category" 
 					ng-init="ticket.category = ticket.category || apps[0].address"
-					ng-options="app.address as app.name for app in apps">
+					ng-options="app.address as app.displayName for app in apps">
 				</select>
 			</span>
 		</div>
