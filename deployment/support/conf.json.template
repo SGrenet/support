@@ -8,6 +8,7 @@
         "neo4j" : false,
         "app-name" : "Aide et support",
         "app-address" : "/support",
+        "app-displayName": "support",
         "app-icon" : "support-large",
         "host": "${host}",
         "ssl" : $ssl,
