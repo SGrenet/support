@@ -4,7 +4,7 @@
         "main" : "net.atos.entng.support.Support",
         "port" : 8027,
         "sql" : true,
-        "mongodb" : false,
+        "mongodb" : true,
         "neo4j" : false,
         "app-name" : "Aide et support",
         "app-address" : "/support",
