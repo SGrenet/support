@@ -2,7 +2,7 @@
 
 * licence : [AGPL v3](http://www.gnu.org/licenses/agpl.txt)
 * financeur : Région Picardie, Conseil général  91, Région Poitou Charente
-* description : Application de gestion de tickets internes à l'ENT avec escalade vers Redmine
+* description : Application de gestion de tickets support internes à l'ENT avec gestion de l'escalade vers un service tiers comme Redmine. L'application permet à un utilisateur d'ouvrir et de suivre un ticket de support sur l'ENT. Un gestionnaire peut prendre en charge le ticket de support, le traiter ou l'escalader au support de niveau 2/3 directement dans l'ENT. Le ticket est alors transféré vers un service tiers automatiquement.
 
 ## Déployer dans ent-core
 <pre>
