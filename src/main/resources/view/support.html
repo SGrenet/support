@@ -16,7 +16,9 @@
 				<div class="twelve cell">
 					<div class="six cell">
 						<h1>
-							<a ng-click="displayTicketList()"><i18n>support.title</i18n></a>
+							<a ng-click="displayTicketList()">
+								<i class="support"></i>
+								<i18n>support.title</i18n></a>
 						</h1>
 					</div>
 					<div class="contextual-buttons six cell">
@@ -40,7 +42,7 @@
 				</section>
 		</div>
 	</portal>
-	
+
 	<div ng-if="notFound">
 		<div ng-if="!me.userId" class="centered container">
 			<default-styles>
@@ -55,7 +57,7 @@
 				</article>
 			</default-styles>
 		</div>
-		
+
 		<div ng-if="me.userId" class="centered container">
 			<portal>
 				<h1><a data-reload><i class="oops"></i><i18n>oops</i18n></a></h1>
@@ -70,6 +72,6 @@
 			</portal>
 		</div>
 	</div>
-	
+
 </body>
 </html>

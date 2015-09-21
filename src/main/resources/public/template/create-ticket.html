@@ -3,7 +3,7 @@
 		<div class="row">
 			<label class="two cell"><i18n>support.ticket.category</i18n></label>
 			<span class="ten cell">
-				<select ng-model="ticket.category" 
+				<select ng-model="ticket.category"
 					ng-init="ticket.category = ticket.category || apps[0].address"
 					ng-options="app.address as app.displayName for app in apps">
 				</select>
@@ -12,7 +12,7 @@
 		<div class="row" ng-hide="schools.length === 1">
 			<label class="two cell"><i18n>support.ticket.school</i18n></label>
 			<span class="ten cell">
-				<select ng-model="ticket.school_id" 
+				<select ng-model="ticket.school_id"
 					ng-init="ticket.school_id = schools[0].id"
 					ng-options="school.id as school.name for school in schools">
 				</select>
