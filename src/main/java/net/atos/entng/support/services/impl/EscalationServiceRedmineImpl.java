@@ -60,6 +60,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 	private static final String ISSUE_RESOLVED_EVENT_TYPE = SUPPORT_NAME + "_BUGTRACKER_ISSUE_RESOLVED";
 	private static final String ISSUE_CLOSED_EVENT_TYPE = SUPPORT_NAME + "_BUGTRACKER_ISSUE_CLOSED";
+	private static final String ISSUE_UPDATED_EVENT_TYPE = SUPPORT_NAME + "_BUGTRACKER_ISSUE_UPDATED";
 
 	/*
 	 * According to http://www.redmine.org/projects/redmine/wiki/Rest_api#Authentication :
@@ -560,7 +561,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 																	log.info("pullDataAndUpdateIssue OK for all issues");
 																}
 
-																EscalationServiceRedmineImpl.this.notifyIssueStatusChanged(issueId, updateIssueEvent.right().getValue(), issue);
+																EscalationServiceRedmineImpl.this.notifyIssueChanged(issueId, updateIssueEvent.right().getValue(), issue);
 															}
 															else {
 																log.error("pullDataAndUpdateIssue FAILED. Error when updating issue n°"+issueId);
@@ -692,17 +693,17 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	/*
 	 * Notify local administrators (of the ticket's school_id) that the Redmine issue's status has been changed to "resolved" or "closed"
 	 */
-	private void notifyIssueStatusChanged(final Number issueId, final JsonObject updateIssueResponse, final JsonObject issue) {
+	private void notifyIssueChanged(final Number issueId, final JsonObject updateIssueResponse, final JsonObject issue) {
 		try {
-			String oldStatus = updateIssueResponse.getString("status_id", "-1");
-			int oldStatusId = Integer.parseInt(oldStatus);
+			final String oldStatus = updateIssueResponse.getString("status_id", "-1");
+			final int oldStatusId = Integer.parseInt(oldStatus);
 			final Number newStatusId = issue.getObject("issue").getObject("status").getNumber("id");
 			log.debug("Old status_id: " + oldStatusId);
 			log.debug("New status_id:" + newStatusId);
 
-			if(newStatusId.intValue() != oldStatusId &&
-					(newStatusId.intValue() == redmineResolvedStatusId.intValue() ||
-					newStatusId.intValue() == redmineClosedStatusId.intValue())) {
+//			if(newStatusId.intValue() != oldStatusId &&
+//					(newStatusId.intValue() == redmineResolvedStatusId.intValue() ||
+//					newStatusId.intValue() == redmineClosedStatusId.intValue())) {
 
 				// get school_id and ticket_id
 				ticketService.getTicketIdAndSchoolId(issueId, new Handler<Either<String,JsonObject>>() {
@@ -743,13 +744,17 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 										if(!recipients.isEmpty()) {
 											String eventType, template;
 
-											if(newStatusId.intValue() == redmineResolvedStatusId.intValue()) {
+											if(newStatusId.intValue() != oldStatusId &&
+													newStatusId.intValue() == redmineResolvedStatusId.intValue()) {
 												eventType = ISSUE_RESOLVED_EVENT_TYPE;
 												template = "notify-bugtracker-issue-resolved.html";
-											}
-											else {
+											} else if (newStatusId.intValue() != oldStatusId &&
+													newStatusId.intValue() == redmineClosedStatusId.intValue()) {
 												eventType = ISSUE_CLOSED_EVENT_TYPE;
 												template = "notify-bugtracker-issue-closed.html";
+											} else {
+												eventType = ISSUE_UPDATED_EVENT_TYPE;
+												template = "notify-bugtracker-issue-updated.html";
 											}
 
 											JsonObject params = new JsonObject();
@@ -767,7 +772,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 					}
 				});
 
-			}
+//			}
 		} catch (Exception e) {
 			log.error("[Support] Error : unable to send timeline notification.", e);
 		}
