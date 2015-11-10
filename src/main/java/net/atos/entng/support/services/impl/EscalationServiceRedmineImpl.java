@@ -3,12 +3,9 @@ package net.atos.entng.support.services.impl;
 import static net.atos.entng.support.Support.SUPPORT_NAME;
 
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -155,10 +152,20 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			@Override
 			public void handle(Either<String, JsonArray> event) {
 				final String lastUpdate;
+				final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 				if(event.isRight() && event.right().getValue() != null) {
 					JsonObject jo = (JsonObject) event.right().getValue().get(0);
 
 					String date = jo.getString("last_update", null);
+					if (date != null) {
+						try {
+							Date d = df.parse(date);
+							date = df.format(new Date(d.getTime() + 2000l));
+						} catch (ParseException e) {
+							log.error(e.getMessage(), e);
+						}
+					}
+
 					log.info("[Support] Last pull from Redmine : "+date);
 					lastUpdate = date;
 				}
@@ -174,10 +181,9 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 					public void handle(Long timerId) {
 						Date currentDate = new Date();
 						log.debug("[Support] Current date : " + currentDate.toString());
-						DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
 						EscalationServiceRedmineImpl.this.pullDataAndUpdateIssues(lastUpdateTime);
-						lastUpdateTime = df.format(currentDate);
+						lastUpdateTime = df.format(new Date(currentDate.getTime() + 2000l));
 						log.debug("[Support] New value of lastUpdateTime : "+lastUpdateTime);
 					}
 				});
@@ -611,11 +617,8 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 		StringBuilder query = new StringBuilder("?status_id=*"); // return open and closed issues
 		if(since != null) {
-			// TODO : remove following line when switching to redmine 2.5.0 (feature http://www.redmine.org/issues/8842 enables to fetch created/updated issues after a specific timestamp.)
-			String date = since.substring(0, 10); // keep only "yyyy-MM-dd"
-
 			// updated_on : fetch issues updated after a certain date
-			query.append("&updated_on=%3E%3D").append(date);
+			query.append("&updated_on=%3E%3D").append(since);
 			/* "%3E%3D" is ">=" with hex-encoding.
 			 * According to http://www.redmine.org/projects/redmine/wiki/Rest_Issues : operators containing ">", "<" or "=" should be hex-encoded
 			 */
