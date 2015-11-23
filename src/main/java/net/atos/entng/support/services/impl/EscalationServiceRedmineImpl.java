@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import fr.wseduc.webutils.Server;
@@ -19,6 +20,8 @@ import net.atos.entng.support.services.UserService;
 import org.entcore.common.bus.WorkspaceHelper;
 import org.entcore.common.bus.WorkspaceHelper.Document;
 import org.entcore.common.notification.TimelineHelper;
+import org.entcore.common.sql.Sql;
+import org.entcore.common.sql.SqlResult;
 import org.entcore.common.storage.Storage;
 import org.entcore.common.user.UserInfos;
 import org.vertx.java.core.Handler;
@@ -54,6 +57,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private final TicketService ticketService;
 	private final UserService userService;
 	private final Storage storage;
+	private final Sql sql = Sql.getInstance();
 
 	private static final String ISSUE_RESOLVED_EVENT_TYPE = SUPPORT_NAME + "_BUGTRACKER_ISSUE_RESOLVED";
 	private static final String ISSUE_CLOSED_EVENT_TYPE = SUPPORT_NAME + "_BUGTRACKER_ISSUE_CLOSED";
@@ -451,12 +455,24 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	}
 
 
-	private void updateIssue(final Number issueId, final JsonObject comment, final Handler<HttpClientResponse> handler) {
+	private void updateIssue(final Number issueId, final JsonObject comment,
+			final Handler<HttpClientResponse> handler) {
+		updateIssue(issueId, comment, null, handler);
+	}
+
+	private void updateIssue(final Number issueId, final JsonObject comment, JsonArray attachments,
+			final Handler<HttpClientResponse> handler) {
 		String path = "/issues/" + issueId + ".json";
 		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + path) : path;
 
-		JsonObject data = new JsonObject()
-			.putString("notes", comment.getString("content"));
+		JsonObject data = new JsonObject();
+		if (comment != null) {
+			data.putString("notes", comment.getString("content"));
+		}
+		if (attachments != null) {
+			data.putArray("uploads", attachments);
+		}
+
 		JsonObject ticket = new JsonObject().putObject("issue", data);
 
 		Buffer buffer = new Buffer().appendString(ticket.toString());
@@ -859,6 +875,208 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			}
 		});
 
+	}
+
+//	@Override
+//	public void uploadAttachmentIssue(final Number issueId, final JsonArray documents,
+//			final Handler<Either<String, JsonObject>> handler) {
+//		final SqlStatementsBuilder s = new SqlStatementsBuilder();
+//		s.raw("LOCK TABLE support.bug_tracker_attachments IN SHARE ROW EXCLUSIVE MODE");
+//		s.prepared("SELECT document_id from support.bug_tracker_attachments where issue_id = ?",
+//				new JsonArray().add(issueId));
+//		String query =
+//				"INSERT INTO support.bug_tracker_attachments (issue_id, document_id, name, size) " +
+//				"SELECT ?, ?, ?, ? WHERE NOT EXISTS " +
+//				"(SELECT * FROM support.bug_tracker_attachments WHERE issue_id AND document_id = ?);";
+//		for (Object o: documents) {
+//			if (!(o instanceof JsonObject)) continue;
+//			JsonObject j = (JsonObject) o;
+//			s.prepared(query, new JsonArray().add(issueId).add(j.getString("id"))
+//					.add(j.getString("name")).add(j.getInteger("size")).add(issueId).add(j.getString("id")));
+//		}
+//		Sql.getInstance().transaction(s.build(), SqlResult.validResultHandler(1, new Handler<Either<String, JsonArray>>() {
+//			@Override
+//			public void handle(Either<String, JsonArray> res) {
+//				if (res.isRight()) {
+//					JsonArray r = res.right().getValue();
+//					Set<String> exists = new HashSet<>();
+//					if (r != null && r.size() > 0) {
+//						for (Object o : r) {
+//							if (!(o instanceof JsonObject)) continue;
+//							exists.add(((JsonObject) o).getString("document_id"));
+//						}
+//					}
+//					uploadDocuments((Integer) issueId, exists, documents, handler);
+//				} else {
+//					handler.handle(new Either.Left<String, JsonObject>(res.left().getValue()));
+//				}
+//			}
+//		}));
+//	}
+
+	private void uploadDocuments(final Integer issueId, Set<String> exists, JsonArray documents,
+			final Handler<Either<String, JsonObject>> handler) {
+		Set<String> d = new HashSet<>();
+		for (Object o: documents) {
+			if (!(o instanceof JsonObject)) continue;
+			JsonObject j = (JsonObject) o;
+			String documentId = j.getString("id");
+			if (documentId != null && !exists.contains(documentId)) {
+				d.add(documentId);
+			}
+		}
+		final AtomicInteger count = new AtomicInteger(d.size());
+		final AtomicBoolean uploadError = new AtomicBoolean(false);
+		final JsonArray uploads = new JsonArray();
+		final JsonArray bugTrackerAttachments = new JsonArray();
+		for (final String documentId: d) {
+			wksHelper.readDocument(documentId, new Handler<Document>() {
+				@Override
+				public void handle(final Document file) {
+					final String filename = file.getDocument().getString("name");
+					final String contentType = file.getDocument().getObject("metadata").getString("content-type");
+					final Long size = file.getDocument().getObject("metadata").getLong("size");
+					EscalationServiceRedmineImpl.this.uploadAttachment(file.getData(), new Handler<HttpClientResponse>() {
+						@Override
+						public void handle(final HttpClientResponse resp) {
+
+							resp.bodyHandler(new Handler<Buffer>() {
+								@Override
+								public void handle(final Buffer event) {
+									if (resp.statusCode() != 201) {
+										uploadError.set(true);
+									} else {
+										JsonObject response = new JsonObject(event.toString());
+										String token = response.getObject("upload").getString("token");
+										String attachmentIdInRedmine = token.substring(0, token.indexOf('.'));
+
+										JsonObject attachment = new JsonObject().putString("token", token)
+												.putString("filename", filename)
+												.putString("content_type", contentType);
+										uploads.addObject(attachment);
+										bugTrackerAttachments.add(Sql.parseId(attachmentIdInRedmine))
+												.add(issueId).add(documentId).add(filename).add(size);
+//												insertBugTrackerAttachment(attachmentIdInRedmine, issueId, documentId, filename, size);
+									}
+									if (count.decrementAndGet() <= 0) {
+										if (uploads.size() > 0) {
+											updateIssue(issueId, null, uploads, new Handler<HttpClientResponse>() {
+												@Override
+												public void handle(HttpClientResponse resp) {
+													if (resp.statusCode() == 200) {
+														insertBugTrackerAttachment(bugTrackerAttachments,
+																new Handler<Either<String, JsonObject>>() {
+																	@Override
+																	public void handle(Either<String, JsonObject> r) {
+																		handler.handle(new Either.Right<String, JsonObject>(
+																				new JsonObject()
+																						.putNumber("issue_id", issueId)));
+																	}
+																});
+													} else {
+														handler.handle(new Either.Left<String, JsonObject>(
+																"upload.attachments.error : " + resp.statusMessage()));
+													}
+												}
+											});
+										} else {
+											if (uploadError.get()) {
+												handler.handle(new Either.Left<String, JsonObject>(
+														"upload.attachments.error"));
+											} else {
+												handler.handle(new Either.Right<String, JsonObject>(new JsonObject()));
+											}
+										}
+									}
+								}
+							});
+						}
+					});
+				}
+			});
+		}
+	}
+
+	private void insertBugTrackerAttachment(String id, Integer issueId, String documentId, String filename,
+			Long size, Handler<Either<String, JsonObject>> handler) {
+		insertBugTrackerAttachment(new JsonArray().add(Sql.parseId(id)).add(issueId)
+				.add(documentId).add(filename).add(size), handler);
+	}
+
+	private void insertBugTrackerAttachment(JsonArray values, Handler<Either<String, JsonObject>> handler) {
+		if (values == null || values.size() == 0 || values.size() % 5 != 0) {
+			handler.handle(new Either.Left<String, JsonObject>("invalid.values"));
+			return;
+		}
+		StringBuilder query = new StringBuilder(
+				"INSERT INTO support.bug_tracker_attachments(id, issue_id, document_id, name, size) VALUES ");
+		for (int i = 0; i < values.size(); i+=5) {
+			query.append("(?,?,?,?,?),");
+		}
+		sql.prepared(query.deleteCharAt(query.length() - 1).toString(), values,
+				SqlResult.validRowsResultHandler(handler));
+	}
+
+	@Override
+	public void syncAttachments(final String ticketId, final JsonArray attachments,
+			final Handler<Either<String, JsonObject>> handler) {
+		getIssueId(ticketId, new Handler<Integer>() {
+			@Override
+			public void handle(final Integer issueId) {
+				if (issueId != null) {
+					String query =
+							"SELECT a.document_id as attachmentId " +
+							"FROM support.bug_tracker_attachments AS a " +
+							"WHERE a.issue_id = ? ";
+					sql.prepared(query, new JsonArray().add(issueId), SqlResult.validResultHandler(
+							new Handler<Either<String, JsonArray>>() {
+								@Override
+								public void handle(Either<String, JsonArray> r) {
+									if (r.isRight()) {
+										Set<String> exists = new HashSet<>();
+										for (Object o : r.right().getValue()) {
+											if (!(o instanceof JsonObject)) continue;
+											exists.add(((JsonObject) o).getString("attachmentId"));
+										}
+										uploadDocuments(issueId, exists, attachments, handler);
+									} else {
+										handler.handle(new Either.Left<String, JsonObject>(r.left().getValue()));
+									}
+								}
+							}));
+				} else {
+					handler.handle(new Either.Right<String, JsonObject>(new JsonObject()));
+				}
+			}
+		});
+	}
+
+	@Override
+	public void isEscaladed(String ticketId, final Handler<Boolean> handler) {
+		String query = "SELECT count(*) as nb FROM support.bug_tracker_issues WHERE ticket_id = ? ";
+		sql.prepared(query, new JsonArray().add(Sql.parseId(ticketId)),
+				SqlResult.validUniqueResultHandler(new Handler<Either<String, JsonObject>>() {
+			@Override
+			public void handle(Either<String, JsonObject> r) {
+				handler.handle(r.isRight() && r.right().getValue().getInteger("nb", 0) == 1);
+			}
+		}));
+	}
+
+	@Override
+	public void getIssueId(String ticketId, final Handler<Integer> handler) {
+		String query = "SELECT id FROM support.bug_tracker_issues WHERE ticket_id = ? ";
+		sql.prepared(query, new JsonArray().add(Sql.parseId(ticketId)),
+				SqlResult.validUniqueResultHandler(new Handler<Either<String, JsonObject>>() {
+			@Override
+			public void handle(Either<String, JsonObject> r) {
+				if (r.isRight()) {
+					handler.handle(r.right().getValue().getInteger("id"));
+				} else {
+					handler.handle(null);
+				}
+			}
+		}));
 	}
 
 }

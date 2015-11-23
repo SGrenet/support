@@ -11,6 +11,7 @@ import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
 import fr.wseduc.webutils.Either;
+import org.vertx.java.core.json.impl.Json;
 
 /**
  * Terminology used : "ticket" for tickets in ENT, "issue" for tickets in bug tracker
@@ -30,5 +31,13 @@ public interface EscalationService {
 	public void getIssue(Number issueId, Handler<Either<String, JsonObject>> handler);
 
 	public void commentIssue(Number issueId, JsonObject comment, Handler<Either<String,JsonObject>> handler);
+
+//	void uploadAttachmentIssue(Number issueId, JsonArray documents, Handler<Either<String,JsonObject>> handler);
+
+	void syncAttachments(String ticketId, JsonArray attachments, Handler<Either<String, JsonObject>> handler);
+
+	void isEscaladed(String ticketId, Handler<Boolean> handler);
+
+	void getIssueId(String ticketId, final Handler<Integer> handler);
 
 }

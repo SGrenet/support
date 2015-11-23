@@ -352,6 +352,9 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			$scope.ticket.updateTicket($scope.ticket, function() {
 				if($scope.ticket.newAttachments && $scope.ticket.newAttachments.length > 0) {
 					$scope.ticket.getAttachments();
+					if ($scope.isEscalationActivated === true) {
+						$scope.ticket.getBugTrackerIssue();
+					}
 				}
 				$scope.ticket.newAttachments = [];
 				
