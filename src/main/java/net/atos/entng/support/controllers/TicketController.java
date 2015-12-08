@@ -127,6 +127,8 @@ public class TicketController extends ControllerHelper {
 										}
 									}
 								});
+							} else {
+								renderJson(request, response, 200);
 							}
 						}
 					} else {
