@@ -157,6 +157,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			public void handle(Either<String, JsonArray> event) {
 				final String lastUpdate;
 				final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+				df.setTimeZone(TimeZone.getTimeZone("GMT"));
 				if(event.isRight() && event.right().getValue() != null) {
 					JsonObject jo = (JsonObject) event.right().getValue().get(0);
 
