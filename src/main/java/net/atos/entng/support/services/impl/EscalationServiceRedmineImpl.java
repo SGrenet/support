@@ -19,6 +19,8 @@ import net.atos.entng.support.services.UserService;
 
 import org.entcore.common.bus.WorkspaceHelper;
 import org.entcore.common.bus.WorkspaceHelper.Document;
+import org.entcore.common.neo4j.Neo4j;
+import org.entcore.common.neo4j.StatementsBuilder;
 import org.entcore.common.notification.TimelineHelper;
 import org.entcore.common.sql.Sql;
 import org.entcore.common.sql.SqlResult;
@@ -28,6 +30,7 @@ import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.eventbus.EventBus;
+import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.HttpClient;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpHeaders;
@@ -393,61 +396,88 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 	private void createIssue(final HttpServerRequest request, final JsonObject ticket, final JsonArray attachments,
 			final UserInfos user, final Handler<HttpClientResponse> handler) {
 
-		String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
+		final String url = proxyIsDefined ? ("http://" + redmineHost + ":" + redminePort + REDMINE_ISSUES_PATH) : REDMINE_ISSUES_PATH;
 
-		JsonObject data = new JsonObject()
+		final JsonObject data = new JsonObject()
 			.putNumber("project_id", redmineProjectId)
 			.putString("subject", ticket.getString("subject"));
 
 		// add fields (such as ticket id, application name ...) to description
-		String categoryLabel = I18n.getInstance().translate("support.escalated.ticket.category", I18n.acceptLanguage(request));
-		String ticketOwnerLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.owner", I18n.acceptLanguage(request));
-		String ticketIdLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.id", I18n.acceptLanguage(request));
-		String schoolNameLabel = I18n.getInstance().translate("support.escalated.ticket.school.name", I18n.acceptLanguage(request));
-
-		// Category "Other" is saved as i18n, whereas remaining categories are addresses (e.g. "/support")
-		String category = I18n.getInstance().translate(ticket.getString("category"), I18n.acceptLanguage(request));
-		if (category.equals(ticket.getString("category"))) {
-			category = category.substring(1);
-		}
-
-		StringBuilder description = new StringBuilder();
-		this.appendDataToDescription(description, categoryLabel, category);
-		this.appendDataToDescription(description, ticketOwnerLabel, ticket.getString("owner_name"));
-		this.appendDataToDescription(description, ticketIdLabel, ticket.getNumber("id").toString());
+		final String categoryLabel = I18n.getInstance().translate("support.escalated.ticket.category", I18n.acceptLanguage(request));
+		final String ticketOwnerLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.owner", I18n.acceptLanguage(request));
+		final String ticketIdLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.id", I18n.acceptLanguage(request));
+		final String schoolNameLabel = I18n.getInstance().translate("support.escalated.ticket.school.name", I18n.acceptLanguage(request));
 
 		// get school name and add it to description
-		String schoolId = ticket.getString("school_id");
-		String schoolName;
-		int index = user.getStructures().indexOf(schoolId);
-		if(index < 0 || index >= user.getStructureNames().size()) {
-			log.warn("School name not found for school id : "+schoolId);
-			schoolName = schoolId;
-		}
-		else {
-			schoolName = user.getStructureNames().get(index);
-		}
-		this.appendDataToDescription(description, schoolNameLabel, schoolName);
-		description.append("\n").append(ticket.getString("description"));
+		final String schoolId = ticket.getString("school_id");
+		final StatementsBuilder s = new StatementsBuilder();
+		s.add("MATCH (s:Structure {id : {schoolId}}) return s.name as name ",
+				new JsonObject().putString("schoolId", schoolId));
+		s.add("MATCH (a:Application {address : {category}}) return a.displayName as name",
+				new JsonObject().putString("category", ticket.getString("category")));
+		Neo4j.getInstance().executeTransaction(s.build(), null, true, new Handler<Message<JsonObject>>() {
+			@Override
+			public void handle(Message<JsonObject> message) {
+				String schoolName, category;
+				JsonArray res = message.body().getArray("results");
+				if ("ok".equals(message.body().getString("status")) && res != null && res.size() == 2 &&
+						res.<JsonArray>get(0) != null && res.<JsonArray>get(1) != null) {
+					JsonArray sa = res.get(0);
+					JsonObject s;
+					if (sa != null && sa.size() == 1 && (s = sa.get(0)) != null && s.getString("name") != null) {
+						schoolName = s.getString("name");
+					} else {
+						schoolName = schoolId;
+					}
+					JsonArray aa = res.get(1);
+					JsonObject a;
+					if (aa != null && aa.size() == 1 && (a = aa.get(0)) != null && a.getString("name") != null) {
+						category = a.getString("name");
+					} else {
+						// Category "Other" is saved as i18n, whereas remaining categories are addresses (e.g. "/support")
+						category = I18n.getInstance().translate(ticket.getString("category"), I18n.acceptLanguage(request));
+						if (category.equals(ticket.getString("category"))) {
+							category = category.substring(1);
+						}
+					}
+				} else {
+					schoolName = schoolId;
+					// Category "Other" is saved as i18n, whereas remaining categories are addresses (e.g. "/support")
+					category = I18n.getInstance().translate(ticket.getString("category"), I18n.acceptLanguage(request));
+					if (category.equals(ticket.getString("category"))) {
+						category = category.substring(1);
+					}
+				}
 
-		data.putString("description", description.toString());
+				final StringBuilder description = new StringBuilder();
+				appendDataToDescription(description, categoryLabel, category);
+				appendDataToDescription(description, ticketOwnerLabel, ticket.getString("owner_name"));
+				appendDataToDescription(description, ticketIdLabel, ticket.getNumber("id").toString());
+
+				appendDataToDescription(description, schoolNameLabel, schoolName);
+				description.append("\n").append(ticket.getString("description"));
+
+				data.putString("description", description.toString());
 
 
-		if(attachments != null && attachments.size() > 0) {
-			data.putArray("uploads", attachments);
-		}
+				if (attachments != null && attachments.size() > 0) {
+					data.putArray("uploads", attachments);
+				}
 
-		JsonObject issue = new JsonObject().putObject("issue", data);
+				JsonObject issue = new JsonObject().putObject("issue", data);
 
-		Buffer buffer = new Buffer();
-		buffer.appendString(issue.toString());
+				Buffer buffer = new Buffer();
+				buffer.appendString(issue.toString());
 
-		httpClient.post(url, handler)
-				.putHeader(HttpHeaders.HOST, redmineHost)
-				.putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-				.putHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(buffer.length()))
-				.putHeader(HEADER_REDMINE_API_KEY, redmineApiKey)
-				.write(buffer).end();
+				httpClient.post(url, handler)
+						.putHeader(HttpHeaders.HOST, redmineHost)
+						.putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+						.putHeader(HttpHeaders.CONTENT_LENGTH, String.valueOf(buffer.length()))
+						.putHeader(HEADER_REDMINE_API_KEY, redmineApiKey)
+						.write(buffer).end();
+			}
+		});
+
 	}
 
 	private void appendDataToDescription(final StringBuilder description, final String label, final String value) {
