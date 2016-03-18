@@ -908,43 +908,6 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 	}
 
-//	@Override
-//	public void uploadAttachmentIssue(final Number issueId, final JsonArray documents,
-//			final Handler<Either<String, JsonObject>> handler) {
-//		final SqlStatementsBuilder s = new SqlStatementsBuilder();
-//		s.raw("LOCK TABLE support.bug_tracker_attachments IN SHARE ROW EXCLUSIVE MODE");
-//		s.prepared("SELECT document_id from support.bug_tracker_attachments where issue_id = ?",
-//				new JsonArray().add(issueId));
-//		String query =
-//				"INSERT INTO support.bug_tracker_attachments (issue_id, document_id, name, size) " +
-//				"SELECT ?, ?, ?, ? WHERE NOT EXISTS " +
-//				"(SELECT * FROM support.bug_tracker_attachments WHERE issue_id AND document_id = ?);";
-//		for (Object o: documents) {
-//			if (!(o instanceof JsonObject)) continue;
-//			JsonObject j = (JsonObject) o;
-//			s.prepared(query, new JsonArray().add(issueId).add(j.getString("id"))
-//					.add(j.getString("name")).add(j.getInteger("size")).add(issueId).add(j.getString("id")));
-//		}
-//		Sql.getInstance().transaction(s.build(), SqlResult.validResultHandler(1, new Handler<Either<String, JsonArray>>() {
-//			@Override
-//			public void handle(Either<String, JsonArray> res) {
-//				if (res.isRight()) {
-//					JsonArray r = res.right().getValue();
-//					Set<String> exists = new HashSet<>();
-//					if (r != null && r.size() > 0) {
-//						for (Object o : r) {
-//							if (!(o instanceof JsonObject)) continue;
-//							exists.add(((JsonObject) o).getString("document_id"));
-//						}
-//					}
-//					uploadDocuments((Integer) issueId, exists, documents, handler);
-//				} else {
-//					handler.handle(new Either.Left<String, JsonObject>(res.left().getValue()));
-//				}
-//			}
-//		}));
-//	}
-
 	private void uploadDocuments(final Integer issueId, Set<String> exists, JsonArray documents,
 			final Handler<Either<String, JsonObject>> handler) {
 		Set<String> d = new HashSet<>();

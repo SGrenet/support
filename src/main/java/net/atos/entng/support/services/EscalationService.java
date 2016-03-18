@@ -32,8 +32,6 @@ public interface EscalationService {
 
 	public void commentIssue(Number issueId, JsonObject comment, Handler<Either<String,JsonObject>> handler);
 
-//	void uploadAttachmentIssue(Number issueId, JsonArray documents, Handler<Either<String,JsonObject>> handler);
-
 	void syncAttachments(String ticketId, JsonArray attachments, Handler<Either<String, JsonObject>> handler);
 
 	void isEscaladed(String ticketId, Handler<Boolean> handler);

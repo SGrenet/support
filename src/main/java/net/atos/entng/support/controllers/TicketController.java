@@ -555,31 +555,4 @@ public class TicketController extends ControllerHelper {
 		});
 	}
 
-//	@Post("/issue/:id/attachment")
-//	@ApiDoc("Add attachment to bug tracker issue")
-//	@SecuredAction(value = "support.manager", type= ActionType.RESOURCE)
-//	@ResourceFilter(LocalAdmin.class)
-//	public void attachmentIssue(final HttpServerRequest request) {
-//		final String id = request.params().get("id");
-//		final Integer issueId = Integer.parseInt(id);
-//
-//		UserUtils.getUserInfos(eb, request, new Handler<UserInfos>() {
-//			@Override
-//			public void handle(final UserInfos user) {
-//				if (user != null) {
-//					RequestUtils.bodyToJson(request, pathPrefix + "attachmentIssue", new Handler<JsonObject>(){
-//						@Override
-//						public void handle(JsonObject comment) {
-//							escalationService.uploadAttachmentIssue(issueId, comment.getArray("documents"),
-//									defaultResponseHandler(request));
-//						}
-//					});
-//				} else {
-//					log.debug("User not found in session.");
-//					unauthorized(request);
-//				}
-//			}
-//		});
-//	}
-
 }
