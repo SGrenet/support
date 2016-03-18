@@ -77,5 +77,24 @@
     "support.ticket.validation.error.subject.is.empty": "Le champ 'Sujet' doit être renseigné",
     "support.ticket.validation.error.subject.too.long": "Le champ 'Sujet' ne doit pas dépasser 255 caractères",
     "support.title": "Assistance ENT",
-    "support.category.other": "Autre"
+    "support.category.other": "Autre",
+
+    "support.search.title" : "{0} sur la catégorie {1} ({2})",
+    /*TODO use core searching api */
+    "actualites": "Actualités",
+    "collaborativeeditor": "Pad",
+    "sharebigfiles": "Téléchargement de fichier lourd",
+    "rbs": "Réservation de ressources",
+    "timelinegenerator": "Frise chronologique",
+    "mindmap": "Carte mentale",
+    "wiki": "Wiki",
+    "collaborativewall": "Mur collaboratif",
+    "poll": "Sondages",
+    "calendar": "Agenda",
+    "support": "Aide et support",
+    "forum": "Forum",
+    "blog": "Blog",
+    "workspaceworkspace": "Espace documentaire",
+    "community": "Communautés",
+    "other" : "Autre"
 }

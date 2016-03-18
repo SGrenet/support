@@ -5,6 +5,7 @@ import net.atos.entng.support.controllers.CommentController;
 import net.atos.entng.support.controllers.DisplayController;
 import net.atos.entng.support.controllers.TicketController;
 import net.atos.entng.support.enums.BugTracker;
+import net.atos.entng.support.events.SupportSearchingEvents;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketService;
 import net.atos.entng.support.services.UserService;
@@ -56,6 +57,9 @@ public class Support extends BaseServer {
 
 		AttachmentController attachmentController = new AttachmentController();
 		addController(attachmentController);
+
+		//suscribe to search engine
+		setSearchingEvents(new SupportSearchingEvents());
 	}
 
 	public static boolean escalationIsActivated() {

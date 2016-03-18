@@ -1,0 +1,150 @@
+package net.atos.entng.support.events;
+
+import fr.wseduc.webutils.Either;
+import fr.wseduc.webutils.Either.Right;
+import fr.wseduc.webutils.I18n;
+import org.entcore.common.search.SearchingEvents;
+import org.entcore.common.service.impl.SqlCrudService;
+import org.entcore.common.sql.Sql;
+import org.vertx.java.core.Handler;
+import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.json.JsonArray;
+import org.vertx.java.core.json.JsonObject;
+import org.vertx.java.core.logging.Logger;
+import org.vertx.java.core.logging.impl.LoggerFactory;
+
+import javax.xml.bind.DatatypeConverter;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.entcore.common.sql.SqlResult.validResult;
+
+public class SupportSearchingEvents extends SqlCrudService implements SearchingEvents {
+
+	private static final Logger log = LoggerFactory.getLogger(SupportSearchingEvents.class);
+
+	private static final I18n i18n = I18n.getInstance();
+
+	public SupportSearchingEvents() {
+		super("support", "tickets");
+	}
+
+	@Override
+	public void searchResource(List<String> appFilters, String userId, JsonArray groupIds, JsonArray searchWords, Integer page, Integer limit, final JsonArray columnsHeader,
+							   final String locale, final Handler<Either<String, JsonArray>> handler) {
+		if (appFilters.contains(SupportSearchingEvents.class.getSimpleName())) {
+			//fixme	for category, it's the uri of app so i need to add into core searching api the list of apps from userinfos ...
+			//hardcode only today
+			final List<String> searchFields = new ArrayList<String>();
+			searchFields.add("t.subject");
+			searchFields.add("t.description");
+
+			final String iLikeTemplate = "ILIKE ALL " + Sql.arrayPrepared(searchWords.toArray());
+			final String searchWhere = " AND (" + searchWherePrepared(searchFields, iLikeTemplate) + ")";
+
+			//fixme only user tickets, perhaps add functions to searching api core for admin view
+			final StringBuilder query = new StringBuilder();
+			query.append(" SELECT t.id, t.owner, t.subject, t.description, t.modified, t.category, t.status, u.username AS owner_name")
+					.append(" FROM support.tickets AS t")
+					.append(" INNER JOIN support.users AS u ON t.owner = u.id")
+					.append(" WHERE t.owner = ? ").append(searchWhere)
+					.append(" ORDER BY t.modified DESC LIMIT ? OFFSET ?");
+			final JsonArray values = new JsonArray();
+			values.addString(userId);
+			final List<String> valuesWildcard = searchValuesWildcard(searchWords.toList());
+			for (int i=0;i<searchFields.size();i++) {
+				for (final String value : valuesWildcard) {
+					values.addString(value);
+				}
+			}
+
+			final int offset = page * limit;
+			values.add(limit).add(offset);
+
+			Sql.getInstance().prepared(query.toString(), values, new Handler<Message<JsonObject>>() {
+				@Override
+				public void handle(Message<JsonObject> event) {
+					final Either<String, JsonArray> ei = validResult(event);
+					if (ei.isRight()) {
+						final JsonArray res = formatSearchResult(ei.right().getValue(), columnsHeader, locale);
+						handler.handle(new Right<String, JsonArray>(res));
+						if (log.isDebugEnabled()) {
+							log.debug("[SupportSearchingEvents][searchResource] The resources searched by user are finded");
+						}
+					} else {
+						handler.handle(new Either.Left<String, JsonArray>(ei.left().getValue()));
+					}
+				}
+			});
+		} else {
+			handler.handle(new Right<String, JsonArray>(new JsonArray()));
+		}
+	}
+
+	private JsonArray formatSearchResult(final JsonArray results, final JsonArray columnsHeader, String locale) {
+		final List<String> aHeader = columnsHeader.toList();
+		final JsonArray traity = new JsonArray();
+
+		for (int i=0;i<results.size();i++) {
+			final JsonObject j = results.get(i);
+			final JsonObject jr = new JsonObject();
+			if (j != null) {
+				jr.putString(aHeader.get(0), formatTitle(j.getString("subject",""), j.getString("category",""),
+						j.getInteger("status",0), locale));
+				jr.putString(aHeader.get(1), j.getString("description", ""));
+				jr.putObject(aHeader.get(2), new JsonObject().putValue("$date",
+						DatatypeConverter.parseDateTime(j.getString("modified")).getTime().getTime()));
+				jr.putString(aHeader.get(3), j.getString("owner_name"));
+				jr.putString(aHeader.get(4), j.getString("owner"));
+				jr.putString(aHeader.get(5), "/support#/ticket/"+ j.getNumber("id",0));
+				traity.add(jr);
+			}
+		}
+		return traity;
+	}
+
+	private String formatStatus(int status, String locale) {
+		final String key;
+		switch (status) {
+			case 1 : key="support.ticket.status.new";
+				break;
+			case 2 : key="support.ticket.status.opened";
+				break;
+			case 3 : key="support.ticket.status.resolved";
+				break;
+			default: key="support.ticket.status.closed";
+				break;
+		}
+
+		return i18n.translate(key, locale);
+	}
+
+	private String formatCategory(String category, String locale) {
+		final String categoryRes = i18n.translate(category.replace("/", ""), locale);
+		return (categoryRes != null && !categoryRes.isEmpty()) ? categoryRes : i18n.translate("other", locale);
+	}
+
+	private String formatTitle(final String subject, final String category, final int status, final String locale) {
+		return i18n.translate("support.search.title", locale,
+				subject, formatCategory(category, locale), formatStatus(status, locale));
+	}
+
+	private String searchWherePrepared(List<String> list, final String templateLike) {
+		StringBuilder sb = new StringBuilder();
+		if (list != null && list.size() > 0) {
+			for (String s : list) {
+				sb.append(s).append(" ").append(templateLike).append(" OR ");
+			}
+			sb.delete(sb.length() - 3, sb.length());
+		}
+		return sb.toString();
+	}
+
+	private List<String> searchValuesWildcard(List<String> list) {
+		final List<String> result = new ArrayList<String>();
+		for (String s : list) {
+			result.add("%" + s + "%");
+		}
+		return result;
+	}
+}
