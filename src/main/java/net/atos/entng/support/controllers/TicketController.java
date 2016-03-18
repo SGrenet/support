@@ -110,7 +110,7 @@ public class TicketController extends ControllerHelper {
 						} else {
 							notifyTicketUpdated(request, user, response);
 							JsonArray attachments = ticket.getArray("attachments");
-							if (attachments != null && attachments.size() > 0) {
+							if (escalationService != null && attachments != null && attachments.size() > 0) {
 								escalationService.syncAttachments(ticketId, attachments, new Handler<Either<String, JsonObject>>() {
 									@Override
 									public void handle(Either<String, JsonObject> res) {
