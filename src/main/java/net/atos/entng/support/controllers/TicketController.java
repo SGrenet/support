@@ -148,7 +148,7 @@ public class TicketController extends ControllerHelper {
 			final JsonObject response, final JsonObject ticket) {
 
 		final String eventType = TICKET_CREATED_EVENT_TYPE;
-		final String template = "notify-ticket-created.html";
+		final String notificationName = "ticket-created";
 
 		try {
 			final long id = response.getLong("id", 0L);
@@ -179,14 +179,16 @@ public class TicketController extends ControllerHelper {
 						List<String> recipients = new ArrayList<>(recipientSet);
 						if(!recipients.isEmpty()) {
 							JsonObject params = new JsonObject();
-							params.putString("uri", "/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
-							params.putString("ticketUri", "/support#/ticket/" + ticketId)
+							params.putString("uri", container.config().getString("host", "http://localhost:8090") +
+									"/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
+							params.putString("ticketUri", container.config().getString("host", "http://localhost:8027") +
+									"/support#/ticket/" + ticketId)
 								.putString("username", user.getUsername())
 								.putString("ticketid", ticketId)
 								.putString("ticketsubject", shortenSubject(ticketSubject));
+							params.putString("resourceUri", params.getString("ticketUri"));
 
-							notification.notifyTimeline(request, user, SUPPORT_NAME, eventType,
-									recipients, ticketId, template, params);
+							notification.notifyTimeline(request, "support." + notificationName, user, recipients, ticketId, params);
 						}
 					}
 				}
@@ -239,7 +241,7 @@ public class TicketController extends ControllerHelper {
 			final JsonObject response) {
 
 		final String eventType = TICKET_UPDATED_EVENT_TYPE;
-		final String template = "notify-ticket-updated.html";
+		final String notificationName = "ticket-updated";
 
 		try {
 			final String ticketSubject = response.getString("subject", null);
@@ -275,14 +277,16 @@ public class TicketController extends ControllerHelper {
 
 						if(!recipients.isEmpty()) {
 							JsonObject params = new JsonObject();
-							params.putString("uri", "/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
-							params.putString("ticketUri", "/support#/ticket/" + ticketId)
+							params.putString("uri", container.config().getString("host", "http://localhost:8090") +
+									"/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
+							params.putString("ticketUri", container.config().getString("host", "http://localhost:8027") +
+									"/support#/ticket/" + ticketId)
 								.putString("username", user.getUsername())
 								.putString("ticketid", ticketId)
 								.putString("ticketsubject", shortenSubject(ticketSubject));
+							params.putString("resourceUri", params.getString("ticketUri"));
 
-							notification.notifyTimeline(request, user, SUPPORT_NAME, eventType,
-									recipients, ticketId, template, params);
+							notification.notifyTimeline(request, "support." + notificationName, user, recipients, params);
 						}
 					}
 				}

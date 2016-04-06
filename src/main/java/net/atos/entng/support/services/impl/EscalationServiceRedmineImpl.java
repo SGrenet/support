@@ -26,6 +26,7 @@ import org.entcore.common.sql.Sql;
 import org.entcore.common.sql.SqlResult;
 import org.entcore.common.storage.Storage;
 import org.entcore.common.user.UserInfos;
+import org.entcore.common.utils.Config;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
@@ -792,28 +793,25 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 										List<String> recipients = new ArrayList<>(recipientSet);
 										if(!recipients.isEmpty()) {
-											String eventType, template;
+											String notificationName;
 
 											if(newStatusId.intValue() != oldStatusId &&
 													newStatusId.intValue() == redmineResolvedStatusId.intValue()) {
-												eventType = ISSUE_RESOLVED_EVENT_TYPE;
-												template = "notify-bugtracker-issue-resolved.html";
+												notificationName = "bugtracker-issue-resolved";
 											} else if (newStatusId.intValue() != oldStatusId &&
 													newStatusId.intValue() == redmineClosedStatusId.intValue()) {
-												eventType = ISSUE_CLOSED_EVENT_TYPE;
-												template = "notify-bugtracker-issue-closed.html";
+												notificationName = "bugtracker-issue-closed";
 											} else {
-												eventType = ISSUE_UPDATED_EVENT_TYPE;
-												template = "notify-bugtracker-issue-updated.html";
+												notificationName = "bugtracker-issue-updated";
 											}
 
 											JsonObject params = new JsonObject();
 											params.putNumber("issueId", issueId)
 												.putNumber("ticketId", ticketId);
-											params.putString("ticketUri", "/support#/ticket/" + ticketId);
+											params.putString("ticketUri", Config.getInstance().getConfig().getString("host", "http://localhost:8027") +
+													"/support#/ticket/" + ticketId);
 
-											EscalationServiceRedmineImpl.this.notification.notifyTimeline(null, null, SUPPORT_NAME, eventType,
-													recipients, null, template, params);
+											notification.notifyTimeline(null, "support." + notificationName, null, recipients, null, params);
 										}
 									}
 								}

@@ -1,4 +1,10 @@
 {
+    "support": "Aide et support",
+    "support.bugtracker-issue-closed": "Fermeture d'une demande escaladée",
+    "support.bugtracker-issue-resolved": "Résolution d'une demande escaladée",
+    "support.bugtracker-issue-updated": "Mise à jour d'une demande escaladée",
+    "support.ticket-created": "Création d'une demande de support",
+    "support.ticket-updated": "Mise à jour d'une demande de support",
     "timeline.support.escalated.ticket": "La demande escaladée",
     "timeline.support.has.been.closed": "a été fermée",
     "timeline.support.has.been.resolved": "a été résolue",
