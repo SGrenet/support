@@ -810,6 +810,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 												.putNumber("ticketId", ticketId);
 											params.putString("ticketUri", Config.getInstance().getConfig().getString("host", "http://localhost:8027") +
 													"/support#/ticket/" + ticketId);
+											params.putString("resourceUri", params.getString("ticketUri"));
 
 											notification.notifyTimeline(null, "support." + notificationName, null, recipients, null, params);
 										}
