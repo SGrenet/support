@@ -10,6 +10,14 @@
 		gradle clean install
 </pre>
 
+# Présentation du module
+
+## Fonctionnalités
+
+Aide & Support permet de signaler une difficulté ou un problème d'utilisation de l'ENT aux administrateurs de l'établissement.
+
+Il met en œuvre un comportement de recherche sur le sujet et la description des demandes.
+
 ## Configuration
 Contenu du fichier deployment/support/conf.json.template :
     {
