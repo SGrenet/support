@@ -58,7 +58,7 @@ public class SupportSearchingEvents extends SqlCrudService implements SearchingE
 			searchFields.add("t.subject");
 			searchFields.add("t.description");
 
-			final String iLikeTemplate = "ILIKE ALL " + Sql.arrayPrepared(searchWords.toArray());
+			final String iLikeTemplate = "ILIKE ALL " + Sql.arrayPrepared(searchWords.toArray(), true);
 			final String searchWhere = " AND (" + searchWherePrepared(searchFields, iLikeTemplate) + ")";
 
 			//fixme only user tickets, perhaps add functions to searching api core for admin view
@@ -152,7 +152,7 @@ public class SupportSearchingEvents extends SqlCrudService implements SearchingE
 		StringBuilder sb = new StringBuilder();
 		if (list != null && list.size() > 0) {
 			for (String s : list) {
-				sb.append(s).append(" ").append(templateLike).append(" OR ");
+				sb.append("unaccent(").append(s).append(") ").append(templateLike).append(" OR ");
 			}
 			sb.delete(sb.length() - 3, sb.length());
 		}
