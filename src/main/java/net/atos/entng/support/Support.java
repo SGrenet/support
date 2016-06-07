@@ -65,7 +65,7 @@ public class Support extends BaseServer {
 		EscalationService escalationService = escalationActivated ?
 				EscalationServiceFactory.makeEscalationService(bugTrackerType, vertx, container, ticketService, userService, storage) : null;
 
-		TicketController ticketController = new TicketController(ticketService, escalationService, userService, storage);
+        TicketController ticketController = new TicketController(ticketService, escalationService, userService, storage);
 		addController(ticketController);
 
 		SqlConf commentSqlConf = SqlConfs.createConf(CommentController.class.getName());

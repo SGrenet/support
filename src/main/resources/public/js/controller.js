@@ -27,7 +27,8 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.me = model.me;
 		
 		$scope.tickets = model.tickets;
-		
+        $scope.events = model.events;
+
 		// Categories
 		var apps = _.filter(model.me.apps, function(app) { 
 			return app.address && app.name && app.address.length > 0 && app.name.length > 0;
@@ -42,9 +43,8 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		apps.push(categoryOther);
 		
 		$scope.apps = orderByFilter(apps, 'name');
-		
-		
-		$scope.notFound = false;
+
+        $scope.notFound = false;
 		
 		$scope.sort = {
 			expression : 'modified',
@@ -76,13 +76,50 @@ function SupportController($scope, template, model, route, $location, orderByFil
 				$scope.isEscalationActivated = result.isEscalationActivated;
 			}
 		});
-	};
+
+
+        // filters initalization
+        $scope.display = {};
+        $scope.display.filters = [];
+        $scope.display.histo = false;
+
+        for (var status in statusEnum.properties){
+            $scope.display.filters[statusEnum.properties[status].value] = true;
+        }
+        $scope.display.filters.all = true;
+        $scope.display.filters.mydemands = true;
+
+        $scope.switchAll = function(){
+            for(var filter in $scope.display.filters){
+                $scope.display.filters[filter] = $scope.display.filters.all;
+            }
+            if($scope.userIsLocalAdmin()) {
+                // no need to update if the checkbox isn't visible.
+                $scope.display.filters.mydemands = $scope.display.filters.all;
+            }
+        };
+
+        $scope.checkAll = function(){
+
+            $scope.display.filters.all = true;
+            for(var filter in $scope.display.filters){
+                $scope.display.filters.all = $scope.display.filters[filter] &&
+                                                $scope.display.filters.mydemands &&
+                                                $scope.display.filters.all;
+            }
+        };
+    };
 
 	$scope.filterByStatus = function(item) {
-		if(!$scope.filter.status) {
-			return true;
-		}
-		return ($scope.filter.status === item.status);
+        // display the item if the status is ok.
+        // If we are in admin mode, we have to check if the mydemands is checked.
+        // If not, we display only the demands from other users.
+        if( $scope.display.filters[item.status] &&
+            ($scope.display.filters.mydemands || item.owner != $scope.me.userId) ) {
+            return true;
+        } else {
+            return false;
+        }
 	};
 	
 	// Sort
@@ -102,37 +139,39 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	
 	// View tickets
 	$scope.displayTicketList = function() {
-		$scope.ticket = new Ticket();
+		$scope.display.histo = false;
+        $scope.ticket = new Ticket();
 		$scope.registerViewTicketListEvent();
     	model.tickets.sync();
 	};
 
-	$scope.registerViewTicketListEvent = function() {
-    	model.tickets.one('sync', function() {
-    		window.location.hash = '';
-			template.open('main', 'list-tickets');
-    	});		
-	};
-	
-	$scope.atLeastOneTicketEscalated = function() {
-		return _.some(model.tickets.all, function(ticket){ 
-			return ticket.last_issue_update !== null && ticket.last_issue_update !== undefined;
-		});
-	};
-	
-	$scope.displayTicket = function(ticketId) {
-		if(model.tickets.all === undefined || model.tickets.isEmpty()) {
-	    	model.tickets.one('sync', function() {
-	    		$scope.openTicket(ticketId);
-	    	});
-	    	model.tickets.sync();
-		}
-		else {
-			$scope.openTicket(ticketId);
-		}
-	};
-	
-	$scope.openTicket = function(ticketId) {
+    $scope.registerViewTicketListEvent = function() {
+        model.tickets.one('sync', function() {
+            window.location.hash = '';
+            template.open('main', 'list-tickets');
+            template.open('filters', 'filters');
+        });
+    };
+
+    $scope.atLeastOneTicketEscalated = function() {
+        return _.some(model.tickets.all, function(ticket){
+            return ticket.last_issue_update !== null && ticket.last_issue_update !== undefined;
+        });
+    };
+
+    $scope.displayTicket = function(ticketId) {
+        if(model.tickets.all === undefined || model.tickets.isEmpty()) {
+            model.tickets.one('sync', function() {
+                $scope.openTicket(ticketId);
+            });
+            model.tickets.sync();
+        }
+        else {
+            $scope.openTicket(ticketId);
+        }
+    };
+
+    $scope.openTicket = function(ticketId) {
 		var id = parseInt(ticketId,10);
 		$scope.ticket = _.find(model.tickets.all, function(ticket){
 			return ticket.id === id;
@@ -148,12 +187,31 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			$scope.ticket.getBugTrackerIssue();
 		}
 	};
-	
-	$scope.viewTicket = function(ticketId) {
-		window.location.hash = '/ticket/' + ticketId;
-	};
-	
-	$scope.openViewTicketTemplate = function() {
+
+    $scope.viewTicket = function(ticketId) {
+        window.location.hash = '/ticket/' + ticketId;
+    };
+
+    $scope.showHisto = function(ticket, ticketId) {
+        model.getEvents(ticketId, function(result) {
+            template.open('histo-ticket', 'histo-ticket');
+            $scope.display.histo = true;
+            $scope.events = result;
+            $scope.ticketHisto = ticketId;
+            $scope.ticketLib = ticket.subject;
+            $scope.$apply();
+        }, function (e) {
+            $scope.processingData = false;
+            validationError(e);
+        });
+    };
+
+    $scope.backHisto = function() {
+        $scope.display.histo = false;
+    };
+
+
+    $scope.openViewTicketTemplate = function() {
 		template.open('main', 'view-ticket');
 	};
 	
@@ -173,7 +231,8 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	};
 	
 	$scope.createTicket = function() {
-		$scope.ticket.processing = true;
+		$scope.ticket.event_count = 1;
+        $scope.ticket.processing = true;
 		
 		if (!$scope.ticket.subject || $scope.ticket.subject.trim().length === 0){
 			notify.error('support.ticket.validation.error.subject.is.empty');
@@ -494,7 +553,20 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		}
 		return isLocalAdmin;
 	};
-	
-	
+
+    /**
+     * Modification en masse du statut
+     * @param newStatus : nouveau statut
+     */
+    $scope.updateStatus = function(newStatus){
+        model.updateTicketStatus($scope.tickets.selection(), newStatus, function() {
+            notify.info('support.comment.status.modification.successful');
+            model.tickets.sync();
+        }, function (e) {
+            $scope.processingData = false;
+            validationError(e);
+        });
+    }
+
 	this.initialize();
 }

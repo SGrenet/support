@@ -24,6 +24,8 @@ model.escalationStatuses = {
 	FAILED: 4
 };
 
+model.events = [];
+
 if (Object.freeze) {
 	Object.freeze(model.escalationStatuses);
 }
@@ -34,7 +36,7 @@ function Comment(){}
 function Attachment(){}
 
 function Ticket(){
-	this.collection(Comment);
+    this.collection(Comment);
 	this.collection(Attachment);
 }
 
@@ -45,6 +47,14 @@ model.isEscalationActivated = function(callback){
 		}
 	}.bind(this));
 };
+
+model.updateTicketStatus = function(itemArray, newStatus, cb, cbe){
+    http().postJson('/support/ticketstatus/' + newStatus, {ids:model.getItemsIds(itemArray)}).done(function (result) {
+        if(typeof cb === 'function'){
+            cb();
+        }
+    }.bind(this));
+}
 
 Ticket.prototype.createTicket = function(data, callback) {
 	http().postJson('/support/ticket', data).done(function(result){
@@ -95,7 +105,7 @@ Ticket.prototype.escalateTicket = function(callback, errorCallback, badRequestCa
 };
 
 Ticket.prototype.toJSON = function() {
-	var json = {
+    var json = {
 		    subject : this.subject,
 		    description : this.description,
 		    category : this.category,
@@ -145,11 +155,12 @@ Ticket.prototype.getAttachments = function(callback) {
 
 Ticket.prototype.getBugTrackerIssue = function(callback) {
 	http().get('/support/ticket/' + this.id + '/bugtrackerissue').done(function(result){
-		if(result.length > 0 && result[0] && result[0].content) {
+        if(result.length > 0 && result[0] && result[0].content) {
 			// JSON type in PostgreSQL is sent as a JSON string. Parse it
 			var content = JSON.parse(result[0].content);
 			if(content && content.issue) {
-				this.issue = content.issue;
+
+                this.issue = content.issue;
 				
 				var attachments = JSON.parse(result[0].attachments);
 				if(attachments && attachments.length > 0) {
@@ -202,3 +213,21 @@ model.build = function() {
 		behaviours: 'support'
 	});
 };
+
+model.getItemsIds = function (items) {
+
+    var itemArray = [];
+    items.forEach(function (item) {
+        itemArray.push(item.id);
+    });
+
+    return itemArray;
+}
+
+model.getEvents = function (ticketId, callback) {
+    http().get('/support/events/' + ticketId).done(function(result){
+        if(typeof callback === 'function'){
+            callback(result);
+        }
+    });
+}

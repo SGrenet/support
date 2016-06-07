@@ -19,6 +19,7 @@
 
 package net.atos.entng.support.services;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
 import org.entcore.common.service.CrudService;
@@ -54,6 +55,10 @@ public interface TicketService extends CrudService {
 
 	public void updateIssue(Number issueId, String content, Handler<Either<String, JsonObject>> handler);
 
+    public void updateEventCount(String ticketId, Handler<Either<String, JsonObject>> handler);
+
+    public void createTicketHisto(String ticketId, String event, int status, String userid, Handler<Either<String, JsonObject>> handler);
+
 	public void getLastIssuesUpdate(Handler<Either<String, JsonArray>> handler);
 
 	/**
@@ -66,4 +71,9 @@ public interface TicketService extends CrudService {
 	public void getIssueAttachmentName(String gridfsId, Handler<Either<String, JsonObject>> handler);
 
 	public void insertIssueAttachment(Number issueId, JsonObject attachment, Handler<Either<String, JsonArray>> handler);
+
+    public void updateTicketStatus(Integer newStatus, List<Integer> ids, Handler<Either<String, JsonObject>> handler);
+
+    public void listEvents(String ticketId, Handler<Either<String, JsonArray>> handler);
+
 }

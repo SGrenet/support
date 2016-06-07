@@ -26,6 +26,7 @@ import static org.entcore.common.sql.SqlResult.validResultHandler;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
+import fr.wseduc.webutils.http.Renders;
 import net.atos.entng.support.enums.BugTracker;
 import net.atos.entng.support.enums.EscalationStatus;
 import net.atos.entng.support.enums.TicketStatus;
@@ -41,10 +42,13 @@ import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 
 import fr.wseduc.webutils.Either;
+import org.vertx.java.core.logging.Logger;
+import org.vertx.java.core.logging.impl.LoggerFactory;
 
 public class TicketServiceSqlImpl extends SqlCrudService implements TicketService {
 
 	private final static String UPSERT_USER_QUERY = "SELECT support.merge_users(?,?)";
+    protected static final Logger log = LoggerFactory.getLogger(Renders.class);
 
 	private final BugTracker bugTrackerType;
 
@@ -164,7 +168,8 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 	public void listTickets(UserInfos user, Handler<Either<String, JsonArray>> handler) {
 		StringBuilder query = new StringBuilder();
 		query.append("SELECT t.*, u.username AS owner_name,")
-			.append("i.content").append(bugTrackerType.getLastIssueUpdateFromPostgresqlJson()).append(" AS last_issue_update")
+			.append("i.content").append(bugTrackerType.getLastIssueUpdateFromPostgresqlJson()).append(" AS last_issue_update, ")
+            .append(" substring(t.description, 0, 101)  as short_desc")
 			.append(" FROM support.tickets AS t")
 			.append(" INNER JOIN support.users AS u ON t.owner = u.id")
 			.append(" LEFT JOIN support.bug_tracker_issues AS i ON t.id=i.ticket_id");
@@ -194,7 +199,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 	@Override
 	public void listMyTickets(UserInfos user, Handler<Either<String, JsonArray>> handler) {
-		String query = "SELECT t.*, u.username AS owner_name FROM support.tickets AS t"
+		String query = "SELECT t.*, u.username AS owner_name, substring(t.description, 0, 100)  as short_desc FROM support.tickets AS t"
 			+ " INNER JOIN support.users AS u ON t.owner = u.id"
 			+ " WHERE t.owner = ?";
 		JsonArray values = new JsonArray().add(user.getUserId());
@@ -241,7 +246,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			.add(TicketStatus.CLOSED.status());
 
 		// 2) query to select ticket, attachments' ids and comments
-		query.append("SELECT t.id, t.subject, t.description, t.category, t.school_id, u.username AS owner_name,")
+		query.append("SELECT t.id, t.status, t.subject, t.description, t.category, t.school_id, u.username AS owner_name,")
 			/*  When no rows are selected, json_agg returns a JSON array whose objects' fields have null values.
 			 * We use CASE to return an empty array instead. */
 			.append(" CASE WHEN COUNT(a.document_id) = 0 THEN '[]' ELSE json_agg(DISTINCT a.document_id) END AS attachments,")
@@ -256,7 +261,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 			.append(" LEFT JOIN support.attachments AS a ON t.id = a.ticket_id")
 			.append(" LEFT JOIN support.comments AS c ON t.id = c.ticket_id")
 			.append(" LEFT JOIN support.users AS v ON c.owner = v.id")
-			.append(" GROUP BY t.id, t.subject, t.description, t.category, t.school_id, u.username");
+			.append(" GROUP BY t.id, t.status, t.subject, t.description, t.category, t.school_id, u.username");
 
 		sql.prepared(query.toString(), values, validUniqueResultHandler(handler));
 	}
@@ -475,5 +480,79 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		sql.prepared(query.toString(), values, validResultHandler(handler));
 	}
 
+    /**
+     * Increase the event_count field of ticket table. It means an update has been done.
+     * @param ticketId
+     * @param handler
+     */
+    public void updateEventCount(String ticketId, Handler<Either<String, JsonObject>> handler) {
+        String query = "UPDATE support.tickets"
+                + " SET event_count = event_count + 1 "
+                + " WHERE id = ?";
+
+        JsonArray values = new JsonArray()
+                .add(parseId(ticketId));
+
+        sql.prepared(query, values, validUniqueResultHandler(handler));
+    }
+
+    /**
+     * Updating mass modification of tickets status
+     * @param newStatus : new status of tickets
+     * @param idList : list of the ids that will be modified
+     * @param handler
+     */
+    public void updateTicketStatus(Integer newStatus, List<Integer> idList, Handler<Either<String, JsonObject>> handler) {
+        StringBuilder query = new StringBuilder();
+        query.append("UPDATE support.tickets");
+        query.append(" SET status = ?, event_count = event_count + 1 ");
+        query.append(" WHERE id in ( ");
+
+        JsonArray values = new JsonArray();
+        values.add(newStatus);
+
+        for (Integer id : idList) {
+            query.append("?,");
+            values.addNumber(id);
+        }
+        query.deleteCharAt(query.length() - 1);
+        query.append(")");
+
+        sql.prepared(query.toString(), values, validUniqueResultHandler(handler));
+    }
+
+    /**
+     *
+     * @param ticketId : ticket id from which we want to list the history
+     * @param handler
+     */
+    public void listEvents(String ticketId, Handler<Either<String, JsonArray>> handler) {
+        String query = "SELECT username, event, status, event_date FROM support.tickets_histo th " +
+                    " inner join support.users u on u.id = th.user_id " +
+                    " WHERE ticket_id = ? ";
+        JsonArray values = new JsonArray().add(parseId(ticketId));
+        sql.prepared(query, values, validResultHandler(handler));
+    }
+
+    /**
+     *
+     * @param ticketId : id of the ticket historized
+     * @param event : description of the event
+     * @param status : status after the event
+     * @param userid : user that made de creation / modification
+     * @param handler
+     */
+    public void createTicketHisto(String ticketId, String event, int status, String userid, Handler<Either<String, JsonObject>> handler) {
+        String query = "INSERT INTO support.tickets_histo( ticket_id, event, event_date, status, user_id) "
+                + " values( ?, ?, current_timestamp, ?, ? )";
+
+        JsonArray values = new JsonArray()
+                .add(parseId(ticketId))
+                .add(event)
+                .add(status)
+                .add(userid);
+
+        sql.prepared(query, values, validUniqueResultHandler(handler));
+    }
 
 }

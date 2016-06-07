@@ -423,10 +423,12 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			.putString("subject", ticket.getString("subject"));
 
 		// add fields (such as ticket id, application name ...) to description
-		final String categoryLabel = I18n.getInstance().translate("support.escalated.ticket.category", I18n.acceptLanguage(request));
-		final String ticketOwnerLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.owner", I18n.acceptLanguage(request));
-		final String ticketIdLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.id", I18n.acceptLanguage(request));
-		final String schoolNameLabel = I18n.getInstance().translate("support.escalated.ticket.school.name", I18n.acceptLanguage(request));
+        final String locale = I18n.acceptLanguage(request);
+		final String categoryLabel = I18n.getInstance().translate("support.escalated.ticket.category", locale);
+		final String ticketOwnerLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.owner", locale);
+        final String ticketIdLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.id", locale);
+		final String schoolNameLabel = I18n.getInstance().translate("support.escalated.ticket.school.name", locale);
+        final String ManagerLabel = I18n.getInstance().translate("support.escalated.ticket.manager", locale);
 
 		// get school name and add it to description
 		final String schoolId = ticket.getString("school_id");
@@ -455,7 +457,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 						category = a.getString("name");
 					} else {
 						// Category "Other" is saved as i18n, whereas remaining categories are addresses (e.g. "/support")
-						category = I18n.getInstance().translate(ticket.getString("category"), I18n.acceptLanguage(request));
+						category = I18n.getInstance().translate(ticket.getString("category"), locale);
 						if (category.equals(ticket.getString("category"))) {
 							category = category.substring(1);
 						}
@@ -463,7 +465,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				} else {
 					schoolName = schoolId;
 					// Category "Other" is saved as i18n, whereas remaining categories are addresses (e.g. "/support")
-					category = I18n.getInstance().translate(ticket.getString("category"), I18n.acceptLanguage(request));
+					category = I18n.getInstance().translate(ticket.getString("category"), locale);
 					if (category.equals(ticket.getString("category"))) {
 						category = category.substring(1);
 					}
@@ -475,7 +477,8 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				appendDataToDescription(description, ticketIdLabel, ticket.getNumber("id").toString());
 
 				appendDataToDescription(description, schoolNameLabel, schoolName);
-				description.append("\n").append(ticket.getString("description"));
+                appendDataToDescription(description, ManagerLabel, user.getUsername() );
+                description.append("\n").append(ticket.getString("description"));
 
 				data.putString("description", description.toString());
 

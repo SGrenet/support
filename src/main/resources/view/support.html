@@ -22,7 +22,7 @@
 						</h1>
 					</div>
 					<div class="contextual-buttons six cell">
-						<div ng-if="!isCreatingOrEditingOrViewingEscalatedTicket()">
+						<div ng-if="!isCreatingOrEditingOrViewingEscalatedTicket() && !display.histo">
 							<button ng-click="newTicket()" workflow="support.createTicket" class="cell right-magnet">
 								<i18n>support.ticket.create</i18n>
 							</button>
@@ -36,11 +36,21 @@
 							</button>
 						</div>
 					</div>
+                    <div class="contextual-buttons six cell">
+                        <div ng-if="display.histo">
+                            <button ng-click="backHisto()" class="cell right-magnet">
+                                <i18n>support.histo.back</i18n>
+                            </button>
+                        </div>
+                    </div>
 				</div>
-				<section >
+				<section ng-if="!display.histo">
 					<container template="main"></container>
 				</section>
-		</div>
+                <section ng-if="display.histo">
+                    <container template="histo-ticket"></container>
+                </section>
+        </div>
 	</portal>
 
 	<div ng-if="notFound">

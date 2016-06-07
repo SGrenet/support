@@ -45,8 +45,13 @@
 	
 	<div class="row">
 		<label class="two cell"><i18n>support.ticket.subject</i18n></label>
-		<span class="ten cell">[[ticket.subject]]</span>
-	</div>
+		<span class="four cell">[[ticket.subject]]</span>
+        <div class="six cell">
+            <a ng-click="showHisto([[ticket]], [[ticket.id]])">
+                <i18n>support.view.histo</i18n>
+            </a>
+        </div>
+    </div>
 	<div class="row">
 		<label class="two cell"><i18n>support.ticket.description</i18n></label>
 		<div class="with-newlines ten cell">[[ticket.description]]</div>
@@ -70,5 +75,7 @@
 			</article>
 		</div>
 	</div>
-	
 </article>
+<section ng-if="display.histo">
+    <container template="histo-ticket"></container>
+</section>

@@ -1,0 +1,26 @@
+
+<div class="checkbox-filters">
+    <div class="cell">
+        <i18n>support.filter.tickets.by.status</i18n>
+    </div>
+    <div class="cell checkbox-filters">
+        <ul>
+            <li>
+                <label class="checkbox cell"><input type="checkbox" ng-model="display.filters.all" ng-change="switchAll()" />
+                    <i18n>support.ticket.status.all</i18n>
+                </label>
+            </li>
+            <li ng-repeat="status in statuses">
+                <label class="checkbox cell"><input type="checkbox" ng-model="display.filters[[status.value]]" ng-change="checkAll()" />
+                    <i18n>[[status.i18nValue]]</i18n>
+                </label>
+            </li>
+            <li ng-if="userIsLocalAdmin()">
+                <label class="checkbox cell"><input type="checkbox" ng-model="display.filters.mydemands" ng-change="checkAll()" />
+                    <i18n>support.ticket.status.my.demands</i18n>
+                </label>
+            </li>
+        </ul>
+    </div>
+</div>
+

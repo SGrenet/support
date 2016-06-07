@@ -15,3 +15,6 @@ ALTER COLUMN user_id TYPE character varying(40);
 
 ALTER TABLE support.users
 ALTER COLUMN id TYPE character varying(40);
+
+ALTER TABLE support.tickets
+ADD COLUMN event_count SMALLINT NOT NULL DEFAULT 0;
