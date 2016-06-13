@@ -78,7 +78,9 @@ public class Support extends BaseServer {
 		addController(attachmentController);
 
 		//suscribe to search engine
-		setSearchingEvents(new SupportSearchingEvents());
+		if (config.getBoolean("searching-event", true)) {
+			setSearchingEvents(new SupportSearchingEvents());
+		}
 	}
 
 	public static boolean escalationIsActivated() {
