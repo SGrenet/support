@@ -69,10 +69,10 @@
 					<td class="one" ng-click="viewTicket(ticket.id)">[[getCategoryLabel(ticket.category)]]</td>
 					<td class="one" ng-click="viewTicket(ticket.id)">[[ticket.owner_name]]</td>
 					<td class="one" ng-click="viewTicket(ticket.id)">[[formatDate(ticket.modified)]]</td>
+                    <td class="one" ng-click="viewTicket(ticket.id)">[[ticket.event_count]]</td>
 					<td class="one" ng-if="userIsLocalAdmin() && atLeastOneTicketEscalated()">
 						<span ng-if="ticket.last_issue_update">[[formatDate(ticket.last_issue_update)]]</span>
 					</td>
-                    <td class="one" ng-click="viewTicket(ticket.id)">[[ticket.event_count]]</td>
                     <td class="one" >
                         <a ng-click="showHisto([[ticket]], [[ticket.id]])"  ng-show="[[ticket.event_count]] > 0">
                             <i18n>support.view.histo</i18n>

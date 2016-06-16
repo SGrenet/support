@@ -105,7 +105,7 @@ public class TicketController extends ControllerHelper {
                             ticket.putNumber("event_count", 1);
                             JsonArray attachments = ticket.getArray("attachments", null);
                             ticket.removeField("attachments");
-                            ticketService.createTicket(ticket, attachments, user, getCreateOrUpdateTicketHandler(request, user, ticket, null));
+                            ticketService.createTicket(ticket, attachments, user, I18n.acceptLanguage(request), getCreateOrUpdateTicketHandler(request, user, ticket, null));
                         }
                     });
                 } else {
@@ -130,13 +130,13 @@ public class TicketController extends ControllerHelper {
                             response.putString("owner_name", user.getUsername());
                             ticketService.createTicketHisto(response.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.creation", I18n.acceptLanguage(request)),
                                     ticket.getInteger("status"), user.getUserId(), new Handler<Either<String, JsonObject>>() {
-                                @Override
-                                public void handle(Either<String, JsonObject> res) {
-                                    if (res.isLeft()) {
-                                        log.error("Error creation historization : " + res.left().getValue());
-                                    }
-                                }
-                            });
+                                        @Override
+                                        public void handle(Either<String, JsonObject> res) {
+                                            if (res.isLeft()) {
+                                                log.error("Error creation historization : " + res.left().getValue());
+                                            }
+                                        }
+                                    });
                             renderJson(request, response, 200);
                         } else {
                             ticketService.updateEventCount(ticketId, new Handler<Either<String, JsonObject>>() {
@@ -147,15 +147,18 @@ public class TicketController extends ControllerHelper {
                                     }
                                 }
                             });
-                            ticketService.createTicketHisto(ticketId, I18n.getInstance().translate("support.ticket.histo.modification", I18n.acceptLanguage(request)),
-                                    ticket.getInteger("status"), user.getUserId(), new Handler<Either<String, JsonObject>>() {
-                                @Override
-                                public void handle(Either<String, JsonObject> res) {
-                                    if (res.isLeft()) {
-                                        log.error("Error creation historization : " + res.left().getValue());
-                                    }
-                                }
-                            });
+                            // we only historize if no comment has been added. If there is a comment, it will appear in the history
+                            if( ticket.getField("newComment") == null || "".equals(ticket.getField("newComment")) ) {
+                                ticketService.createTicketHisto(ticketId, I18n.getInstance().translate("support.ticket.histo.modification", I18n.acceptLanguage(request)),
+                                        ticket.getInteger("status"), user.getUserId(), new Handler<Either<String, JsonObject>>() {
+                                            @Override
+                                            public void handle(Either<String, JsonObject> res) {
+                                                if (res.isLeft()) {
+                                                    log.error("Error creation historization : " + res.left().getValue());
+                                                }
+                                            }
+                                        });
+                            }
                             notifyTicketUpdated(request, user, response);
                             JsonArray attachments = ticket.getArray("attachments");
                             if (escalationService != null && attachments != null && attachments.size() > 0) {
@@ -607,6 +610,26 @@ public class TicketController extends ControllerHelper {
                                     if (event.isRight()) {
                                         // get the whole issue (i.e. with attachments' metadata and comments) and save it in postgresql
                                         refreshIssue(issueId, request);
+                                        // Historization
+                                        ticketService.getTicketFromIssueId(id, new Handler<Either<String, JsonObject>>() {
+                                            @Override
+                                            public void handle(Either<String, JsonObject> res) {
+                                                if (res.isRight()) {
+                                                    final JsonObject ticket = res.right().getValue();
+                                                    ticketService.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.add.bug.tracker.comment", I18n.acceptLanguage(request)),
+                                                            ticket.getInteger("status"), user.getUserId(), new Handler<Either<String, JsonObject>>() {
+                                                                @Override
+                                                                public void handle(Either<String, JsonObject> res) {
+                                                                    if (res.isLeft()) {
+                                                                        log.error("Error creation historization : " + res.left().getValue());
+                                                                    }
+                                                                }
+                                                            });
+                                                } else if (res.isLeft()) {
+                                                    log.error("Error creation historization : " + res.left().getValue());
+                                                }
+                                            }
+                                        });
                                     } else {
                                         renderError(request, new JsonObject().putString("error", event.left().getValue()));
                                     }
@@ -680,6 +703,4 @@ public class TicketController extends ControllerHelper {
         });
 
     }
-
-
 }

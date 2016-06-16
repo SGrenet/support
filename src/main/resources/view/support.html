@@ -42,6 +42,11 @@
                                 <i18n>support.histo.back</i18n>
                             </button>
                         </div>
+                        <div ng-if="isCreating()">
+                            <button ng-click="cancelCreateTicket()" class="cell right-magnet">
+                                <i18n>support.ticket.suivi</i18n>
+                            </button>
+                        </div>
                     </div>
 				</div>
 				<section ng-if="!display.histo">
@@ -49,6 +54,9 @@
 				</section>
                 <section ng-if="display.histo">
                     <container template="histo-ticket"></container>
+                </section>
+                <section ng-if="!display.histo">
+                    <container template="create-ticket"></container>
                 </section>
         </div>
 	</portal>

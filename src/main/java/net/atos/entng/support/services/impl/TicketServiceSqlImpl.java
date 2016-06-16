@@ -58,7 +58,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 	}
 
 	@Override
-	public void createTicket(JsonObject ticket, JsonArray attachments, UserInfos user,
+	public void createTicket(JsonObject ticket, JsonArray attachments, UserInfos user, String locale,
 			Handler<Either<String, JsonObject>> handler) {
 
 		SqlStatementsBuilder s = new SqlStatementsBuilder();
@@ -69,6 +69,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		// 2. Create ticket
 		ticket.putString("owner", user.getUserId());
+        ticket.putString("locale", locale);
 		String returnedFields = "id, school_id, status, created, modified, escalation_status, escalation_date";
 		s.insert(resourceTable, ticket, returnedFields);
 
@@ -209,7 +210,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 	@Override
 	public void getTicketIdAndSchoolId(final Number issueId, final Handler<Either<String, JsonObject>> handler) {
-		String query = "SELECT t.id, t.school_id FROM support.tickets AS t"
+		String query = "SELECT t.id, t.school_id, t.owner, t.locale, t.status FROM support.tickets AS t"
 				+ " INNER JOIN support.bug_tracker_issues AS i ON t.id = i.ticket_id"
 				+ " WHERE i.id = ?";
 		JsonArray values = new JsonArray().addNumber(issueId);
@@ -293,11 +294,11 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 			// 3. Insert bug tracker issue in ENT, so that local administrators can see it
 			String insertQuery = "INSERT INTO support.bug_tracker_issues(id, ticket_id, content, owner)"
-					+ " VALUES(?, ?, ?, ?)";
+					+ " VALUES(?, ?, ?::JSON, ?)";
 
 			JsonArray insertValues = new JsonArray().add(issueId)
 					.add(parseId(ticketId))
-					.add(issue.toString())
+					.addObject(issue)
 					.add(user.getUserId());
 
 			statements.prepared(insertQuery, insertValues);
@@ -380,7 +381,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		values.addNumber(issueId);
 
 		query.append(" UPDATE support.bug_tracker_issues")
-			.append(" SET content = ?, modified = now()")
+			.append(" SET content = ?::JSON, modified = now()")
 			.append(" WHERE id = ?")
 			.append(" RETURNING (SELECT status_id FROM old_issue)");
 
@@ -527,12 +528,27 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
      * @param handler
      */
     public void listEvents(String ticketId, Handler<Either<String, JsonArray>> handler) {
-        String query = "SELECT username, event, status, event_date FROM support.tickets_histo th " +
-                    " inner join support.users u on u.id = th.user_id " +
+        String query = "SELECT username, event, status, event_date, user_id FROM support.tickets_histo th " +
+                    " left outer join support.users u on u.id = th.user_id " +
                     " WHERE ticket_id = ? ";
         JsonArray values = new JsonArray().add(parseId(ticketId));
         sql.prepared(query, values, validResultHandler(handler));
     }
+
+    /**
+     *
+     * @param issueId : bug tracker number from which we want the linked ticket
+     * @param handler
+     */
+    public void getTicketFromIssueId(String issueId, Handler<Either<String, JsonObject>> handler) {
+        String query = "SELECT t.* " +
+                " from support.tickets t" +
+                " inner join support.bug_tracker_issues bti on bti.ticket_id = t.id" +
+                " WHERE bti.id = ? ";
+        JsonArray values = new JsonArray().add(parseId(issueId));
+        sql.prepared(query, values, validUniqueResultHandler(handler));
+    }
+
 
     /**
      *

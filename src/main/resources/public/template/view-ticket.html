@@ -65,17 +65,22 @@
 			</ul>
 		</div>
 	</div>
-
+    <br><br>
 	<div class="row" ng-if="ticket.comments !== undefined && !ticket.comments.isEmpty()">
-		<div class="row" ng-repeat="comment in ticket.comments.all">
-			<article class="comment reduce-block-eight">
+		<div class="row" ng-repeat="comment in ticket.comments.all | orderBy: ['created']">
+            <article class="comment reduce-block-eight" ng-if="!comment.isHistory">
 				<a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
 				<em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
 				<p class="with-newlines">[[comment.content]]</p>
 			</article>
+            <li class="row" ng-if="comment.isHistory">
+                <a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
+                <em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
+                <br>[[comment.content]].<br>
+                <i18n>support.ticket.status.histo</i18n>
+                <b>[[comment.status]]</b>.
+            </li><br>
 		</div>
 	</div>
 </article>
-<section ng-if="display.histo">
-    <container template="histo-ticket"></container>
-</section>
+

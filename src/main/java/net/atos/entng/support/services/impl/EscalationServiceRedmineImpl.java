@@ -787,7 +787,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 									+ event.left().getValue() + ". Unable to send timeline notification.");
 						}
 						else {
-							JsonObject ticket = event.right().getValue();
+							final JsonObject ticket = event.right().getValue();
 							if(ticket == null || ticket.size() == 0) {
 								log.error("[Support] Error : ticket is null or empty. Unable to send timeline notification.");
 								return;
@@ -813,6 +813,11 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 											recipientSet.add(id);
 										}
 
+                                        // the requier should be advised too
+                                        if( !recipientSet.contains(ticket.getString("owner"))) {
+                                            recipientSet.add(ticket.getString("owner"));
+                                        }
+
 										List<String> recipients = new ArrayList<>(recipientSet);
 										if(!recipients.isEmpty()) {
 											String notificationName;
@@ -835,6 +840,25 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 											params.putString("resourceUri", params.getString("ticketUri"));
 
 											notification.notifyTimeline(null, "support." + notificationName, null, recipients, null, params);
+                                            // Historization
+                                            ticketService.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.bug.tracker.updated", ticket.getString("locale")),
+                                                ticket.getInteger("status"), null, new Handler<Either<String, JsonObject>>() {
+                                                    @Override
+                                                    public void handle(Either<String, JsonObject> res) {
+                                                        if (res.isRight()) {
+                                                            ticketService.updateEventCount(ticket.getInteger("id").toString(), new Handler<Either<String, JsonObject>>() {
+                                                                @Override
+                                                                public void handle(Either<String, JsonObject> res) {
+                                                                    if (res.isLeft()) {
+                                                                        log.error("Error updating ticket (event_count) : " + res.left().getValue());
+                                                                    }
+                                                                }
+                                                            });
+                                                        } else {
+                                                            log.error("Error creation historization : " + res.left().getValue());
+                                                        }
+                                                    }
+                                                });
 										}
 									}
 								}

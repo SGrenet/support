@@ -18,14 +18,18 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			$scope.displayTicket(params.ticketId);
 		},
 		listTickets: function() {
-        	$scope.registerViewTicketListEvent();	    
+            if($scope.userIsLocalAdmin()) {
+                $scope.registerViewTicketListEvent();
+            } else {
+                $scope.newTicket();
+            }
         }
 	});
 	
 	this.initialize = function() {
 		$scope.template = template;
 		$scope.me = model.me;
-		
+
 		$scope.tickets = model.tickets;
         $scope.events = model.events;
 
@@ -182,8 +186,10 @@ function SupportController($scope, template, model, route, $location, orderByFil
     	}
 		template.open('main', 'view-ticket');
 		$scope.ticket.getAttachments();
-		$scope.ticket.getComments();
-		if($scope.userIsLocalAdmin($scope.ticket) === true) {
+		$scope.ticket.getComments(function() {
+            $scope.initHisto(ticketId);
+        });
+        if($scope.userIsLocalAdmin($scope.ticket) === true) {
 			$scope.ticket.getBugTrackerIssue();
 		}
 	};
@@ -192,6 +198,33 @@ function SupportController($scope, template, model, route, $location, orderByFil
         window.location.hash = '/ticket/' + ticketId;
     };
 
+    // called when opening ticket
+    $scope.initHisto = function(ticketId) {
+        model.getEvents(ticketId, function(result) {
+            template.open('histo-ticket', 'histo-ticket');
+            $scope.events = result;
+
+            $scope.events.forEach(function (event){
+                var comment = {};
+                comment.owner = event.user_id;
+                comment.owner_name = event.username;
+                comment.created = event.event_date;
+                comment.content = event.event;
+                comment.status = $scope.getStatusLabel(event.status);
+                comment.isHistory = true;
+                $scope.ticket.comments.push(comment);
+            });
+
+            $scope.ticketHisto = ticketId;
+            $scope.$apply();
+            //$scope.ticketLib = ticket.subject;
+        }, function (e) {
+            $scope.processingData = false;
+            validationError(e);
+        });
+    };
+
+    // called when opening history view
     $scope.showHisto = function(ticket, ticketId) {
         model.getEvents(ticketId, function(result) {
             template.open('histo-ticket', 'histo-ticket');
@@ -269,7 +302,8 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	
 	$scope.cancelCreateTicket = function() {
 		template.open('main', 'list-tickets');
-	};
+        template.open('filters', 'filters');
+    };
 	
 	/*
 	 * Create a "protected" copy for each "non protected" attachment.
@@ -348,11 +382,11 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			return ticket.id === $scope.ticket.id;
 		});
 		template.open('main', 'edit-ticket');
-	};
-	
+    };
+
 	$scope.updateTicket = function() {
 		$scope.editedTicket.processing = true;
-		
+
 		if (!$scope.editedTicket.subject || $scope.editedTicket.subject.trim().length === 0){
 			notify.error('support.ticket.validation.error.subject.is.empty');
 			$scope.editedTicket.processing = false;
@@ -375,8 +409,9 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			$scope.editedTicket.processing = false;
 			return;
 		}
-		
-		// check that the "new" attachments have not already been saved for the current ticket 
+
+
+        // check that the "new" attachments have not already been saved for the current ticket
 		if($scope.ticket.newAttachments && $scope.ticket.newAttachments.length > 0) {
 			var attachmentsIds = $scope.ticket.attachments.pluck('document_id');
 			var newAttachmentsInDuplicate = [];
@@ -407,7 +442,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		
 		$scope.createProtectedCopies($scope.editedTicket, false, function() {
 			$scope.ticket = $scope.editedTicket;
-			
+
 			$scope.ticket.updateTicket($scope.ticket, function() {
 				if($scope.ticket.newAttachments && $scope.ticket.newAttachments.length > 0) {
 					$scope.ticket.getAttachments();
@@ -416,10 +451,13 @@ function SupportController($scope, template, model, route, $location, orderByFil
 					}
 				}
 				$scope.ticket.newAttachments = [];
-				
-				if($scope.ticket.newComment && $scope.ticket.newComment.length > 0) {
-					$scope.ticket.getComments();
-				}
+
+                // clean the collection and refill (either comment or histo can be added).
+                $scope.ticket.comments.slice(0, $scope.ticket.comments.length + 1);
+                $scope.ticket.getComments(function() {
+                    $scope.initHisto($scope.ticket.id);
+                });
+
 				$scope.ticket.newComment = '';
 				$scope.ticket.processing = false;
 				
@@ -440,6 +478,10 @@ function SupportController($scope, template, model, route, $location, orderByFil
 				$scope.isViewingEscalatedTicket());
 	};
 	
+    $scope.isCreating = function() {
+        return (template.contains('main', 'create-ticket'));
+    }
+
 	$scope.isViewingEscalatedTicket = function() {
 		return template.contains('main', 'view-bugtracker-issue');
 	};

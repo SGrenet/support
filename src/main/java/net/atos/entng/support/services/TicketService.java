@@ -32,7 +32,7 @@ import fr.wseduc.webutils.Either;
 
 public interface TicketService extends CrudService {
 
-	public void createTicket(JsonObject ticket, JsonArray attachments, UserInfos user, Handler<Either<String, JsonObject>> handler);
+	public void createTicket(JsonObject ticket, JsonArray attachments, UserInfos user, String locale, Handler<Either<String, JsonObject>> handler);
 
 	public void updateTicket(String id, JsonObject data, UserInfos user,
 			Handler<Either<String, JsonObject>> handler);
@@ -58,6 +58,8 @@ public interface TicketService extends CrudService {
     public void updateEventCount(String ticketId, Handler<Either<String, JsonObject>> handler);
 
     public void createTicketHisto(String ticketId, String event, int status, String userid, Handler<Either<String, JsonObject>> handler);
+
+    public void getTicketFromIssueId(String issueId, Handler<Either<String, JsonObject>> handler);
 
 	public void getLastIssuesUpdate(Handler<Either<String, JsonArray>> handler);
 
