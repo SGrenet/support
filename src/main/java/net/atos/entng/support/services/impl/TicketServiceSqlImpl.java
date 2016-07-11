@@ -30,7 +30,7 @@ import fr.wseduc.webutils.http.Renders;
 import net.atos.entng.support.enums.BugTracker;
 import net.atos.entng.support.enums.EscalationStatus;
 import net.atos.entng.support.enums.TicketStatus;
-import net.atos.entng.support.services.TicketService;
+import net.atos.entng.support.services.TicketServiceSql;
 
 import org.entcore.common.service.impl.SqlCrudService;
 import org.entcore.common.sql.SqlStatementsBuilder;
@@ -45,7 +45,7 @@ import fr.wseduc.webutils.Either;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.logging.impl.LoggerFactory;
 
-public class TicketServiceSqlImpl extends SqlCrudService implements TicketService {
+public class TicketServiceSqlImpl extends SqlCrudService implements TicketServiceSql {
 
 	private final static String UPSERT_USER_QUERY = "SELECT support.merge_users(?,?)";
     protected static final Logger log = LoggerFactory.getLogger(Renders.class);
@@ -528,7 +528,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
      * @param handler
      */
     public void listEvents(String ticketId, Handler<Either<String, JsonArray>> handler) {
-        String query = "SELECT username, event, status, event_date, user_id FROM support.tickets_histo th " +
+        String query = "SELECT username, event, status, event_date, user_id, event_type FROM support.tickets_histo th " +
                     " left outer join support.users u on u.id = th.user_id " +
                     " WHERE ticket_id = ? ";
         JsonArray values = new JsonArray().add(parseId(ticketId));
@@ -556,17 +556,24 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
      * @param event : description of the event
      * @param status : status after the event
      * @param userid : user that made de creation / modification
+     * @param eventType : 1 : new ticket /
+     *                    2 : ticket updated /
+     *                    3 : new comment /
+     *                    4 : ticket escalated to bug-tracker /
+     *                    5 : new comment from bug-tracker /
+     *                    6 : bug-tracker updated.
      * @param handler
      */
-    public void createTicketHisto(String ticketId, String event, int status, String userid, Handler<Either<String, JsonObject>> handler) {
-        String query = "INSERT INTO support.tickets_histo( ticket_id, event, event_date, status, user_id) "
-                + " values( ?, ?, current_timestamp, ?, ? )";
+    public void createTicketHisto(String ticketId, String event, int status, String userid, int eventType, Handler<Either<String, JsonObject>> handler) {
+        String query = "INSERT INTO support.tickets_histo( ticket_id, event, event_date, status, user_id, event_type) "
+                + " values( ?, ?, current_timestamp, ?, ?, ? )";
 
         JsonArray values = new JsonArray()
                 .add(parseId(ticketId))
                 .add(event)
                 .add(status)
-                .add(userid);
+                .add(userid)
+                .add(eventType);
 
         sql.prepared(query, values, validUniqueResultHandler(handler));
     }

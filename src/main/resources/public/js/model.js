@@ -56,6 +56,15 @@ model.updateTicketStatus = function(itemArray, newStatus, cb, cbe){
     }.bind(this));
 }
 
+model.isBugTrackerCommDirect = function(callback){
+    http().get('/support/isBugTrackerCommDirect').done(function(result){
+        if(typeof callback === 'function'){
+            callback(result);
+        }
+    }.bind(this));
+};
+
+
 Ticket.prototype.createTicket = function(data, callback) {
 	http().postJson('/support/ticket', data).done(function(result){
 		this.updateData(result);

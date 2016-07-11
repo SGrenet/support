@@ -41,6 +41,7 @@
 								'order-by': (sort.expression === 'owner_name' && sort.reverse === true)}">
 						<i18n>support.ticket.table.author</i18n>
 					</th>
+                    <th class="one" ><i18n>support.label.profil</i18n></th>
 					<th class="one" ng-click="switchSortBy('modified')"
 					ng-class="{'order-by-reversed': (sort.expression === 'modified' && sort.reverse === false),
 								'order-by': (sort.expression === 'modified' && sort.reverse === true)}">
@@ -56,7 +57,6 @@
 								'order-by': (sort.expression === 'last_issue_update' && sort.reverse === true)}">
 						<i18n>support.ticket.table.last.update.of.escalated.ticket</i18n>
 					</th>
-                    <th class="one" ><i18n>support.label.histo</i18n></th>
 				</tr>
 				</thead>
 			<tbody>
@@ -67,18 +67,13 @@
 					<td ng-class="userIsLocalAdmin() && atLeastOneTicketEscalated() ? three : four" ng-click="viewTicket(ticket.id)"><b>[[ticket.subject]]</b>&nbsp;[[ticket.short_desc]]
                         <span ng-show="ticket.short_desc.length >= 99">...</span></td>
 					<td class="one" ng-click="viewTicket(ticket.id)">[[getCategoryLabel(ticket.category)]]</td>
-					<td class="one" ng-click="viewTicket(ticket.id)">[[ticket.owner_name]]</td>
+					<td class="one" ng-click="viewTicket(ticket.id)"><a href="/userbook/annuaire#[[ticket.owner]]">[[ticket.owner_name]]</a></td>
+                    <td class="one" >[[ticket.profile]]</td>
 					<td class="one" ng-click="viewTicket(ticket.id)">[[formatDate(ticket.modified)]]</td>
                     <td class="one" ng-click="viewTicket(ticket.id)">[[ticket.event_count]]</td>
 					<td class="one" ng-if="userIsLocalAdmin() && atLeastOneTicketEscalated()">
 						<span ng-if="ticket.last_issue_update">[[formatDate(ticket.last_issue_update)]]</span>
 					</td>
-                    <td class="one" >
-                        <a ng-click="showHisto([[ticket]], [[ticket.id]])"  ng-show="[[ticket.event_count]] > 0">
-                            <i18n>support.view.histo</i18n>
-                        </a>
-
-                    </td>
 				</tr>
 			</tbody>
 		</table>

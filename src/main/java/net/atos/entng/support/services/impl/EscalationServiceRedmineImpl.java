@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import fr.wseduc.webutils.Server;
 import net.atos.entng.support.enums.BugTracker;
 import net.atos.entng.support.services.EscalationService;
-import net.atos.entng.support.services.TicketService;
+import net.atos.entng.support.services.TicketServiceSql;
 import net.atos.entng.support.services.UserService;
 
 import org.entcore.common.bus.WorkspaceHelper;
@@ -77,7 +77,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 	private final WorkspaceHelper wksHelper;
 	private final TimelineHelper notification;
-	private final TicketService ticketService;
+	private final TicketServiceSql ticketServiceSql;
 	private final UserService userService;
 	private final Storage storage;
 	private final Sql sql = Sql.getInstance();
@@ -105,7 +105,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 
 	public EscalationServiceRedmineImpl(final Vertx vertx, final Container container,
-			final TicketService ts, final UserService us, Storage storage) {
+                                        final TicketServiceSql ts, final UserService us, Storage storage) {
 
 		JsonObject config = container.config();
 		log = container.logger();
@@ -113,7 +113,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		httpClient = vertx.createHttpClient();
 		wksHelper = new WorkspaceHelper(eb, storage);
 		notification = new TimelineHelper(vertx, eb, container);
-		ticketService = ts;
+		ticketServiceSql = ts;
 		userService = us;
 		this.storage = storage;
 
@@ -175,7 +175,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 		log.info("[Support] Data will be pulled from Redmine every "+delayInMinutes+" minutes");
 		final Long delay = TimeUnit.MILLISECONDS.convert(delayInMinutes, TimeUnit.MINUTES);
 
-		ticketService.getLastIssuesUpdate(new Handler<Either<String, JsonArray>>() {
+		ticketServiceSql.getLastIssuesUpdate(new Handler<Either<String, JsonArray>>() {
 			@Override
 			public void handle(Either<String, JsonArray> event) {
 				final String lastUpdate;
@@ -592,7 +592,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 						}
 
 						// Step 2) : given a list of issue ids in Redmine, get issue ids that exist in current ENT and their attachments' ids
-						ticketService.listExistingIssues(issueIds, new Handler<Either<String,JsonArray>>() {
+						ticketServiceSql.listExistingIssues(issueIds, new Handler<Either<String,JsonArray>>() {
 							@Override
 							public void handle(Either<String, JsonArray> event) {
 								if(event.isLeft()) {
@@ -628,7 +628,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 													final JsonObject issue = getIssueEvent.right().getValue();
 
 													// Step 3b) : update issue in postgresql
-													ticketService.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
+													ticketServiceSql.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
 														@Override
 														public void handle(final Either<String, JsonObject> updateIssueEvent) {
 															if(updateIssueEvent.isRight()) {
@@ -747,7 +747,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 								attachmentMetaData.putNumber("id_in_bugtracker", attachmentIdInRedmine);
 
 								// store attachment's metadata in postgresql
-								ticketService.insertIssueAttachment(issueId, attachmentMetaData, new Handler<Either<String, JsonArray>>() {
+								ticketServiceSql.insertIssueAttachment(issueId, attachmentMetaData, new Handler<Either<String, JsonArray>>() {
 									@Override
 									public void handle(Either<String, JsonArray> event) {
 										if (event.isRight()) {
@@ -779,7 +779,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 //					newStatusId.intValue() == redmineClosedStatusId.intValue())) {
 
 				// get school_id and ticket_id
-				ticketService.getTicketIdAndSchoolId(issueId, new Handler<Either<String,JsonObject>>() {
+				ticketServiceSql.getTicketIdAndSchoolId(issueId, new Handler<Either<String,JsonObject>>() {
 					@Override
 					public void handle(Either<String, JsonObject> event) {
 						if(event.isLeft()) {
@@ -841,12 +841,12 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 											notification.notifyTimeline(null, "support." + notificationName, null, recipients, null, params);
                                             // Historization
-                                            ticketService.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.bug.tracker.updated", ticket.getString("locale")),
-                                                ticket.getInteger("status"), null, new Handler<Either<String, JsonObject>>() {
+                                            ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.bug.tracker.updated", ticket.getString("locale")),
+                                                ticket.getInteger("status"), null, 6, new Handler<Either<String, JsonObject>>() {
                                                     @Override
                                                     public void handle(Either<String, JsonObject> res) {
                                                         if (res.isRight()) {
-                                                            ticketService.updateEventCount(ticket.getInteger("id").toString(), new Handler<Either<String, JsonObject>>() {
+                                                            ticketServiceSql.updateEventCount(ticket.getInteger("id").toString(), new Handler<Either<String, JsonObject>>() {
                                                                 @Override
                                                                 public void handle(Either<String, JsonObject> res) {
                                                                     if (res.isLeft()) {

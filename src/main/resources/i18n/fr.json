@@ -58,6 +58,7 @@
     "support.ticket.histo.escalate":"Demande transmise au support",
     "support.ticket.histo.modification":"Modification",
     "support.ticket.id": "Identifiant",
+    "support.ticket.infoRedmine": "Ticket escaladé",
     "support.ticket.modification.date": "Dernière modification",
     "support.ticket.new.comment": "Nouveau commentaire",
     "support.ticket.notfound.or.unauthorized": "La demande de support n'existe pas, a été supprimée, ou vous n'avez pas les droits pour y accéder.",
@@ -93,7 +94,7 @@
     "support.toggle.change.to":"Passer à l'état&nbsp;",
     "support.category.other": "Autre",
     "support.view.histo":"Voir l'historique",
-    "support.label.histo":"Historique du ticket&nbsp;",
+    "support.label.profil":"Profil&nbsp;",
     "support.label.user":"Utilisateur",
     "support.label.date":"Date",
     "support.label.event":"Evènement",
@@ -116,5 +117,10 @@
     "blog": "Blog",
     "workspaceworkspace": "Espace documentaire",
     "community": "Communautés",
-    "other" : "Autre"
+    "other" : "Autre",
+    "Guest": "Invité",
+    "Relative": "Parent",
+    "Personnel": "Personnel",
+    "Student": "Élève",
+    "Teacher": "Enseignant"
 }

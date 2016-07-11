@@ -1,86 +1,112 @@
 <article class="twelve cell details">
-	<div class="row">
-		<label class="two cell"><i18n>support.ticket.id</i18n></label>
-		<span class="four cell">[[ticket.id]]</span>
-		<label class="three cell"><i18n>support.ticket.status</i18n></label>
-		<span class="three cell">[[getStatusLabel(ticket.status)]]</span>
-	</div>
-	<div class="row">
-		<label class="two cell"><i18n>support.ticket.author</i18n></label>
-		<span class="four cell">[[ticket.owner_name]]</span>
-		<label class="three cell"><i18n>support.ticket.creation.date</i18n></label>
-		<span class="three cell">[[formatDate(ticket.created)]]</span>
-	</div>
-	<div class="row">
-		<label class="two cell"><i18n>support.ticket.school</i18n></label>
-		<span class="four cell">[[getSchoolName(ticket.school_id)]]</span>
-		<label class="three cell"><i18n>support.ticket.modification.date</i18n></label>
-		<span class="three cell">[[formatDate(ticket.modified)]]</span>
-	</div>
+    <div class="row">
+        <label class="two cell"><i18n>support.ticket.id</i18n></label>
+        <span class="four cell">[[ticket.id]]</span>
+        <label class="three cell"><i18n>support.ticket.status</i18n></label>
+        <span class="three cell">[[getStatusLabel(ticket.status)]]</span>
+    </div>
+    <div class="row">
+        <label class="two cell"><i18n>support.ticket.author</i18n></label>
+        <span class="four cell"> <a href="/userbook/annuaire#[[ticket.owner]]">[[ticket.owner_name]]</a></span>
+        <label class="three cell"><i18n>support.ticket.creation.date</i18n></label>
+        <span class="three cell">[[formatDate(ticket.created)]]</span>
+    </div>
+    <div class="row">
+        <label class="two cell"><i18n>support.ticket.school</i18n></label>
+        <span class="four cell">[[getSchoolName(ticket.school_id)]]</span>
+        <label class="three cell"><i18n>support.ticket.modification.date</i18n></label>
+        <span class="three cell">[[formatDate(ticket.modified)]]</span>
+    </div>
 
-	<div class="row">
-		<label class="two cell"><i18n>support.ticket.category</i18n></label>
-		<span class="four cell">[[getCategoryLabel(ticket.category)]]</span>
-		<div class="six cell" ng-if="userIsLocalAdmin(ticket) === true">
-			<div loading-panel="escalation-request" ng-if="isEscalationActivated === true">
-				<a ng-if="ticket.escalation_status === escalationStatuses.NOT_DONE" ng-click="escalateTicket()">
-					<i18n>support.escalate.ticket</i18n>
-				</a>
-			</div>
+    <div class="row">
+        <label class="two cell"><i18n>support.ticket.category</i18n></label>
+        <span class="four cell">[[getCategoryLabel(ticket.category)]]</span>
+        <div class="six cell" ng-if="userIsLocalAdmin(ticket) === true">
+            <div loading-panel="escalation-request" ng-if="isEscalationActivated === true">
+                <a ng-if="ticket.escalation_status === escalationStatuses.NOT_DONE" ng-click="escalateTicket()">
+                    <i18n>support.escalate.ticket</i18n>
+                </a>
+            </div>
 			<span ng-if="ticket.escalation_status === escalationStatuses.IN_PROGRESS && isEscalationActivated === true">
 				<i18n>support.escalation.in.progress</i18n>
 			</span>
-			<!-- Local administrator can see escalated ticket, even if escalation has been desactivated -->
-			<a ng-if="ticket.escalation_status === escalationStatuses.SUCCESSFUL" ng-click="openBugTrackerIssue()">
-				<i18n>support.open.escalated.ticket</i18n>
-			</a>
+            <!-- Local administrator can see escalated ticket, even if escalation has been desactivated -->
+            <label class="six cell" ng-if="ticket.escalation_status === escalationStatuses.SUCCESSFUL && userIsLocalAdmin(ticket) === true"><i18n>support.ticket.infoRedmine</i18n></label>
+            <span class="three cell" ng-if="ticket.escalation_status === escalationStatuses.SUCCESSFUL && userIsLocalAdmin(ticket) === true">
+                <b>[[ticket.issue.id]]</b>&nbsp;([[ticket.issue.status.name]])
+            </span>
 			<span ng-if="ticket.escalation_status === escalationStatuses.FAILED && isEscalationActivated === true">
 				<div loading-panel="escalation-request">
 					<i18n>support.escalation.failed</i18n>&nbsp;
 					<a ng-click="escalateTicket()"><i18n>support.retry.escalation</i18n></a>
 				</div>
 			</span>
-		</div>
-	</div>
-	
-	<div class="row">
-		<label class="two cell"><i18n>support.ticket.subject</i18n></label>
-		<span class="four cell">[[ticket.subject]]</span>
+        </div>
         <div class="six cell">
-            <a ng-click="showHisto([[ticket]], [[ticket.id]])">
-                <i18n>support.view.histo</i18n>
-            </a>
+            <span class="six cell" ng-if="ticket.escalation_status === escalationStatuses.SUCCESSFUL && !userIsLocalAdmin(ticket) === true">
+                <i18n>support.ticket.escalation.successful</i18n>&nbsp;
+            </span>
         </div>
     </div>
-	<div class="row">
-		<label class="two cell"><i18n>support.ticket.description</i18n></label>
-		<div class="with-newlines ten cell">[[ticket.description]]</div>
-		
-		<div class="ten cell right-magnet" ng-if="ticket.attachments !== undefined && !ticket.attachments.isEmpty()">
-			<ul>
-				<li class="row" ng-repeat="attachment in ticket.attachments.all">
-					<a href="/workspace/document/[[attachment.document_id]]">[[attachment.name]]</a>
-					&nbsp;<em>[[attachment.owner_name]] <i18n>support.on</i18n> [[formatDate(attachment.created)]]</em>
-				</li>
-			</ul>
-		</div>
-	</div>
+
+    <div class="row">
+        <label class="two cell"><i18n>support.ticket.subject</i18n></label>
+        <span class="four cell">[[ticket.subject]]</span>
+        <div class="six cell">
+            <a ng-if="ticket.escalation_status === escalationStatuses.SUCCESSFUL && !isBugTrackerCommDirect" ng-click="openBugTrackerIssue()">
+                <i18n>support.open.escalated.ticket</i18n>
+            </a>
+
+        </div>
+    </div>
+    <div class="row">
+        <label class="two cell"><i18n>support.ticket.description</i18n></label>
+        <div class="with-newlines ten cell">[[ticket.description]]</div>
+
+        <div class="ten cell right-magnet" ng-if="ticket.attachments !== undefined && !ticket.attachments.isEmpty()">
+            <ul>
+                <li class="row" ng-repeat="attachment in ticket.attachments.all">
+                    <a href="/workspace/document/[[attachment.document_id]]">[[attachment.name]]</a>
+                    &nbsp;<em>[[attachment.owner_name]] <i18n>support.on</i18n> [[formatDate(attachment.created)]]</em>
+                </li>
+            </ul>
+        </div>
+    </div>
     <br><br>
-	<div class="row" ng-if="ticket.comments !== undefined && !ticket.comments.isEmpty()">
-		<div class="row" ng-repeat="comment in ticket.comments.all | orderBy: ['created']">
-            <article class="comment reduce-block-eight" ng-if="!comment.isHistory">
-				<a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
-				<em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
-				<p class="with-newlines">[[comment.content]]</p>
-			</article>
-            <li class="row" ng-if="comment.isHistory">
-                <a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
-                <em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
-                <br>[[comment.content]].<br>
-                <i18n>support.ticket.status.histo</i18n>
-                <b>[[comment.status]]</b>.
-            </li><br>
-		</div>
-	</div>
+    <div class="row" ng-if="ticket.comments !== undefined && !ticket.comments.isEmpty()">
+        <div class="cell-no-float notification" ng-repeat="comment in ticket.comments.all | orderBy: ['created']">
+            <div style="display:table-cell" ng-switch="comment.isHistory">
+                <div ng-switch-when="true">
+                    <i ng-switch="comment.type">
+                        <i ng-switch-when="1" class="ticketnew table-cell-left" style="display:table-cell"></i>
+                        <i ng-switch-when="2" class="ticketinfo table-cell-left" style="display:table-cell"></i>
+                        <i ng-switch-when="4" class="redmineinfo table-cell-left" style="display:table-cell"></i>
+                        <i ng-switch-when="5" class="redminemsg table-cell-left" style="display:table-cell"></i>
+                        <i ng-switch-when="6" class="redmineinfo table-cell-left" style="display:table-cell"></i>
+                    </i>
+                </div>
+                <div ng-switch-default>
+                    <i class="ticketmsg table-cell-left" style="display:table-cell"></i>
+                </div>
+            </div>
+
+            <div class="table-cell" style="display:table-cell; vertical-align:top; padding-left:10px">
+                <article class="comment reduce-block-eight" ng-if="!comment.isHistory">
+                    <a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
+                    <em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
+                    <p class="with-newlines">[[comment.content]]</p>
+                </article>
+                <div class="row" ng-if="comment.isHistory">
+                    <a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
+                    <em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
+                    <br>[[comment.content]].<br>
+                    <div ng-if="comment.status">
+                        <i18n>support.ticket.status.histo</i18n>
+                        <b>[[comment.status]]</b>.
+                    </div>
+                </div><br>
+            </div>
+        </div>
+    </div>
 </article>
 

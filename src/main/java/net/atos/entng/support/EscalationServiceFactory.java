@@ -24,7 +24,7 @@ import org.vertx.java.platform.Container;
 
 import net.atos.entng.support.enums.BugTracker;
 import net.atos.entng.support.services.EscalationService;
-import net.atos.entng.support.services.TicketService;
+import net.atos.entng.support.services.TicketServiceSql;
 import net.atos.entng.support.services.UserService;
 import net.atos.entng.support.services.impl.EscalationServiceRedmineImpl;
 
@@ -32,8 +32,8 @@ import net.atos.entng.support.services.impl.EscalationServiceRedmineImpl;
 public class EscalationServiceFactory {
 
 	public static EscalationService makeEscalationService(final BugTracker bugTracker,
-			final Vertx vertx, final Container container, final TicketService ts, final UserService us,
-			Storage storage) {
+                                                          final Vertx vertx, final Container container, final TicketServiceSql ts, final UserService us,
+                                                          Storage storage) {
 
 		switch (bugTracker) {
 			case REDMINE:

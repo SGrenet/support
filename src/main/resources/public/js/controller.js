@@ -33,6 +33,13 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.tickets = model.tickets;
         $scope.events = model.events;
 
+        // but-tracker management : direct communication between user and bt ?
+        model.isBugTrackerCommDirect(function(result){
+            if(result && typeof result.isBugTrackerCommDirect === 'boolean') {
+                $scope.isBugTrackerCommDirect = result.isBugTrackerCommDirect;
+            }
+        });
+
 		// Categories
 		var apps = _.filter(model.me.apps, function(app) { 
 			return app.address && app.name && app.address.length > 0 && app.name.length > 0;
@@ -112,6 +119,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
                                                 $scope.display.filters.all;
             }
         };
+
     };
 
 	$scope.filterByStatus = function(item) {
@@ -212,8 +220,34 @@ function SupportController($scope, template, model, route, $location, orderByFil
                 comment.content = event.event;
                 comment.status = $scope.getStatusLabel(event.status);
                 comment.isHistory = true;
+                comment.type = event.event_type;
                 $scope.ticket.comments.push(comment);
             });
+
+            // adding the comments from bug tracker.
+            if( $scope.isBugTrackerCommDirect ){
+                if( $scope.ticket.issue.journals && $scope.ticket.issue.journals.length > 0 ) {
+                    //get the bug tracker author name
+                    $scope.bugTrackerAuthor = $scope.ticket.issue.author.name;
+                    $scope.ticket.issue.journals.forEach( function( btComment) {
+                       if( btComment.notes != "" ) {
+                           //alert(btComment.notes);
+                          // alert(btComment.created_on);
+                           if(btComment.user.name != $scope.bugTrackerAuthor){
+                               var comment = {};
+                               var time = new Date(btComment.created_on);
+                               var tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
+                               var localISOTime = (new Date(time - tzoffset)).toISOString().slice(0,-1);
+                               comment.created = localISOTime;
+                               comment.content = btComment.notes;
+                               comment.type = 5;
+                               comment.isHistory = true;
+                               $scope.ticket.comments.push(comment);
+                           };
+                       }
+                    });
+                }
+            }
 
             $scope.ticketHisto = ticketId;
             $scope.$apply();

@@ -26,7 +26,7 @@ import net.atos.entng.support.controllers.TicketController;
 import net.atos.entng.support.enums.BugTracker;
 import net.atos.entng.support.events.SupportSearchingEvents;
 import net.atos.entng.support.services.EscalationService;
-import net.atos.entng.support.services.TicketService;
+import net.atos.entng.support.services.TicketServiceSql;
 import net.atos.entng.support.services.UserService;
 import net.atos.entng.support.services.impl.TicketServiceSqlImpl;
 import net.atos.entng.support.services.impl.UserServiceDirectoryImpl;
@@ -42,7 +42,8 @@ import org.vertx.java.core.eventbus.EventBus;
 public class Support extends BaseServer {
 
 	public final static String SUPPORT_NAME = "SUPPORT";
-	private static boolean escalationActivated;
+    private static boolean escalationActivated;
+    public static boolean bugTrackerCommDirect;
 
 	@Override
 	public void start() {
@@ -54,18 +55,20 @@ public class Support extends BaseServer {
 		final BugTracker bugTrackerType = BugTracker.REDMINE; // TODO : read bugTracker from module configuration
 		final Storage storage = new StorageFactory(vertx, config).getStorage();
 
-		TicketService ticketService = new TicketServiceSqlImpl(bugTrackerType);
+		TicketServiceSql ticketServiceSql = new TicketServiceSqlImpl(bugTrackerType);
 		UserService userService = new UserServiceDirectoryImpl(eb);
 
+        // Indicates if the user can have direct communication with redmine, or if the admin has to transfer the informations.
+        bugTrackerCommDirect = config.getBoolean("bug-tracker-comm-direct", true);
 		// Escalation to a remote bug tracker (e.g. Redmine) is desactivated by default
 		escalationActivated = config.getBoolean("activate-escalation", false);
 		if(!escalationActivated) {
 			log.info("[Support] Escalation is desactivated");
 		}
 		EscalationService escalationService = escalationActivated ?
-				EscalationServiceFactory.makeEscalationService(bugTrackerType, vertx, container, ticketService, userService, storage) : null;
+				EscalationServiceFactory.makeEscalationService(bugTrackerType, vertx, container, ticketServiceSql, userService, storage) : null;
 
-        TicketController ticketController = new TicketController(ticketService, escalationService, userService, storage);
+        TicketController ticketController = new TicketController(ticketServiceSql, escalationService, userService, storage);
 		addController(ticketController);
 
 		SqlConf commentSqlConf = SqlConfs.createConf(CommentController.class.getName());

@@ -20,27 +20,23 @@
 package net.atos.entng.support.controllers;
 
 import static net.atos.entng.support.Support.SUPPORT_NAME;
+import static net.atos.entng.support.Support.bugTrackerCommDirect;
 import static net.atos.entng.support.enums.TicketStatus.*;
 import static org.entcore.common.http.response.DefaultResponseHandler.arrayResponseHandler;
-import static org.entcore.common.http.response.DefaultResponseHandler.leftToResponse;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import net.atos.entng.support.Support;
-import net.atos.entng.support.enums.EscalationStatus;
 import net.atos.entng.support.filters.LocalAdmin;
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.EscalationService;
-import net.atos.entng.support.services.TicketService;
+import net.atos.entng.support.services.TicketServiceNeo4j;
+import net.atos.entng.support.services.TicketServiceSql;
 import net.atos.entng.support.services.UserService;
 
-import net.atos.entng.support.services.impl.TicketServiceSqlImpl;
+import net.atos.entng.support.services.impl.TicketServiceNeo4jImpl;
 import org.entcore.common.controller.ControllerHelper;
 import org.entcore.common.http.filter.ResourceFilter;
 import org.entcore.common.storage.Storage;
@@ -73,13 +69,13 @@ public class TicketController extends ControllerHelper {
     private static final String TICKET_UPDATED_EVENT_TYPE = SUPPORT_NAME + "_TICKET_UPDATED";
     private static final int SUBJECT_LENGTH_IN_NOTIFICATION = 50;
 
-    private final TicketService ticketService;
+    private final TicketServiceSql ticketServiceSql;
     private final UserService userService;
     private final EscalationService escalationService;
     private final Storage storage;
 
-    public TicketController(TicketService ts, EscalationService es, UserService us, Storage storage) {
-        ticketService = ts;
+    public TicketController(TicketServiceSql ts, EscalationService es, UserService us, Storage storage) {
+        ticketServiceSql = ts;
         userService = us;
         escalationService = es;
         this.storage = storage;
@@ -105,7 +101,7 @@ public class TicketController extends ControllerHelper {
                             ticket.putNumber("event_count", 1);
                             JsonArray attachments = ticket.getArray("attachments", null);
                             ticket.removeField("attachments");
-                            ticketService.createTicket(ticket, attachments, user, I18n.acceptLanguage(request), getCreateOrUpdateTicketHandler(request, user, ticket, null));
+                            ticketServiceSql.createTicket(ticket, attachments, user, I18n.acceptLanguage(request), getCreateOrUpdateTicketHandler(request, user, ticket, null));
                         }
                     });
                 } else {
@@ -128,8 +124,8 @@ public class TicketController extends ControllerHelper {
                         if (ticketId == null) {
                             notifyTicketCreated(request, user, response, ticket);
                             response.putString("owner_name", user.getUsername());
-                            ticketService.createTicketHisto(response.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.creation", I18n.acceptLanguage(request)),
-                                    ticket.getInteger("status"), user.getUserId(), new Handler<Either<String, JsonObject>>() {
+                            ticketServiceSql.createTicketHisto(response.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.creation", I18n.acceptLanguage(request)),
+                                    ticket.getInteger("status"), user.getUserId(), 1, new Handler<Either<String, JsonObject>>() {
                                         @Override
                                         public void handle(Either<String, JsonObject> res) {
                                             if (res.isLeft()) {
@@ -139,7 +135,7 @@ public class TicketController extends ControllerHelper {
                                     });
                             renderJson(request, response, 200);
                         } else {
-                            ticketService.updateEventCount(ticketId, new Handler<Either<String, JsonObject>>() {
+                            ticketServiceSql.updateEventCount(ticketId, new Handler<Either<String, JsonObject>>() {
                                 @Override
                                 public void handle(Either<String, JsonObject> res) {
                                     if (res.isLeft()) {
@@ -149,8 +145,8 @@ public class TicketController extends ControllerHelper {
                             });
                             // we only historize if no comment has been added. If there is a comment, it will appear in the history
                             if( ticket.getField("newComment") == null || "".equals(ticket.getField("newComment")) ) {
-                                ticketService.createTicketHisto(ticketId, I18n.getInstance().translate("support.ticket.histo.modification", I18n.acceptLanguage(request)),
-                                        ticket.getInteger("status"), user.getUserId(), new Handler<Either<String, JsonObject>>() {
+                                ticketServiceSql.createTicketHisto(ticketId, I18n.getInstance().translate("support.ticket.histo.modification", I18n.acceptLanguage(request)),
+                                        ticket.getInteger("status"), user.getUserId(), 2,  new Handler<Either<String, JsonObject>>() {
                                             @Override
                                             public void handle(Either<String, JsonObject> res) {
                                                 if (res.isLeft()) {
@@ -158,6 +154,24 @@ public class TicketController extends ControllerHelper {
                                                 }
                                             }
                                         });
+                            } else {
+                                // if option activated, we can send the comment directly to the bug-tracker
+                                if( bugTrackerCommDirect ) {
+                                    ticketServiceSql.getIssue(ticketId, new Handler<Either<String, JsonArray>>() {
+                                        @Override
+                                        public void handle(Either<String, JsonArray> res) {
+                                            if (res.isRight()) {
+                                                JsonObject issue = res.right().getValue().get(0);
+                                                Long id = issue.getLong("id");
+                                                JsonObject comment = new JsonObject();
+                                                comment.putString("content", ticket.getField("newComment").toString());
+                                                sendIssueComment(user, comment, id.toString(), request);
+                                            } else if (res.isLeft()) {
+                                                log.error("No associated issue found");
+                                            }
+                                        }
+                                    });
+                                }
                             }
                             notifyTicketUpdated(request, user, response);
                             JsonArray attachments = ticket.getArray("attachments");
@@ -273,7 +287,7 @@ public class TicketController extends ControllerHelper {
                         @Override
                         public void handle(JsonObject ticket) {
                             // TODO : do not authorize description update if there is a comment
-                            ticketService.updateTicket(ticketId, ticket, user,
+                            ticketServiceSql.updateTicket(ticketId, ticket, user,
                                     getCreateOrUpdateTicketHandler(request, user, ticket, ticketId));
                             //notifyTicketUpdated(request, user, ticket);
                         }
@@ -299,7 +313,7 @@ public class TicketController extends ControllerHelper {
                     RequestUtils.bodyToJson(request, pathPrefix + "ticketUpdate", new Handler<JsonObject>() {
                         public void handle(JsonObject data) {
                             final List<Integer> ids = data.getArray("ids").toList();
-                            ticketService.updateTicketStatus(newStatus, ids, new Handler<Either<String, JsonObject>>() {
+                            ticketServiceSql.updateTicketStatus(newStatus, ids, new Handler<Either<String, JsonObject>>() {
                                 @Override
                                 public void handle(Either<String, JsonObject> event) {
                                     if (event.isRight()) {
@@ -396,9 +410,53 @@ public class TicketController extends ControllerHelper {
                 if (user != null) {
                     Map<String, UserInfos.Function> functions = user.getFunctions();
                     if (functions.containsKey(DefaultFunctions.ADMIN_LOCAL)) {
-                        ticketService.listTickets(user, arrayResponseHandler(request));
+                        ticketServiceSql.listTickets(user, new Handler<Either<String, JsonArray>>() {
+                            @Override
+                            public void handle(Either<String, JsonArray> event) {
+                                // getting the profile for users
+                                if( event.isRight()){
+                                    final JsonArray jsonListTickets = event.right().getValue();
+                                    final JsonArray listUserIds = new JsonArray();
+                                    // get list of unique user ids
+                                    for (Object ticket : jsonListTickets) {
+                                        if (!(ticket instanceof JsonObject)) continue;
+                                        String userId = ((JsonObject) ticket).getString("owner");
+                                        if( !listUserIds.contains(userId)){
+                                            listUserIds.addString(userId);
+                                        }
+                                    }
+                                    // get profiles from neo4j
+                                    TicketServiceNeo4jImpl ticketServiceNeo4j = new TicketServiceNeo4jImpl();
+                                    ticketServiceNeo4j.getUsersFromList(listUserIds, new Handler<Either<String, JsonArray>>() {
+                                        @Override
+                                        public void handle(Either<String, JsonArray> event) {
+                                            if( event.isRight()){
+                                                JsonArray listUsers = event.right().getValue();
+                                                // list of users got from neo4j
+                                                for( Object user : listUsers ) {
+                                                    if (!(user instanceof JsonObject)) continue;
+                                                    JsonObject jUser = (JsonObject)user;
+                                                    // traduction porfil
+                                                    String profil = jUser.getArray("n.profiles").get(0).toString();
+                                                    profil = I18n.getInstance().translate(profil, I18n.acceptLanguage(request));
+                                                    // iterator on tickets, to see if the ids match
+                                                    for( Object ticket : jsonListTickets) {
+                                                        if (!(ticket instanceof JsonObject)) continue;
+                                                        JsonObject jTicket = (JsonObject)ticket;
+                                                        if( jTicket.getString("owner").equals(jUser.getString("n.id"))) {
+                                                            jTicket.putString("profile", profil);
+                                                        }
+                                                    }
+                                                }
+                                                renderJson(request, jsonListTickets);
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        });
                     } else {
-                        ticketService.listMyTickets(user, arrayResponseHandler(request));
+                        ticketServiceSql.listMyTickets(user, arrayResponseHandler(request));
                     }
                 } else {
                     log.debug("User not found in session.");
@@ -417,6 +475,15 @@ public class TicketController extends ControllerHelper {
         renderJson(request, result);
     }
 
+    @Get("/isBugTrackerCommDirect")
+    @ApiDoc("Return true if communication with bug tracker is direct. False otherwise")
+    @SecuredAction(value = "support.escalation.activation.status", type = ActionType.AUTHENTICATED)
+    public void isBugTrackerCommDirect(final HttpServerRequest request) {
+        JsonObject result = new JsonObject().putBoolean("isBugTrackerCommDirect", bugTrackerCommDirect);
+        renderJson(request, result);
+    }
+
+
     @Post("/ticket/:id/escalate")
     @ApiDoc("Escalate ticket : the ticket is forwarded to an external bug tracker, a copy of the ticket is saved and will be regularly synchronized")
     @SecuredAction(value = "support.manager", type = ActionType.RESOURCE)
@@ -428,7 +495,7 @@ public class TicketController extends ControllerHelper {
             @Override
             public void handle(final UserInfos user) {
                 if (user != null) {
-                    ticketService.getTicketForEscalation(ticketId, getTicketForEscalationHandler(request, ticketId, user));
+                    ticketServiceSql.getTicketForEscalation(ticketId, getTicketForEscalationHandler(request, ticketId, user));
                 } else {
                     log.debug("User not found in session.");
                     unauthorized(request);
@@ -451,8 +518,8 @@ public class TicketController extends ControllerHelper {
                         return;
                     }
 
-                    ticketService.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.escalate", I18n.acceptLanguage(request)),
-                            ticket.getInteger("status"), user.getUserId(), new Handler<Either<String, JsonObject>>() {
+                    ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.escalate", I18n.acceptLanguage(request)),
+                            ticket.getInteger("status"), user.getUserId(), 4, new Handler<Either<String, JsonObject>>() {
                                 @Override
                                 public void handle(Either<String, JsonObject> res) {
                                     if (res.isLeft()) {
@@ -493,7 +560,7 @@ public class TicketController extends ControllerHelper {
                         public void handle(Either<String, JsonObject> getWholeIssueResponse) {
                             if (getWholeIssueResponse.isRight()) {
                                 final JsonObject wholeIssue = getWholeIssueResponse.right().getValue();
-                                ticketService.endSuccessfulEscalation(ticketId, wholeIssue, issueId, attachmentMap, user, new Handler<Either<String, JsonObject>>() {
+                                ticketServiceSql.endSuccessfulEscalation(ticketId, wholeIssue, issueId, attachmentMap, user, new Handler<Either<String, JsonObject>>() {
 
                                     @Override
                                     public void handle(Either<String, JsonObject> event) {
@@ -510,7 +577,7 @@ public class TicketController extends ControllerHelper {
                                 log.error("Error when trying to get bug tracker issue");
 
                                 // Update escalation status to successful (escalation succeeded, but data could not be saved in postgresql)
-                                ticketService.endSuccessfulEscalation(ticketId, new JsonObject(), issueId, attachmentMap, user, new Handler<Either<String, JsonObject>>() {
+                                ticketServiceSql.endSuccessfulEscalation(ticketId, new JsonObject(), issueId, attachmentMap, user, new Handler<Either<String, JsonObject>>() {
                                     @Override
                                     public void handle(Either<String, JsonObject> event) {
                                         if (event.isLeft()) {
@@ -524,7 +591,7 @@ public class TicketController extends ControllerHelper {
                     });
 
                 } else {
-                    ticketService.endFailedEscalation(ticketId, user, new Handler<Either<String, JsonObject>>() {
+                    ticketServiceSql.endFailedEscalation(ticketId, user, new Handler<Either<String, JsonObject>>() {
                         @Override
                         public void handle(Either<String, JsonObject> event) {
                             if (event.isLeft()) {
@@ -544,7 +611,7 @@ public class TicketController extends ControllerHelper {
     @ResourceFilter(LocalAdmin.class)
     public void getBugTrackerIssue(final HttpServerRequest request) {
         final String ticketId = request.params().get("id");
-        ticketService.getIssue(ticketId, arrayResponseHandler(request));
+        ticketServiceSql.getIssue(ticketId, arrayResponseHandler(request));
     }
 
     @Get("/gridfs/:id")
@@ -554,7 +621,7 @@ public class TicketController extends ControllerHelper {
     public void getBugTrackerAttachment(final HttpServerRequest request) {
         final String attachmentId = request.params().get("id");
 
-        ticketService.getIssueAttachmentName(attachmentId, new Handler<Either<String, JsonObject>>() {
+        ticketServiceSql.getIssueAttachmentName(attachmentId, new Handler<Either<String, JsonObject>>() {
             @Override
             public void handle(Either<String, JsonObject> event) {
                 if (event.isRight() && event.right().getValue() != null) {
@@ -594,47 +661,7 @@ public class TicketController extends ControllerHelper {
                     RequestUtils.bodyToJson(request, pathPrefix + "commentIssue", new Handler<JsonObject>() {
                         @Override
                         public void handle(JsonObject comment) {
-
-                            // add author name to comment
-                            StringBuilder content = new StringBuilder();
-                            content.append(I18n.getInstance().translate("support.escalated.ticket.author", I18n.acceptLanguage(request)))
-                                    .append(" : ")
-                                    .append(user.getUsername())
-                                    .append("\n")
-                                    .append(comment.getString("content"));
-                            comment.putString("content", content.toString());
-
-                            escalationService.commentIssue(issueId, comment, new Handler<Either<String, JsonObject>>() {
-                                @Override
-                                public void handle(Either<String, JsonObject> event) {
-                                    if (event.isRight()) {
-                                        // get the whole issue (i.e. with attachments' metadata and comments) and save it in postgresql
-                                        refreshIssue(issueId, request);
-                                        // Historization
-                                        ticketService.getTicketFromIssueId(id, new Handler<Either<String, JsonObject>>() {
-                                            @Override
-                                            public void handle(Either<String, JsonObject> res) {
-                                                if (res.isRight()) {
-                                                    final JsonObject ticket = res.right().getValue();
-                                                    ticketService.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.add.bug.tracker.comment", I18n.acceptLanguage(request)),
-                                                            ticket.getInteger("status"), user.getUserId(), new Handler<Either<String, JsonObject>>() {
-                                                                @Override
-                                                                public void handle(Either<String, JsonObject> res) {
-                                                                    if (res.isLeft()) {
-                                                                        log.error("Error creation historization : " + res.left().getValue());
-                                                                    }
-                                                                }
-                                                            });
-                                                } else if (res.isLeft()) {
-                                                    log.error("Error creation historization : " + res.left().getValue());
-                                                }
-                                            }
-                                        });
-                                    } else {
-                                        renderError(request, new JsonObject().putString("error", event.left().getValue()));
-                                    }
-                                }
-                            });
+                            sendIssueComment(user, comment, id, request);
                         }
                     });
                 } else {
@@ -652,7 +679,7 @@ public class TicketController extends ControllerHelper {
             public void handle(Either<String, JsonObject> response) {
                 if (response.isRight()) {
                     final JsonObject issue = response.right().getValue();
-                    ticketService.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
+                    ticketServiceSql.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
 
                         @Override
                         public void handle(Either<String, JsonObject> updateIssueResponse) {
@@ -675,7 +702,7 @@ public class TicketController extends ControllerHelper {
 
     public void createTicketHistoMultiple(List<Integer> idList, String event, Integer newStatus, String userid) {
         for (Integer id : idList) {
-            ticketService.createTicketHisto(id.toString(), event, newStatus, userid, new Handler<Either<String, JsonObject>>() {
+            ticketServiceSql.createTicketHisto(id.toString(), event, newStatus, userid, 2, new Handler<Either<String, JsonObject>>() {
                 @Override
                 public void handle(Either<String, JsonObject> res) {
                     if (res.isLeft()) {
@@ -694,7 +721,7 @@ public class TicketController extends ControllerHelper {
             @Override
             public void handle(final UserInfos user) {
                 if (user != null) {
-                    ticketService.listEvents(ticketId, arrayResponseHandler(request));
+                    ticketServiceSql.listEvents(ticketId, arrayResponseHandler(request));
                 } else {
                     log.debug("User not found in session.");
                     unauthorized(request);
@@ -702,5 +729,52 @@ public class TicketController extends ControllerHelper {
             }
         });
 
+    }
+
+
+    public void sendIssueComment(final UserInfos user, JsonObject comment, final String id, final HttpServerRequest request/*, Handler<Either<String, JsonObject>> handler*/){
+        // add author name to comment
+        StringBuilder content = new StringBuilder();
+        final Integer issueId = Integer.parseInt(id);
+
+        content.append(I18n.getInstance().translate("support.escalated.ticket.author", I18n.acceptLanguage(request)))
+                .append(" : ")
+                .append(user.getUsername())
+                .append("\n")
+                .append(comment.getString("content"));
+        comment.putString("content", content.toString());
+
+        escalationService.commentIssue(issueId, comment, new Handler<Either<String, JsonObject>>() {
+            @Override
+            public void handle(Either<String, JsonObject> event) {
+                if (event.isRight()) {
+                    // get the whole issue (i.e. with attachments' metadata and comments) and save it in postgresql
+                    refreshIssue(issueId, request);
+                    /*
+                    // Historization
+                    ticketServiceSql.getTicketFromIssueId(id, new Handler<Either<String, JsonObject>>() {
+                        @Override
+                        public void handle(Either<String, JsonObject> res) {
+                            if (res.isRight()) {
+                                final JsonObject ticket = res.right().getValue();
+                                ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.add.bug.tracker.comment", I18n.acceptLanguage(request)),
+                                        ticket.getInteger("status"), user.getUserId(), 4, new Handler<Either<String, JsonObject>>() {
+                                            @Override
+                                            public void handle(Either<String, JsonObject> res) {
+                                                if (res.isLeft()) {
+                                                    log.error("Error creation historization : " + res.left().getValue());
+                                                }
+                                            }
+                                        });
+                            } else if (res.isLeft()) {
+                                log.error("Error creation historization : " + res.left().getValue());
+                            }
+                        }
+                    });*/
+                } else {
+                    renderError(request, new JsonObject().putString("error", event.left().getValue()));
+                }
+            }
+        });
     }
 }
