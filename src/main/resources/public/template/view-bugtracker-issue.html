@@ -55,7 +55,7 @@
 				
 	<div ng-if="ticket.issue.journals && ticket.issue.journals.length > 0" class="row">
 		<div ng-repeat="journal in ticket.issue.journals">
-			<article class="comment reduce-block-eight" ng-if="journal.notes && journal.notes.length > 0">
+			<article class="reduce-block-eight" ng-if="journal.notes && journal.notes.length > 0">
 				<span>[[journal.user.name]]</span>
 				<em><i18n>support.on</i18n> [[formatDate(journal.created_on)]]</em>
 				<p class="with-newlines">[[journal.notes]]</p>

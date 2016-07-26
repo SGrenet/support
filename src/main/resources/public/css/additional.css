@@ -12,7 +12,7 @@ i.redminemsg::before {
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     background-image:none;
-    color: #e322ff;
+    color: #AB01CC;
     font-size: 55px;
     line-height: 55px;
     text-align: center;
@@ -24,7 +24,7 @@ i.redmineinfo::before {
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     background-image:none;
-    color: #e322ff;
+    color: #AB01CC;
     font-size: 55px;
     line-height: 55px;
     text-align: center;
@@ -36,7 +36,7 @@ i.ticketmsg::before {
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     background-image:none;
-    color: blue;
+    color: #1A22A2;
     font-size: 55px;
     line-height: 55px;
     text-align: center;
@@ -48,7 +48,7 @@ i.ticketnew::before {
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     background-image:none;
-    color: green;
+    color: #20CC24;
     font-size: 55px;
     line-height: 55px;
     text-align: center;
@@ -60,7 +60,7 @@ i.ticketinfo::before {
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
     background-image:none;
-    color: blue;
+    color: #1A22A2;
     font-size: 55px;
     line-height: 55px;
     text-align: center;
