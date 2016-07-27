@@ -61,10 +61,13 @@ public class OwnerOrLocalAdmin implements ResourcesProvider {
 		values.add(Sql.parseId(ticketId))
 			.add(user.getUserId());
 
-		Map<String, UserInfos.Function> functions = user.getFunctions();
-		if (functions != null  && functions.containsKey(DefaultFunctions.ADMIN_LOCAL)) {
+        Function admin = null;
+
+        Map<String, UserInfos.Function> functions = user.getFunctions();
+		if (functions != null  && (functions.containsKey(DefaultFunctions.ADMIN_LOCAL) || functions.containsKey(DefaultFunctions.SUPER_ADMIN))) {
 			// If current user is a local admin, check that its scope contains the ticket's school_id
 			Function adminLocal = functions.get(DefaultFunctions.ADMIN_LOCAL);
+            // super_admin always are authorized
 			if (adminLocal != null && adminLocal.getScope() != null && !adminLocal.getScope().isEmpty()) {
 				query.append(" OR t.school_id IN (");
 				for (String scope : adminLocal.getScope()) {
@@ -77,15 +80,21 @@ public class OwnerOrLocalAdmin implements ResourcesProvider {
 		}
 
 		query.append(")");
+        admin = functions.get(DefaultFunctions.SUPER_ADMIN);
 
 
-		Sql.getInstance().prepared(query.toString(), values, new Handler<Message<JsonObject>>() {
+        final Function finalAdmin = admin;
+        Sql.getInstance().prepared(query.toString(), values, new Handler<Message<JsonObject>>() {
 			@Override
 			public void handle(Message<JsonObject> message) {
 				request.resume();
 				Long count = SqlResult.countResult(message);
 
-				handler.handle(count != null && count > 0);
+                if( finalAdmin != null  ) {
+                    handler.handle(true);
+                } else {
+                    handler.handle(count != null && count > 0);
+                }
 			}
 		});
 

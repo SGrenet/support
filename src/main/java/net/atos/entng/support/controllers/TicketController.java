@@ -408,7 +408,7 @@ public class TicketController extends ControllerHelper {
             public void handle(final UserInfos user) {
                 if (user != null) {
                     Map<String, UserInfos.Function> functions = user.getFunctions();
-                    if (functions.containsKey(DefaultFunctions.ADMIN_LOCAL)) {
+                    if (functions.containsKey(DefaultFunctions.ADMIN_LOCAL) || functions.containsKey(DefaultFunctions.SUPER_ADMIN)) {
                         ticketServiceSql.listTickets(user, new Handler<Either<String, JsonArray>>() {
                             @Override
                             public void handle(Either<String, JsonArray> event) {
