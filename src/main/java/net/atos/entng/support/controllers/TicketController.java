@@ -29,10 +29,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import net.atos.entng.support.Support;
-import net.atos.entng.support.filters.LocalAdmin;
+import net.atos.entng.support.filters.Admin;
 import net.atos.entng.support.filters.OwnerOrLocalAdmin;
 import net.atos.entng.support.services.EscalationService;
-import net.atos.entng.support.services.TicketServiceNeo4j;
 import net.atos.entng.support.services.TicketServiceSql;
 import net.atos.entng.support.services.UserService;
 
@@ -487,7 +486,7 @@ public class TicketController extends ControllerHelper {
     @Post("/ticket/:id/escalate")
     @ApiDoc("Escalate ticket : the ticket is forwarded to an external bug tracker, a copy of the ticket is saved and will be regularly synchronized")
     @SecuredAction(value = "support.manager", type = ActionType.RESOURCE)
-    @ResourceFilter(LocalAdmin.class)
+    @ResourceFilter(Admin.class)
     public void escalateTicket(final HttpServerRequest request) {
         final String ticketId = request.params().get("id");
 
@@ -608,7 +607,7 @@ public class TicketController extends ControllerHelper {
     @Get("/ticket/:id/bugtrackerissue")
     @ApiDoc("Get bug tracker issue saved in postgresql")
     @SecuredAction(value = "support.manager", type = ActionType.RESOURCE)
-    @ResourceFilter(LocalAdmin.class)
+    @ResourceFilter(Admin.class)
     public void getBugTrackerIssue(final HttpServerRequest request) {
         final String ticketId = request.params().get("id");
         ticketServiceSql.getIssue(ticketId, arrayResponseHandler(request));
@@ -617,7 +616,7 @@ public class TicketController extends ControllerHelper {
     @Get("/gridfs/:id")
     @ApiDoc("Get bug tracker attachment saved in gridfs")
     @SecuredAction(value = "support.manager", type = ActionType.RESOURCE)
-    @ResourceFilter(LocalAdmin.class)
+    @ResourceFilter(Admin.class)
     public void getBugTrackerAttachment(final HttpServerRequest request) {
         final String attachmentId = request.params().get("id");
 
@@ -649,7 +648,7 @@ public class TicketController extends ControllerHelper {
     @Post("/issue/:id/comment")
     @ApiDoc("Add comment to bug tracker issue")
     @SecuredAction(value = "support.manager", type = ActionType.RESOURCE)
-    @ResourceFilter(LocalAdmin.class)
+    @ResourceFilter(Admin.class)
     public void commentIssue(final HttpServerRequest request) {
         final String id = request.params().get("id");
         final Integer issueId = Integer.parseInt(id);

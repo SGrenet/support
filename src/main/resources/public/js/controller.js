@@ -226,7 +226,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 
             // adding the comments from bug tracker.
             if( $scope.isBugTrackerCommDirect ){
-                if( $scope.ticket.issue.journals && $scope.ticket.issue.journals.length > 0 ) {
+                if( $scope.ticket.issue && $scope.ticket.issue.journals && $scope.ticket.issue.journals.length > 0 ) {
                     //get the bug tracker author name
                     $scope.bugTrackerAuthor = $scope.ticket.issue.author.name;
                     $scope.ticket.issue.journals.forEach( function( btComment) {
@@ -619,17 +619,21 @@ function SupportController($scope, template, model, route, $location, orderByFil
 	
 	
 	$scope.userIsLocalAdmin = function(ticket){
-		var isLocalAdmin = (model.me.functions && 
-				model.me.functions.ADMIN_LOCAL && 
-				model.me.functions.ADMIN_LOCAL.scope);
-		
-		if(ticket && ticket.school_id) {
-			// if parameter "ticket" is supplied, check that current user is local administrator for the ticket's school
-			return 	isLocalAdmin && _.contains(model.me.functions.ADMIN_LOCAL.scope, ticket.school_id);
-		}
-		return isLocalAdmin;
-	};
+        // SUPER_ADMIN
+        if( model.me.functions.SUPER_ADMIN ) {
+            return true;
+        }
 
+        // ADMIN_LOCAL
+        var isLocalAdmin = (model.me.functions &&
+        model.me.functions.ADMIN_LOCAL && model.me.functions.ADMIN_LOCAL.scope );
+
+        if(ticket && ticket.school_id) {
+            // if parameter "ticket" is supplied, check that current user is local administrator for the ticket's school
+            return isLocalAdmin && _.contains(model.me.functions.ADMIN_LOCAL.scope, ticket.school_id);
+        }
+        return isLocalAdmin;
+    };
     /**
      * Modification en masse du statut
      * @param newStatus : nouveau statut

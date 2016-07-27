@@ -40,7 +40,7 @@ import org.vertx.java.core.json.JsonObject;
 import fr.wseduc.webutils.http.Binding;
 import fr.wseduc.webutils.http.HttpMethod;
 
-public class LocalAdmin implements ResourcesProvider {
+public class Admin implements ResourcesProvider {
 
 	@Override
 	public void authorize(final HttpServerRequest request, final Binding binding,
@@ -62,13 +62,14 @@ public class LocalAdmin implements ResourcesProvider {
 
 		// Check if current user is a local admin for the ticket's school_id
 		Map<String, UserInfos.Function> functions = user.getFunctions();
-		if (functions == null || !functions.containsKey(DefaultFunctions.ADMIN_LOCAL)) {
+		if (functions == null || !(functions.containsKey(DefaultFunctions.ADMIN_LOCAL) ||functions.containsKey(DefaultFunctions.SUPER_ADMIN) )) {
 			handler.handle(false);
 			return;
 		}
 
 		Function adminLocal = functions.get(DefaultFunctions.ADMIN_LOCAL);
-		if (adminLocal == null || adminLocal.getScope() == null || adminLocal.getScope().isEmpty()) {
+        Function admin = functions.get(DefaultFunctions.SUPER_ADMIN);
+		if ((adminLocal == null || adminLocal.getScope() == null || adminLocal.getScope().isEmpty()) && admin == null ) {
 			handler.handle(false);
 			return;
 		}
@@ -95,13 +96,15 @@ public class LocalAdmin implements ResourcesProvider {
 		}
 		values.add(Sql.parseId(id));
 
-		query.append("AND t.school_id IN (");
-		for (String scope : adminLocal.getScope()) {
-			query.append("?,");
-			values.addString(scope);
-		}
-		query.deleteCharAt(query.length() - 1);
-		query.append(")");
+        if( adminLocal != null ) {
+            query.append("AND t.school_id IN (");
+            for (String scope : adminLocal.getScope()) {
+                query.append("?,");
+                values.addString(scope);
+            }
+            query.deleteCharAt(query.length() - 1);
+            query.append(")");
+        }
 
 		Sql.getInstance().prepared(query.toString(), values, new Handler<Message<JsonObject>>() {
 			@Override
