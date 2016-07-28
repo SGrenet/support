@@ -14,12 +14,12 @@
 				<tr>
                     <th>
                     </th>
-					<th class="one" ng-click="switchSortBy('id')"
+					<th class="one centered" ng-click="switchSortBy('id')"
 					ng-class="{'order-by-reversed': (sort.expression === 'id' && sort.reverse === false),
 								'order-by': (sort.expression === 'id' && sort.reverse === true)}">
 						<i18n>support.ticket.table.id</i18n>
 					</th>
-					<th class="one" ng-click="switchSortBy('status')"
+					<th ng-click="switchSortBy('status')"
 					ng-class="{'order-by-reversed': (sort.expression === 'status' && sort.reverse === false),
 								'order-by': (sort.expression === 'status' && sort.reverse === true)}">
 						<i18n>support.ticket.table.status</i18n>
@@ -27,8 +27,8 @@
 					<th ng-click="switchSortBy('subject')"
 					ng-class="{'order-by-reversed': (sort.expression === 'subject' && sort.reverse === false),
 								'order-by': (sort.expression === 'subject' && sort.reverse === true),
-								'three': userIsLocalAdmin() && atLeastOneTicketEscalated(),
-								'four': !userIsLocalAdmin() || !atLeastOneTicketEscalated()}">
+								'four': userIsLocalAdmin() && atLeastOneTicketEscalated(),
+								'five': !userIsLocalAdmin() || !atLeastOneTicketEscalated()}">
 						<i18n>support.ticket.table.subject</i18n>
 					</th>
 					<th class="one" ng-click="switchSortBy(sortCategoryFunction)"
@@ -47,7 +47,7 @@
 								'order-by': (sort.expression === 'modified' && sort.reverse === true)}">
 						<i18n>support.ticket.table.last.modified</i18n>
 					</th>
-                    <th class="one" ng-click="switchSortBy('event_count')"
+                    <th class="centered" ng-click="switchSortBy('event_count')"
                         ng-class="{'order-by-reversed': (sort.expression === 'event_count' && sort.reverse === false),
 								'order-by': (sort.expression === 'event_count' && sort.reverse === true)}">
                         <i18n>support.ticket.table.event.count</i18n>
@@ -61,17 +61,17 @@
 				</thead>
 			<tbody>
 				<tr ng-repeat="ticket in tickets.all | filter:filterByStatus | orderBy:sort.expression:sort.reverse">
-                    <td><input type="checkbox" ng-model="ticket.selected"></td>
-                    <td class="one" ng-click="viewTicket(ticket.id)">[[ticket.id]]</td>
+                    <td ><input type="checkbox" ng-model="ticket.selected"></td>
+                    <td class="one centered" ng-click="viewTicket(ticket.id)">[[ticket.id]]</td>
 					<td class="one" ng-click="viewTicket(ticket.id)">[[getStatusLabel(ticket.status)]]</td>
 					<td ng-class="userIsLocalAdmin() && atLeastOneTicketEscalated() ? three : four" ng-click="viewTicket(ticket.id)"><b>[[ticket.subject]]</b>&nbsp;[[ticket.short_desc]]
                         <span ng-show="ticket.short_desc.length >= 99">...</span></td>
 					<td class="one" ng-click="viewTicket(ticket.id)">[[getCategoryLabel(ticket.category)]]</td>
 					<td class="one" ng-click="viewTicket(ticket.id)"><a href="/userbook/annuaire#[[ticket.owner]]">[[ticket.owner_name]]</a></td>
                     <td class="one" >[[ticket.profile]]</td>
-					<td class="one" ng-click="viewTicket(ticket.id)">[[formatDate(ticket.modified)]]</td>
-                    <td class="one" ng-click="viewTicket(ticket.id)">[[ticket.event_count]]</td>
-					<td class="one" ng-if="userIsLocalAdmin() && atLeastOneTicketEscalated()">
+					<td class="one smallFontSize" ng-click="viewTicket(ticket.id)">[[formatDate(ticket.modified)]]</td>
+                    <td class="smallFontSize centered" ng-click="viewTicket(ticket.id)">[[ticket.event_count]]</td>
+					<td class="one smallFontSize" ng-if="userIsLocalAdmin() && atLeastOneTicketEscalated()">
 						<span ng-if="ticket.last_issue_update">[[formatDate(ticket.last_issue_update)]]</span>
 					</td>
 				</tr>

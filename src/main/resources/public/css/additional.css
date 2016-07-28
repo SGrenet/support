@@ -6,6 +6,14 @@
   white-space: pre-wrap;
 }
 
+.smallFontSize {
+    font-size: 12px;
+}
+
+.centered {
+    text-align: center;
+}
+
 i.redminemsg::before {
     content: "\E8D2";
     font-family:"fontello";
