@@ -78,7 +78,7 @@
     "support.ticket.table.author": "Demandeur",
     "support.ticket.table.category": "Catégorie",
     "support.ticket.table.event.count":"Evènements",
-    "support.ticket.table.id": "Id",
+    "support.ticket.table.id": "Numéro",
     "support.ticket.table.last.modified": "Dernière modification",
     "support.ticket.table.last.update.of.escalated.ticket": "Demande transmise mise à jour le",
     "support.ticket.table.status": "Statut",
