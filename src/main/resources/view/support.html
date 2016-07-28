@@ -44,7 +44,7 @@
                         </div>
                         <div ng-if="isCreating()">
                             <button ng-click="cancelCreateTicket()" class="cell right-magnet">
-                                <i18n>support.ticket.suivi</i18n>
+                                <i18n>support.ticket.suivi</i18n><span>[["&nbsp;(" + tickets.size() + ")"]]</span>
                             </button>
                         </div>
                     </div>
