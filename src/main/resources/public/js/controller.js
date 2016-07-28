@@ -197,6 +197,9 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.ticket.getComments(function() {
             $scope.initHisto(ticketId);
         });
+        model.getProfile($scope.ticket.owner, function(result) {
+            $scope.ticket.profile = result.profile;
+        });
         if($scope.userIsLocalAdmin($scope.ticket) === true) {
 			$scope.ticket.getBugTrackerIssue();
 		}
