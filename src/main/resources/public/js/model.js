@@ -233,6 +233,14 @@ model.getItemsIds = function (items) {
     return itemArray;
 }
 
+model.getProfile = function(userId, callback) {
+    http().get('/support/profile/' + userId).done(function(result) {
+       if(typeof callback === 'function'){
+           callback(result);
+       }
+    });
+}
+
 model.getEvents = function (ticketId, callback) {
     http().get('/support/events/' + ticketId).done(function(result){
         if(typeof callback === 'function'){

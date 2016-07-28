@@ -474,6 +474,28 @@ public class TicketController extends ControllerHelper {
         renderJson(request, result);
     }
 
+    @Get("/profile/:userId")
+    @ApiDoc("Returns the profile of a user")
+    public void getProfileString(final HttpServerRequest request) {
+        final String userId = request.params().get("userId");
+        TicketServiceNeo4jImpl ticketServiceNeo4j = new TicketServiceNeo4jImpl();
+        JsonArray jsonUserId = new JsonArray();
+        jsonUserId.add(userId);
+        ticketServiceNeo4j.getUsersFromList(jsonUserId, new Handler<Either<String, JsonArray>>() {
+            @Override
+            public void handle(Either<String, JsonArray> event) {
+                if( event.isRight()){
+                    JsonObject jUser = event.right().getValue().get(0);
+                        // traduction porfil
+                        String profil = jUser.getArray("n.profiles").get(0).toString();
+                        profil = I18n.getInstance().translate(profil, I18n.acceptLanguage(request));
+                        JsonObject result = new JsonObject().putString("profile", profil);
+                        renderJson(request, result);
+                }
+            };
+        });
+    }
+
     @Get("/isBugTrackerCommDirect")
     @ApiDoc("Return true if communication with bug tracker is direct. False otherwise")
     @SecuredAction(value = "support.escalation.activation.status", type = ActionType.AUTHENTICATED)

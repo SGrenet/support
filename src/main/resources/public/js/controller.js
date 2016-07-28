@@ -301,6 +301,11 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		$scope.ticket.event_count = 1;
         $scope.ticket.processing = true;
 		
+        // adding profile after creation
+        model.getProfile($scope.me.userId, function(result) {
+            $scope.ticket.profile = result.profile;
+        });
+        
 		if (!$scope.ticket.subject || $scope.ticket.subject.trim().length === 0){
 			notify.error('support.ticket.validation.error.subject.is.empty');
 			$scope.ticket.processing = false;
