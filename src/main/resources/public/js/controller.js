@@ -245,6 +245,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
                                comment.content = btComment.notes;
                                comment.type = 5;
                                comment.isHistory = true;
+                               comment.owner_name = btComment.user.name;
                                $scope.ticket.comments.push(comment);
                            };
                        }
