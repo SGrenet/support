@@ -773,13 +773,20 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 			final Number newStatusId = issue.getObject("issue").getObject("status").getNumber("id");
 			log.debug("Old status_id: " + oldStatusId);
 			log.debug("New status_id:" + newStatusId);
-
 //			if(newStatusId.intValue() != oldStatusId &&
 //					(newStatusId.intValue() == redmineResolvedStatusId.intValue() ||
 //					newStatusId.intValue() == redmineClosedStatusId.intValue())) {
 
-				// get school_id and ticket_id
-				ticketServiceSql.getTicketIdAndSchoolId(issueId, new Handler<Either<String,JsonObject>>() {
+            JsonObject lastEvent = null;
+            if( issue.getObject("issue") != null && issue.getObject("issue").getArray("journals") != null &&
+                    issue.getObject("issue").getArray("journals").size() >= 1) {
+                // getting the last event from the bug tracker for historization
+                lastEvent = issue.getObject("issue").getArray("journals").get(issue.getObject("issue").getArray("journals").size() - 1);
+            }
+            final JsonObject fLastEvent = lastEvent;
+
+			// get school_id and ticket_id
+            ticketServiceSql.getTicketIdAndSchoolId(issueId, new Handler<Either<String,JsonObject>>() {
 					@Override
 					public void handle(Either<String, JsonObject> event) {
 						if(event.isLeft()) {
@@ -841,7 +848,41 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 											notification.notifyTimeline(null, "support." + notificationName, null, recipients, null, params);
                                             // Historization
-                                            ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.bug.tracker.updated", ticket.getString("locale")),
+                                            String additionnalInfoHisto = "";
+                                            String locale = ticket.getString("locale");
+                                            if( fLastEvent != null && fLastEvent.getArray("details") != null  ){
+                                                if( fLastEvent.getArray("details") != null ){
+                                                    JsonArray details = fLastEvent.getArray("details");
+                                                    // do not duplicate identical informations
+                                                    boolean attrFound = false;
+                                                    boolean attachmentFound = false;
+                                                    boolean otherFound = false;
+                                                    for ( Object obj:details ){
+                                                        if (!(obj instanceof JsonObject)) continue;
+                                                        JsonObject detail = (JsonObject) obj;
+                                                        switch( detail.getString("property")){
+                                                            case "attr":
+                                                                if( !attrFound ) {
+                                                                    additionnalInfoHisto += I18n.getInstance().translate("support.ticket.histo.bug.tracker.attr", locale);
+                                                                    attrFound = true;
+                                                                }
+                                                                break;
+                                                            case "attachment":
+                                                                if( !attachmentFound ) {
+                                                                    additionnalInfoHisto += I18n.getInstance().translate("support.ticket.histo.bug.tracker.attachment", locale);
+                                                                    attachmentFound = true;
+                                                                }
+                                                                break;
+                                                            default:
+                                                                if( !otherFound ) {
+                                                                    additionnalInfoHisto += I18n.getInstance().translate("support.ticket.histo.bug.tracker.other", locale);
+                                                                    otherFound = true;
+                                                                }
+                                                                break;
+                                                        }
+                                                    }
+                                                }
+                                            ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.bug.tracker.updated", locale) + additionnalInfoHisto,
                                                 ticket.getInteger("status"), null, 6, new Handler<Either<String, JsonObject>>() {
                                                     @Override
                                                     public void handle(Either<String, JsonObject> res) {
@@ -859,7 +900,9 @@ public class EscalationServiceRedmineImpl implements EscalationService {
                                                         }
                                                     }
                                                 });
-										}
+                                            }
+
+                                        }
 									}
 								}
 							});

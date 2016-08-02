@@ -109,7 +109,10 @@
                 <div class="row" ng-if="comment.isHistory">
                     <a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
                     <em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
-                    <br>[[comment.content]].<br>
+                    <br>
+                    <span ng-if="comment.type!=6">[[comment.content]].</span>
+                    <span ng-if="comment.type==6" ng-bind-html="comment.content" class="htmlComment"></span>
+                    <br>
                     <div ng-if="comment.status">
                         <i18n>support.ticket.status.histo</i18n>
                         <b>[[comment.status]]</b>.
