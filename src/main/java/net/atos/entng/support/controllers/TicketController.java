@@ -628,8 +628,7 @@ public class TicketController extends ControllerHelper {
 
     @Get("/ticket/:id/bugtrackerissue")
     @ApiDoc("Get bug tracker issue saved in postgresql")
-    @SecuredAction(value = "support.manager", type = ActionType.RESOURCE)
-    @ResourceFilter(Admin.class)
+    @SecuredAction(value = "support.escalation.activation.status", type = ActionType.AUTHENTICATED)
     public void getBugTrackerIssue(final HttpServerRequest request) {
         final String ticketId = request.params().get("id");
         ticketServiceSql.getIssue(ticketId, arrayResponseHandler(request));

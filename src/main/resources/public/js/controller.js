@@ -200,9 +200,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
         model.getProfile($scope.ticket.owner, function(result) {
             $scope.ticket.profile = result.profile;
         });
-        if($scope.userIsLocalAdmin($scope.ticket) === true) {
-			$scope.ticket.getBugTrackerIssue();
-		}
+		$scope.ticket.getBugTrackerIssue();
 	};
 
     $scope.viewTicket = function(ticketId) {
