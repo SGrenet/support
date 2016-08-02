@@ -177,7 +177,6 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 
 		JsonArray values = new JsonArray();
 		Function adminLocal = user.getFunctions().get(DefaultFunctions.ADMIN_LOCAL);
-
 		if (adminLocal != null) {
 			List<String> scopesList = adminLocal.getScope();
 			if(scopesList != null && !scopesList.isEmpty()) {
@@ -193,7 +192,10 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 				query.append(" OR t.owner = ?");
 				values.addString(user.getUserId());
 			}
-		}
+		} else {
+            query.append(" WHERE t.school_id IN (?)");
+            values.addString(user.getStructures().get(0)); // SUPER_ADMIN, has only 1 structure.
+        }
 
 		sql.prepared(query.toString(), values, validResultHandler(handler));
 	}
