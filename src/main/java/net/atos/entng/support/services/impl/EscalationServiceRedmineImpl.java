@@ -851,7 +851,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
                                             String additionnalInfoHisto = "";
                                             String locale = ticket.getString("locale");
                                             if( fLastEvent != null && fLastEvent.getArray("details") != null  ){
-                                                if( fLastEvent.getArray("details") != null ){
+                                                if( fLastEvent.getArray("details").size() > 0 ){
                                                     JsonArray details = fLastEvent.getArray("details");
                                                     // do not duplicate identical informations
                                                     boolean attrFound = false;
@@ -881,25 +881,25 @@ public class EscalationServiceRedmineImpl implements EscalationService {
                                                                 break;
                                                         }
                                                     }
-                                                }
-                                            ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.bug.tracker.updated", locale) + additionnalInfoHisto,
-                                                ticket.getInteger("status"), null, 6, new Handler<Either<String, JsonObject>>() {
-                                                    @Override
-                                                    public void handle(Either<String, JsonObject> res) {
-                                                        if (res.isRight()) {
-                                                            ticketServiceSql.updateEventCount(ticket.getInteger("id").toString(), new Handler<Either<String, JsonObject>>() {
-                                                                @Override
-                                                                public void handle(Either<String, JsonObject> res) {
-                                                                    if (res.isLeft()) {
-                                                                        log.error("Error updating ticket (event_count) : " + res.left().getValue());
-                                                                    }
+                                                    ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.bug.tracker.updated", locale) + additionnalInfoHisto,
+                                                        ticket.getInteger("status"), null, 6, new Handler<Either<String, JsonObject>>() {
+                                                            @Override
+                                                            public void handle(Either<String, JsonObject> res) {
+                                                                if (res.isRight()) {
+                                                                    ticketServiceSql.updateEventCount(ticket.getInteger("id").toString(), new Handler<Either<String, JsonObject>>() {
+                                                                        @Override
+                                                                        public void handle(Either<String, JsonObject> res) {
+                                                                            if (res.isLeft()) {
+                                                                                log.error("Error updating ticket (event_count) : " + res.left().getValue());
+                                                                            }
+                                                                        }
+                                                                    });
+                                                                } else {
+                                                                    log.error("Error creation historization : " + res.left().getValue());
                                                                 }
-                                                            });
-                                                        } else {
-                                                            log.error("Error creation historization : " + res.left().getValue());
-                                                        }
-                                                    }
-                                                });
+                                                       }
+                                                        });
+                                                }
                                             }
 
                                         }
