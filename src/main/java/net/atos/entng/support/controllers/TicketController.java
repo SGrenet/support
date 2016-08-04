@@ -539,7 +539,7 @@ public class TicketController extends ControllerHelper {
                         return;
                     }
 
-                    ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.escalate", I18n.acceptLanguage(request)),
+                    ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.escalate", I18n.acceptLanguage(request))+ user.getUsername(),
                             ticket.getInteger("status"), user.getUserId(), 4, new Handler<Either<String, JsonObject>>() {
                                 @Override
                                 public void handle(Either<String, JsonObject> res) {

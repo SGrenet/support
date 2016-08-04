@@ -59,7 +59,7 @@
     "support.ticket.histo.bug.tracker.updated":"La demande escaladée a été mise à jour",
     "support.ticket.histo.mass.modification":"Modification du statut en masse",
     "support.ticket.histo.creation":"Création du ticket",
-    "support.ticket.histo.escalate":"Demande transmise au support",
+    "support.ticket.histo.escalate":"Demande transmise au support par ",
     "support.ticket.histo.modification":"Modification",
     "support.ticket.id": "Numéro",
     "support.ticket.infoRedmine": "Ticket escaladé",
