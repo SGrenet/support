@@ -626,42 +626,77 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 												}
 												else {
 													final JsonObject issue = getIssueEvent.right().getValue();
+                                                    // check if this issue had already been received.
+                                                    ticketServiceSql.getTicketFromIssueId(issueId.toString(), new Handler<Either<String, JsonObject>> () {
+                                                        public void handle(final Either<String, JsonObject> res) {
+                                                            if(res.isRight()) {
+                                                                final JsonObject ticket = res.right().getValue();
+                                                                final DateFormat dfTicket = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+                                                                final DateFormat dfIssue = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                                                                dfIssue.setTimeZone(TimeZone.getTimeZone("UTC"));
+                                                                Date ticketDate = null;
+                                                                Date issueDate = null;
+                                                                if( ticket != null &&
+                                                                        ticket.getString("issue_update_date") != null &&
+                                                                        !"".equals(ticket.getString("issue_update_date")))
+                                                                {
+                                                                    try {
+                                                                        ticketDate = dfTicket.parse(ticket.getString("issue_update_date"));
+                                                                        issueDate = dfIssue.parse(issue.getObject("issue").getString("updated_on"));
+                                                                    } catch (ParseException e) {
+                                                                        e.printStackTrace();
+                                                                    }
+                                                                }
+                                                                if( ticketDate == null || !ticketDate.equals(issueDate)) {
+                                                                    // if the issue_update_date == updated_on, it means the update had already been treated.
+                                                                    // Step 3b) : update issue in postgresql
+                                                                    ticketServiceSql.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
+                                                                        @Override
+                                                                        public void handle(final Either<String, JsonObject> updateIssueEvent) {
+                                                                            if (updateIssueEvent.isRight()) {
+                                                                                log.debug("pullDataAndUpdateIssue OK for issue n°" + issueId);
+                                                                                if (remaining.decrementAndGet() < 1) {
+                                                                                    log.info("pullDataAndUpdateIssue OK for all issues");
+                                                                                }
 
-													// Step 3b) : update issue in postgresql
-													ticketServiceSql.updateIssue(issueId, issue.toString(), new Handler<Either<String, JsonObject>>() {
-														@Override
-														public void handle(final Either<String, JsonObject> updateIssueEvent) {
-															if(updateIssueEvent.isRight()) {
-																log.debug("pullDataAndUpdateIssue OK for issue n°"+issueId);
-																if(remaining.decrementAndGet() < 1) {
-																	log.info("pullDataAndUpdateIssue OK for all issues");
-																}
-
-																EscalationServiceRedmineImpl.this.notifyIssueChanged(issueId, updateIssueEvent.right().getValue(), issue);
-															}
-															else {
-																log.error("pullDataAndUpdateIssue FAILED. Error when updating issue n°"+issueId);
-															}
-														}
-													});
+                                                                                EscalationServiceRedmineImpl.this.notifyIssueChanged(issueId, updateIssueEvent.right().getValue(), issue);
+                                                                                ticketServiceSql.updateTicketIssueUpdateDate(ticket.getLong("id"), issue.getObject("issue").getString("updated_on"), new Handler<Either<String, JsonObject>>() {
+                                                                                    @Override
+                                                                                    public void handle(final Either<String, JsonObject> res){
+                                                                                        if( res.isLeft()){
+                                                                                            log.error("Updating ticket " + ticket.getLong("id").toString() + " failed");
+                                                                                        }
+                                                                                    }
+                                                                                });
+                                                                            } else {
+                                                                                log.error("pullDataAndUpdateIssue FAILED. Error when updating issue n°" + issueId);
+                                                                            }
+                                                                        }
+                                                                    });
 
 
-													// Step 3c) : If "new" attachments have been added in Redmine, download them
-													final JsonArray redmineAttachments = issue.getObject("issue").getArray("attachments", null);
-													if(redmineAttachments != null && redmineAttachments.size() > 0) {
-														boolean existingAttachmentIdsEmpty = existingAttachmentsIds == null || existingAttachmentsIds.size() == 0;
+                                                                    // Step 3c) : If "new" attachments have been added in Redmine, download them
+                                                                    final JsonArray redmineAttachments = issue.getObject("issue").getArray("attachments", null);
+                                                                    if (redmineAttachments != null && redmineAttachments.size() > 0) {
+                                                                        boolean existingAttachmentIdsEmpty = existingAttachmentsIds == null || existingAttachmentsIds.size() == 0;
 
-														for (Object o : redmineAttachments) {
-															if(!(o instanceof JsonObject)) continue;
-															final JsonObject attachment = (JsonObject) o;
-															final Number redmineAttachmentId = attachment.getNumber("id");
+                                                                        for (Object o : redmineAttachments) {
+                                                                            if (!(o instanceof JsonObject)) continue;
+                                                                            final JsonObject attachment = (JsonObject) o;
+                                                                            final Number redmineAttachmentId = attachment.getNumber("id");
 
-															if(existingAttachmentIdsEmpty || !existingAttachmentsIds.contains(redmineAttachmentId)) {
-																final String attachmentUrl = attachment.getString("content_url");
-																EscalationServiceRedmineImpl.this.doDownloadAttachment(attachmentUrl, attachment, issueId);
-															}
-														}
-													}
+                                                                            if (existingAttachmentIdsEmpty || !existingAttachmentsIds.contains(redmineAttachmentId)) {
+                                                                                final String attachmentUrl = attachment.getString("content_url");
+                                                                                EscalationServiceRedmineImpl.this.doDownloadAttachment(attachmentUrl, attachment, issueId);
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                    });
+
 
 												}
 											}

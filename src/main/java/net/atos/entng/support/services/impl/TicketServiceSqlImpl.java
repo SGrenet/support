@@ -23,7 +23,13 @@ import static org.entcore.common.sql.Sql.parseId;
 import static org.entcore.common.sql.SqlResult.validUniqueResultHandler;
 import static org.entcore.common.sql.SqlResult.validResultHandler;
 
+import java.text.DateFormat;
+import java.text.Format;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.ConcurrentMap;
 
 import fr.wseduc.webutils.http.Renders;
@@ -551,6 +557,30 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
         sql.prepared(query, values, validUniqueResultHandler(handler));
     }
 
+    /**
+     * Updates the ticket table, sets the issueUpdateDate field to the last update date managed
+     * @param ticketId
+     * @param updateDate
+     */
+    public void updateTicketIssueUpdateDate(Long ticketId, String updateDate, Handler<Either<String, JsonObject>> handler){
+        String query = "update support.tickets set issue_update_date = to_timestamp(?,?)::timestamp where id = ? ";
+        JsonArray values = new JsonArray();
+        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        df.setTimeZone(TimeZone.getTimeZone("GMT"));
+        Date d = null;
+        try {
+            d = df.parse(updateDate);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        Format formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        values.add(formatter.format(d));
+        values.add("YYYY-MM-dd HH24:MI:SS");
+        values.add(ticketId);
+
+        sql.prepared(query, values, validUniqueResultHandler(handler));
+    }
 
     /**
      *
