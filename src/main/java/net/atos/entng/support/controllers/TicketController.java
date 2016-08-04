@@ -484,9 +484,9 @@ public class TicketController extends ControllerHelper {
         ticketServiceNeo4j.getUsersFromList(jsonUserId, new Handler<Either<String, JsonArray>>() {
             @Override
             public void handle(Either<String, JsonArray> event) {
-                if( event.isRight()){
+                if( event.isRight() && event.right().getValue().size() > 0){
                     JsonObject jUser = event.right().getValue().get(0);
-                        // traduction porfil
+                        // traduction profil
                         String profil = jUser.getArray("n.profiles").get(0).toString();
                         profil = I18n.getInstance().translate(profil, I18n.acceptLanguage(request));
                         JsonObject result = new JsonObject().putString("profile", profil);
