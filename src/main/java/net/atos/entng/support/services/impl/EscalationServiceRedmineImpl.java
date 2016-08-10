@@ -877,8 +877,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 											JsonObject params = new JsonObject();
 											params.putNumber("issueId", issueId)
 												.putNumber("ticketId", ticketId);
-											params.putString("ticketUri", Config.getInstance().getConfig().getString("host", "http://localhost:8027") +
-													"/support#/ticket/" + ticketId);
+											params.putString("ticketUri", "/support#/ticket/" + ticketId);
 											params.putString("resourceUri", params.getString("ticketUri"));
 
 											notification.notifyTimeline(null, "support." + notificationName, null, recipients, null, params);

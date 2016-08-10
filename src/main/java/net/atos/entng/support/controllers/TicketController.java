@@ -243,9 +243,9 @@ public class TicketController extends ControllerHelper {
                         List<String> recipients = new ArrayList<>(recipientSet);
                         if (!recipients.isEmpty()) {
                             JsonObject params = new JsonObject();
-                            params.putString("uri", container.config().getString("host", "http://localhost:8090") +
+                            params.putString("uri", getScheme(request) + "://" + getHost(request) +
                                     "/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
-                            params.putString("ticketUri", container.config().getString("host", "http://localhost:8027") +
+                            params.putString("ticketUri", getScheme(request) + "://" + getHost(request) +
                                     "/support#/ticket/" + ticketId)
                                     .putString("username", user.getUsername())
                                     .putString("ticketid", ticketId)
@@ -378,9 +378,9 @@ public class TicketController extends ControllerHelper {
 
                         if (!recipients.isEmpty()) {
                             JsonObject params = new JsonObject();
-                            params.putString("uri", container.config().getString("host", "http://localhost:8090") +
+                            params.putString("uri", getScheme(request) + "://" + getHost(request) +
                                     "/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
-                            params.putString("ticketUri", container.config().getString("host", "http://localhost:8027") +
+                            params.putString("ticketUri", getScheme(request) + "://" + getHost(request) +
                                     "/support#/ticket/" + ticketId)
                                     .putString("username", user.getUsername())
                                     .putString("ticketid", ticketId)
