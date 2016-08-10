@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import fr.wseduc.webutils.Server;
+import fr.wseduc.webutils.http.Renders;
 import net.atos.entng.support.enums.BugTracker;
 import net.atos.entng.support.services.EscalationService;
 import net.atos.entng.support.services.TicketServiceSql;
@@ -388,7 +389,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 				sb.append(c.getString("owner_name")).append(", ");
 
-				String onDate = I18n.getInstance().translate("support.on", I18n.acceptLanguage(request));
+				String onDate = I18n.getInstance().translate("support.on", Renders.getHost(request), I18n.acceptLanguage(request));
 				sb.append(onDate).append(" ").append(c.getString("created"));
 
 				sb.append("\n\n").append(c.getString("content")).append("\n\n");
@@ -424,11 +425,11 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 
 		// add fields (such as ticket id, application name ...) to description
         final String locale = I18n.acceptLanguage(request);
-		final String categoryLabel = I18n.getInstance().translate("support.escalated.ticket.category", locale);
-		final String ticketOwnerLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.owner", locale);
-        final String ticketIdLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.id", locale);
-		final String schoolNameLabel = I18n.getInstance().translate("support.escalated.ticket.school.name", locale);
-        final String ManagerLabel = I18n.getInstance().translate("support.escalated.ticket.manager", locale);
+		final String categoryLabel = I18n.getInstance().translate("support.escalated.ticket.category", Renders.getHost(request), locale);
+		final String ticketOwnerLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.owner", Renders.getHost(request), locale);
+        final String ticketIdLabel = I18n.getInstance().translate("support.escalated.ticket.ticket.id", Renders.getHost(request), locale);
+		final String schoolNameLabel = I18n.getInstance().translate("support.escalated.ticket.school.name", Renders.getHost(request), locale);
+        final String ManagerLabel = I18n.getInstance().translate("support.escalated.ticket.manager", Renders.getHost(request), locale);
 
 		// get school name and add it to description
 		final String schoolId = ticket.getString("school_id");
@@ -457,7 +458,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 						category = a.getString("name");
 					} else {
 						// Category "Other" is saved as i18n, whereas remaining categories are addresses (e.g. "/support")
-						category = I18n.getInstance().translate(ticket.getString("category"), locale);
+						category = I18n.getInstance().translate(ticket.getString("category"), Renders.getHost(request), locale);
 						if (category.equals(ticket.getString("category"))) {
 							category = category.substring(1);
 						}
@@ -465,7 +466,7 @@ public class EscalationServiceRedmineImpl implements EscalationService {
 				} else {
 					schoolName = schoolId;
 					// Category "Other" is saved as i18n, whereas remaining categories are addresses (e.g. "/support")
-					category = I18n.getInstance().translate(ticket.getString("category"), locale);
+					category = I18n.getInstance().translate(ticket.getString("category"), Renders.getHost(request), locale);
 					if (category.equals(ticket.getString("category"))) {
 						category = category.substring(1);
 					}
@@ -897,25 +898,25 @@ public class EscalationServiceRedmineImpl implements EscalationService {
                                                         switch( detail.getString("property")){
                                                             case "attr":
                                                                 if( !attrFound ) {
-                                                                    additionnalInfoHisto += I18n.getInstance().translate("support.ticket.histo.bug.tracker.attr", locale);
+                                                                    additionnalInfoHisto += I18n.getInstance().translate("support.ticket.histo.bug.tracker.attr", I18n.DEFAULT_DOMAIN, locale);
                                                                     attrFound = true;
                                                                 }
                                                                 break;
                                                             case "attachment":
                                                                 if( !attachmentFound ) {
-                                                                    additionnalInfoHisto += I18n.getInstance().translate("support.ticket.histo.bug.tracker.attachment", locale);
+                                                                    additionnalInfoHisto += I18n.getInstance().translate("support.ticket.histo.bug.tracker.attachment", I18n.DEFAULT_DOMAIN, locale);
                                                                     attachmentFound = true;
                                                                 }
                                                                 break;
                                                             default:
                                                                 if( !otherFound ) {
-                                                                    additionnalInfoHisto += I18n.getInstance().translate("support.ticket.histo.bug.tracker.other", locale);
+                                                                    additionnalInfoHisto += I18n.getInstance().translate("support.ticket.histo.bug.tracker.other", I18n.DEFAULT_DOMAIN, locale);
                                                                     otherFound = true;
                                                                 }
                                                                 break;
                                                         }
                                                     }
-                                                    ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.bug.tracker.updated", locale) + additionnalInfoHisto,
+                                                    ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.bug.tracker.updated", I18n.DEFAULT_DOMAIN, locale) + additionnalInfoHisto,
                                                         ticket.getInteger("status"), null, 6, new Handler<Either<String, JsonObject>>() {
                                                             @Override
                                                             public void handle(Either<String, JsonObject> res) {

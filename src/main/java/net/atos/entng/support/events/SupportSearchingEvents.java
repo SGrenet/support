@@ -135,16 +135,16 @@ public class SupportSearchingEvents extends SqlCrudService implements SearchingE
 				break;
 		}
 
-		return i18n.translate(key, locale);
+		return i18n.translate(key, I18n.DEFAULT_DOMAIN, locale);
 	}
 
 	private String formatCategory(String category, String locale) {
-		final String categoryRes = i18n.translate(category.replace("/", ""), locale);
-		return (categoryRes != null && !categoryRes.isEmpty()) ? categoryRes : i18n.translate("other", locale);
+		final String categoryRes = i18n.translate(category.replace("/", ""), I18n.DEFAULT_DOMAIN, locale);
+		return (categoryRes != null && !categoryRes.isEmpty()) ? categoryRes : i18n.translate("other", I18n.DEFAULT_DOMAIN, locale);
 	}
 
 	private String formatTitle(final String subject, final String category, final int status, final String locale) {
-		return i18n.translate("support.search.title", locale,
+		return i18n.translate("support.search.title", I18n.DEFAULT_DOMAIN, locale,
 				subject, formatCategory(category, locale), formatStatus(status, locale));
 	}
 

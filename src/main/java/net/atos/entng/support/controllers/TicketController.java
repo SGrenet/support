@@ -123,7 +123,7 @@ public class TicketController extends ControllerHelper {
                         if (ticketId == null) {
                             notifyTicketCreated(request, user, response, ticket);
                             response.putString("owner_name", user.getUsername());
-                            ticketServiceSql.createTicketHisto(response.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.creation", I18n.acceptLanguage(request)),
+                            ticketServiceSql.createTicketHisto(response.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.creation", getHost(request), I18n.acceptLanguage(request)),
                                     ticket.getInteger("status"), user.getUserId(), 1, new Handler<Either<String, JsonObject>>() {
                                         @Override
                                         public void handle(Either<String, JsonObject> res) {
@@ -144,7 +144,7 @@ public class TicketController extends ControllerHelper {
                             });
                             // we only historize if no comment has been added. If there is a comment, it will appear in the history
                             if( ticket.getField("newComment") == null || "".equals(ticket.getField("newComment")) ) {
-                                ticketServiceSql.createTicketHisto(ticketId, I18n.getInstance().translate("support.ticket.histo.modification", I18n.acceptLanguage(request)),
+                                ticketServiceSql.createTicketHisto(ticketId, I18n.getInstance().translate("support.ticket.histo.modification", getHost(request), I18n.acceptLanguage(request)),
                                         ticket.getInteger("status"), user.getUserId(), 2,  new Handler<Either<String, JsonObject>>() {
                                             @Override
                                             public void handle(Either<String, JsonObject> res) {
@@ -316,7 +316,7 @@ public class TicketController extends ControllerHelper {
                                 @Override
                                 public void handle(Either<String, JsonObject> event) {
                                     if (event.isRight()) {
-                                        createTicketHistoMultiple(ids, I18n.getInstance().translate("support.ticket.histo.mass.modification", I18n.acceptLanguage(request)), newStatus, user.getUserId());
+                                        createTicketHistoMultiple(ids, I18n.getInstance().translate("support.ticket.histo.mass.modification", getHost(request), I18n.acceptLanguage(request)), newStatus, user.getUserId());
                                         request.response().setStatusCode(200).end();
                                         //renderJson(request, wholeIssue);
                                     } else {
@@ -437,7 +437,7 @@ public class TicketController extends ControllerHelper {
                                                     JsonObject jUser = (JsonObject)user;
                                                     // traduction porfil
                                                     String profil = jUser.getArray("n.profiles").get(0).toString();
-                                                    profil = I18n.getInstance().translate(profil, I18n.acceptLanguage(request));
+                                                    profil = I18n.getInstance().translate(profil, getHost(request), I18n.acceptLanguage(request));
                                                     // iterator on tickets, to see if the ids match
                                                     for( Object ticket : jsonListTickets) {
                                                         if (!(ticket instanceof JsonObject)) continue;
@@ -488,7 +488,7 @@ public class TicketController extends ControllerHelper {
                     JsonObject jUser = event.right().getValue().get(0);
                         // traduction profil
                         String profil = jUser.getArray("n.profiles").get(0).toString();
-                        profil = I18n.getInstance().translate(profil, I18n.acceptLanguage(request));
+                        profil = I18n.getInstance().translate(profil, getHost(request), I18n.acceptLanguage(request));
                         JsonObject result = new JsonObject().putString("profile", profil);
                         renderJson(request, result);
                 }
@@ -539,7 +539,7 @@ public class TicketController extends ControllerHelper {
                         return;
                     }
 
-                    ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.escalate", I18n.acceptLanguage(request))+ user.getUsername(),
+                    ticketServiceSql.createTicketHisto(ticket.getInteger("id").toString(), I18n.getInstance().translate("support.ticket.histo.escalate", getHost(request), I18n.acceptLanguage(request))+ user.getUsername(),
                             ticket.getInteger("status"), user.getUserId(), 4, new Handler<Either<String, JsonObject>>() {
                                 @Override
                                 public void handle(Either<String, JsonObject> res) {
@@ -757,7 +757,7 @@ public class TicketController extends ControllerHelper {
         StringBuilder content = new StringBuilder();
         final Integer issueId = Integer.parseInt(id);
 
-        content.append(I18n.getInstance().translate("support.escalated.ticket.author", I18n.acceptLanguage(request)))
+        content.append(I18n.getInstance().translate("support.escalated.ticket.author", getHost(request), I18n.acceptLanguage(request)))
                 .append(" : ")
                 .append(user.getUsername())
                 .append("\n")
