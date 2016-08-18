@@ -53,7 +53,7 @@
         <label class="two cell"><i18n>support.ticket.subject</i18n></label>
         <span class="four cell">[[ticket.subject]]</span>
         <div class="six cell">
-            <a ng-if="ticket.escalation_status === escalationStatuses.SUCCESSFUL && !isBugTrackerCommDirect" ng-click="openBugTrackerIssue()">
+            <a ng-if="ticket.escalation_status === escalationStatuses.SUCCESSFUL && !isBugTrackerCommDirect && userIsLocalAdmin(ticket) === true" ng-click="openBugTrackerIssue()">
                 <i18n>support.open.escalated.ticket</i18n>
             </a>
 
