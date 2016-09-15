@@ -243,10 +243,8 @@ public class TicketController extends ControllerHelper {
                         List<String> recipients = new ArrayList<>(recipientSet);
                         if (!recipients.isEmpty()) {
                             JsonObject params = new JsonObject();
-                            params.putString("uri", getScheme(request) + "://" + getHost(request) +
-                                    "/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
-                            params.putString("ticketUri", getScheme(request) + "://" + getHost(request) +
-                                    "/support#/ticket/" + ticketId)
+                            params.putString("uri", "/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
+                            params.putString("ticketUri", "/support#/ticket/" + ticketId)
                                     .putString("username", user.getUsername())
                                     .putString("ticketid", ticketId)
                                     .putString("ticketsubject", shortenSubject(ticketSubject));
@@ -378,10 +376,8 @@ public class TicketController extends ControllerHelper {
 
                         if (!recipients.isEmpty()) {
                             JsonObject params = new JsonObject();
-                            params.putString("uri", getScheme(request) + "://" + getHost(request) +
-                                    "/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
-                            params.putString("ticketUri", getScheme(request) + "://" + getHost(request) +
-                                    "/support#/ticket/" + ticketId)
+                            params.putString("uri", "/userbook/annuaire#" + user.getUserId() + "#" + user.getType());
+                            params.putString("ticketUri", "/support#/ticket/" + ticketId)
                                     .putString("username", user.getUsername())
                                     .putString("ticketid", ticketId)
                                     .putString("ticketsubject", shortenSubject(ticketSubject));
