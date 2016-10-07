@@ -105,7 +105,6 @@
     "support.label.status":"Statut",
     "support.histo.back":"Retour",
     "support.search.title" : "{0} sur la catégorie {1} ({2})",
-    /*TODO use core searching api */
     "actualites": "Actualités",
     "collaborativeeditor": "Pad",
     "sharebigfiles": "Téléchargement de fichier lourd",
