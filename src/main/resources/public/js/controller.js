@@ -332,6 +332,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		}
 		
 		$scope.createProtectedCopies($scope.ticket, true, function() {
+			$scope.ticket.id=null;
 			template.open('main', 'list-tickets');
 			$scope.ticket.processing = false;
 			$scope.ticket.createTicket($scope.ticket, function() {

@@ -49,6 +49,8 @@
         </div>
     </div>
 
+    <hr style="border-style: inset; padding: 0px; border-width: 1px;">
+
     <div class="row">
         <label class="two cell"><i18n>support.ticket.subject</i18n></label>
         <span class="four cell">[[ticket.subject]]</span>
@@ -86,7 +88,7 @@
     <div class="row" ng-if="ticket.comments !== undefined && !ticket.comments.isEmpty()">
         <div class="cell-no-float notification" ng-repeat="comment in ticket.comments.all | orderBy: ['created']">
             <div style="display:table-cell" ng-switch="comment.isHistory">
-                <div ng-switch-when="true">
+                <div ng-switch-when="true" style="padding-top: 38              %;">
                     <i ng-switch="comment.type">
                         <i ng-switch-when="1" class="ticketnew table-cell-left" style="display:table-cell"></i>
                         <i ng-switch-when="2" class="ticketinfo table-cell-left" style="display:table-cell"></i>
@@ -108,7 +110,7 @@
                 </article>
                 <div class="row" ng-if="comment.isHistory">
                     <a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
-                    <em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
+                    <em style="font-size:10px;"><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
                     <br>
                     <span ng-if="comment.type!=6">[[comment.content]].</span>
                     <span ng-if="comment.type==6" ng-bind-html="comment.content" class="htmlComment"></span>
