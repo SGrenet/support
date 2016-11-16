@@ -58,12 +58,11 @@
 				<textarea ng-model="editedTicket.newComment"></textarea>
 			</div>
 			<div class="ten cell right-magnet" ng-if="ticket.attachments !== undefined && !ticket.attachments.isEmpty()">
-				<ul>
-					<li class="row" ng-repeat="attachment in ticket.attachments.all">
-						<a href="/workspace/document/[[attachment.document_id]]">[[attachment.name]]</a>
-						&nbsp;<em>[[attachment.owner_name]] <i18n>support.on</i18n> [[formatDate(attachment.created)]]</em>
-					</li>
-				</ul>
+				<br>
+				<span class="row" ng-repeat="attachment in ticket.attachments.all">
+					<i class="attachment ng-scope"></i>&nbsp;<a href="/workspace/document/[[attachment.document_id]]">[[attachment.name]]</a>
+					&nbsp;<em>[[attachment.owner_name]] <i18n>support.on</i18n> [[formatDate(attachment.created)]]</em>
+				</span>
 			</div>
 		</div>
 
