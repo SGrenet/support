@@ -241,7 +241,7 @@ public class TicketServiceSqlImpl extends SqlCrudService implements TicketServic
 		// 1) WITH query to update status
 		query.append("WITH updated_ticket AS (")
 			.append(" UPDATE support.tickets")
-			.append(" SET escalation_status = ?, escalation_date = NOW()")
+			.append(" SET escalation_status = ?, escalation_date = NOW(), status = 2 ")
 			.append(" WHERE id = ?");
 		values.add(EscalationStatus.IN_PROGRESS.status())
 			.add(parseId(ticketId));
