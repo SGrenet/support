@@ -1,11 +1,11 @@
 <article class="twelve cell">
 	<form class="row">
 		<div class="row">
-			<label class="two cell"><i18n>support.ticket.category</i18n></label>
+			<label class="two cell center"><i18n>support.ticket.category</i18n></label>
 			<span class="ten cell">
 				<select ng-model="ticket.category"
 					ng-init="ticket.category = ticket.category || apps[0].address"
-					ng-options="app.address as app.displayName for app in apps">
+					ng-options="app.address as app.displayName for app in apps | orderBy:'displayName'">
 				</select>
 			</span>
 		</div>
@@ -19,16 +19,16 @@
 			</span>
 		</div>
 		<div class="row">
-			<label class="two cell"><i18n>support.ticket.subject</i18n></label>
+			<label class="two cell center"><i18n>support.ticket.subject</i18n></label>
 			<input class="ten cell" type="text" ng-model="ticket.subject" />
 		</div>
 		<div class="row">
-			<label class="two cell"><i18n>support.ticket.description</i18n></label>
+			<label class="two cell center"><i18n>support.ticket.description</i18n></label>
 			<div class="ten cell">
 				<textarea ng-model="ticket.description"></textarea>
 			</div>
 		</div>
-		<div class="row">
+		<div class="row align-button">
 			<attachments apps="['workspace']" ng-model="ticket.newAttachments"></attachments>
 		</div>
 		<div class="row">

@@ -73,3 +73,13 @@ i.ticketinfo::before {
     line-height: 55px;
     text-align: center;
 }
+
+/*Centrage label ticket 10892*/
+.two.cell.center{
+    text-align: end;
+    padding-right: 20px;
+}
+
+.align-button{
+    padding-left:207px;
+}
