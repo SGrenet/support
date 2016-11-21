@@ -10,7 +10,7 @@
 			</span>
 		</div>
 		<div class="row" ng-hide="schools.length === 1">
-			<label class="two cell"><i18n>support.ticket.school</i18n></label>
+			<label class="two cell center"><i18n>support.ticket.school</i18n></label>
 			<span class="ten cell">
 				<select ng-model="ticket.school_id"
 					ng-init="ticket.school_id = schools[0].id"
@@ -28,8 +28,12 @@
 				<textarea ng-model="ticket.description"></textarea>
 			</div>
 		</div>
-		<div class="row align-button">
-			<attachments apps="['workspace']" ng-model="ticket.newAttachments"></attachments>
+		<div class="row ">
+			<div class="two cell">&nbsp;
+			</div>
+			<div class="ten cell">
+				<attachments apps="['workspace']" ng-model="ticket.newAttachments"></attachments>
+			</div>
 		</div>
 		<div class="row">
 			<div ng-if="!ticket.processing">
