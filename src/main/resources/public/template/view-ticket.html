@@ -87,7 +87,7 @@
     <div class="row" ng-if="ticket.comments !== undefined && !ticket.comments.isEmpty()">
         <div class="cell-no-float notification" ng-repeat="comment in ticket.comments.all | orderBy: ['created']">
             <div style="display:table-cell" ng-switch="comment.isHistory">
-                <div ng-switch-when="true">
+                <div ng-switch-when="true" style="padding-top: 38%;">
                     <i ng-switch="comment.type">
                         <i ng-switch-when="1" class="ticketnew table-cell-left" style="display:table-cell"></i>
                         <i ng-switch-when="2" class="ticketinfo table-cell-left" style="display:table-cell"></i>
@@ -96,7 +96,7 @@
                         <i ng-switch-when="6" class="redmineinfo table-cell-left" style="display:table-cell"></i>
                     </i>
                 </div>
-                <div ng-switch-default>
+                <div ng-switch-default style="padding-top: 38%;">
                     <i class="ticketmsg table-cell-left" style="display:table-cell"></i>
                 </div>
             </div>
