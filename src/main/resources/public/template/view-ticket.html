@@ -101,15 +101,15 @@
                 </div>
             </div>
 
-            <div class="table-cell" style="display:table-cell; vertical-align:top; padding-left:10px">
-                <article class="reduce-block-eight" ng-if="!comment.isHistory">
+            <div class="table-cell" style="display:table-cell; vertical-align:top; padding-left:10px;width:100%">
+                <article class="reduce-block-eight" ng-if="!comment.isHistory" style="position: relative;">
                     <a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
-                    <em><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
+                    <em style="font-size:10px; position: absolute; right: 10px;" right-magnet><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
                     <p class="with-newlines">[[comment.content]]</p>
                 </article>
                 <div class="row" ng-if="comment.isHistory">
                     <a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
-                    <em style="font-size:10px;"><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
+                    <em style="font-size:10px; position: absolute; right: 10px;" right-magnet><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
                     <br>
                     <span ng-if="comment.type!=6">[[comment.content]].</span>
                     <span ng-if="comment.type==6" ng-bind-html="comment.content" class="htmlComment"></span>
