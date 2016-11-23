@@ -553,6 +553,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
 		};
 		
 		$scope.ticket.escalateTicket(successCallback, e500Callback, e400Callback);
+		$scope.ticket.status = 2;
 	};
 	
 	$scope.openBugTrackerIssue = function() {
