@@ -207,7 +207,7 @@ function SupportController($scope, template, model, route, $location, orderByFil
         window.location.hash = '/ticket/' + ticketId;
     };
 
-    // called when opening ticket
+    // called when opening ticket and updating
     $scope.initHisto = function(ticketId) {
         model.getEvents(ticketId, function(result) {
             template.open('histo-ticket', 'histo-ticket');
@@ -495,7 +495,8 @@ function SupportController($scope, template, model, route, $location, orderByFil
 				$scope.ticket.newAttachments = [];
 
                 // clean the collection and refill (either comment or histo can be added).
-                $scope.ticket.comments.slice(0, $scope.ticket.comments.length + 1);
+				$scope.ticket.comments.all = [];
+
                 $scope.ticket.getComments(function() {
                     $scope.initHisto($scope.ticket.id);
                 });
