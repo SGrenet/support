@@ -111,7 +111,7 @@
                     <a href="/userbook/annuaire#[[comment.owner]]">[[comment.owner_name]]</a>
                     <em style="font-size:10px; position: absolute; right: 10px;" right-magnet><i18n>support.on</i18n> [[formatDate(comment.created)]]</em>
                     <br>
-                    <span ng-if="comment.type!=6">[[comment.content]].</span>
+                    <span ng-if="comment.type!=6" class="with-newlines">[[comment.content]].</span>
                     <span ng-if="comment.type==6" ng-bind-html="comment.content" class="htmlComment"></span>
                     <br>
                     <div ng-if="comment.status">
