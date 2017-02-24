@@ -66,11 +66,6 @@ function SupportController($scope, template, model, route, $location, orderByFil
 			status : undefined
 		};
 		
-		$scope.schools = [];
-		for (var i=0; i < model.me.structures.length; i++) {
-			$scope.schools.push({id: model.me.structures[i], name: model.me.structureNames[i]});
-		}
-		
 		// Clone status enum and add i18n value
 		var statusEnum = JSON.parse(JSON.stringify(model.ticketStatusEnum));
 		for (var status in statusEnum.properties) {
@@ -120,6 +115,11 @@ function SupportController($scope, template, model, route, $location, orderByFil
             }
         };
 
+		$scope.schools = [];
+
+		model.getUserStructures($scope.me.userId, function(result) {
+			$scope.schools =result.structures;
+		});		
     };
 
 	$scope.filterByStatus = function(item) {

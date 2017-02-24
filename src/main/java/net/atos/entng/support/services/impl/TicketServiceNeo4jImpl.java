@@ -28,4 +28,12 @@ public class TicketServiceNeo4jImpl {
 
         neo4j.execute(query, params, validResultHandler(handler));
     }
+
+    public void getUserStructures(String userId, Handler<Either<String, JsonArray>> handler) {
+        String query = "match (u:User)-[IN]->(p:ProfileGroup)-[DEPENDS]->(s:Structure) where u.id = {id} return distinct s.id as id, s.name as name order by s.name;";
+
+        JsonObject params = new JsonObject().putString("id", userId);
+
+        neo4j.execute(query, params, validResultHandler(handler));
+    }
 }

@@ -241,6 +241,15 @@ model.getProfile = function(userId, callback) {
     });
 }
 
+
+model.getUserStructures = function(userId, callback) {
+	http().get('/support/userStructures/' + userId).done(function(result) {
+		if(typeof callback === 'function'){
+			callback(result);
+		}
+	});
+}
+
 model.getEvents = function (ticketId, callback) {
     http().get('/support/events/' + ticketId).done(function(result){
         if(typeof callback === 'function'){

@@ -492,6 +492,23 @@ public class TicketController extends ControllerHelper {
         });
     }
 
+    @Get("/userStructures/:userId")
+    @ApiDoc("Returns the profile of a user")
+    public void getUserStructures(final HttpServerRequest request) {
+        final String userId = request.params().get("userId");
+        TicketServiceNeo4jImpl ticketServiceNeo4j = new TicketServiceNeo4jImpl();
+        ticketServiceNeo4j.getUserStructures(userId, new Handler<Either<String, JsonArray>>() {
+            @Override
+            public void handle(Either<String, JsonArray> event) {
+                if( event.isRight() && event.right().getValue().size() > 0){
+                    JsonArray structures = event.right().getValue();
+                    JsonObject result = new JsonObject().putArray("structures", structures);
+                    renderJson(request, result);
+                }
+            };
+        });
+    }
+
     @Get("/isBugTrackerCommDirect")
     @ApiDoc("Return true if communication with bug tracker is direct. False otherwise")
     @SecuredAction(value = "support.escalation.activation.status", type = ActionType.AUTHENTICATED)
