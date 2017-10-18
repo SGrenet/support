@@ -666,7 +666,7 @@ public class TicketController extends ControllerHelper {
                         public void handle(Buffer data) {
                             request.response()
                                     .putHeader("Content-Disposition",
-                                            "attachment; filename=" + filename)
+                                            "attachment; filename=\"" + filename + "\"")
                                     .setChunked(true)
                                     .write(data).end();
                         }
