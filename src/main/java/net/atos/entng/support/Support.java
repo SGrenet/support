@@ -36,7 +36,9 @@ import org.entcore.common.sql.SqlConf;
 import org.entcore.common.sql.SqlConfs;
 import org.entcore.common.storage.Storage;
 import org.entcore.common.storage.StorageFactory;
+import org.entcore.common.storage.impl.PostgresqlApplicationStorage;
 import org.vertx.java.core.eventbus.EventBus;
+import org.vertx.java.core.json.JsonObject;
 
 
 public class Support extends BaseServer {
@@ -53,7 +55,9 @@ public class Support extends BaseServer {
 		addController(new DisplayController());
 
 		final BugTracker bugTrackerType = BugTracker.REDMINE; // TODO : read bugTracker from module configuration
-		final Storage storage = new StorageFactory(vertx, config).getStorage();
+		final Storage storage = new StorageFactory(vertx, config,
+				new PostgresqlApplicationStorage("support.attachments", Support.class.getSimpleName(),
+						new JsonObject().putString("id", "document_id"))).getStorage();
 
 		TicketServiceSql ticketServiceSql = new TicketServiceSqlImpl(bugTrackerType);
 		UserService userService = new UserServiceDirectoryImpl(eb);
