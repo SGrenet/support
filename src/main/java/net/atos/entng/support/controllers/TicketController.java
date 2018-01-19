@@ -661,16 +661,7 @@ public class TicketController extends ControllerHelper {
                     String name = event.right().getValue().getString("name", null);
                     final String filename = (name != null && name.trim().length() > 0) ? name : "filename";
 
-                    storage.readFile(attachmentId, new Handler<Buffer>() {
-                        @Override
-                        public void handle(Buffer data) {
-                            request.response()
-                                    .putHeader("Content-Disposition",
-                                            "attachment; filename=\"" + filename + "\"")
-                                    .setChunked(true)
-                                    .write(data).end();
-                        }
-                    });
+                    storage.sendFile(attachmentId, filename, request, false, null);
                 } else {
                     renderError(request, new JsonObject().putString("error",
                             "support.get.attachment.metadata.error.data.cannot.be.retrieved.from.database"));
